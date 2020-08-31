@@ -48,7 +48,7 @@ def plot_select(r,sf,label,**kwargs):
     return r_in,r_out
     
 with SurveysDB(readonly=True) as sdb:
-    sdb.cur.execute('select fields.id as id,gal_l as ra,gal_b as decl,fields.status as status,observations.status as ostatus,observations.location as location,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority from fields left join observations on (observations.field=fields.id) group by fields.id having ostatus is not null')
+    sdb.cur.execute('select fields.id as id,gal_l as ra,gal_b as decl,lotss_field,fields.status as status,observations.status as ostatus,observations.location as location,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority from fields left join observations on (observations.field=fields.id) group by fields.id having lotss_field=1 and ostatus is not null and ostatus!="Scheduled"')
     #sdb.cur.execute('select * from fields where status!="Not started"')
     results=sdb.cur.fetchall()
 
