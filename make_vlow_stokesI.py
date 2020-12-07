@@ -93,7 +93,7 @@ def do_rsync_download(cname,basedir,f):
     while True:
         excludeinclude = ' --include="image_full_ampphase_di_m.NS.mask01.fits" --include="image_full_ampphase_di_m.NS.app.restored.fits" --include="image_full_low_m*fits" --exclude="*QU_*" --exclude="*fits*" --exclude="*.tgz*" --exclude="*QU_*" --exclude="*DDS0*" --exclude="*DDS1*" --exclude="*DDS2*" --exclude="*.corrupted" '
         s= 'rsync -azvh --timeout=20 --progress --perms --chmod=a+rwx'+ excludeinclude + target+workdir + ' ' + f
-        #'cd '+workdir+'; rsync -avz --progress --safe-links --inplace --append --partial --timeout=20 '+' '.join(f)+' '+target+'/disks/paradata/shimwell/LoTSS-DR2/archive/'+name
+        #'cd '+workdir+'; rsync -avz --progress --safe-links --inplace --append --partial --timeout=20 '+' '.join(f)+' '+target+'/disks/paradata/shimwell/LoTSS-DR2/archive_DR2_final/'+name
         print('Running command:',s)
         retval=call(s,shell=True)
         if retval==0:
@@ -118,7 +118,7 @@ def do_download(cname, basedir='.'):
     
     update_status(cname,'Downloading')
     os.chdir(basedir)
-    do_rsync_download(cname,'/disks/paradata/shimwell/LoTSS-DR2/archive/',os.getcwd())
+    do_rsync_download(cname,'/disks/paradata/shimwell/LoTSS-DR2/archive_DR2_final/',os.getcwd())
     os.chdir(cname)
     striparchivename()
 
