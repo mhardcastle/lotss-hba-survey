@@ -10,13 +10,13 @@ from auxcodes import run
 from make_vlow_stokesI import update_status,die
 from upload import myglob, do_rsync, images
 
-def do_upload(field):
-    basedir='/beegfs/car/mjh/vlow'
+def do_upload(field,basedir):
     workdir=basedir+'/'+field
     f=myglob('*.archive0',workdir)
     f+=images('image_full_vlow_nocut_m',workdir)
     f+=['WSCLEAN_low-MFS-image-int.fits','WSCLEAN_low-MFS-image.fits']
     do_rsync(field,basedir,f)
+    update_status(field,'Uploaded')
 
 def subtract_sources():
     update_status(None,'Subtracting')
@@ -68,7 +68,7 @@ if __name__=='__main__':
     elif sys.argv[1]=='cleanidg':
         run_wsclean(useIDG=True,name='WSCLEAN_IDG')
     elif sys.argv[1]=='upload':
-        do_upload(field)
+        do_upload(field,'/beegfs/car/mjh/vlow')
     else:
         raise RuntimeError('Failed to parse command')
     

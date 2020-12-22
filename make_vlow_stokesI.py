@@ -84,25 +84,28 @@ def striparchivename():
   return
 
 
-def do_rsync_download(cname,basedir,f):
+def do_rsync_download(cname,basedirs,f):
 
-    workdir=basedir+'/'+cname # directory on remote host to download
+    for b in basedirs:
+        workdir=b+'/'+cname # directory on remote host to download
 
-    target=os.environ['DDF_PIPELINE_LEIDENUSER']+'@ssh.strw.leidenuniv.nl:'
+        target=os.environ['DDF_PIPELINE_LEIDENUSER']+'@ssh.strw.leidenuniv.nl:'
 
-    while True:
-        excludeinclude = ' --include="image_full_ampphase_di_m.NS.mask01.fits" --include="image_full_ampphase_di_m.NS.app.restored.fits" --include="image_full_low_m*fits" --exclude="*QU_*" --exclude="*fits*" --exclude="*.tgz*" --exclude="*QU_*" --exclude="*DDS0*" --exclude="*DDS1*" --exclude="*DDS2*" --exclude="*.corrupted" '
-        s= 'rsync -azvh --timeout=20 --progress --perms --chmod=a+rwx'+ excludeinclude + target+workdir + ' ' + f
-        #'cd '+workdir+'; rsync -avz --progress --safe-links --inplace --append --partial --timeout=20 '+' '.join(f)+' '+target+'/disks/paradata/shimwell/LoTSS-DR2/archive_DR2_final/'+name
-        print('Running command:',s)
-        retval=call(s,shell=True)
+        while True:
+            excludeinclude = ' --include="image_full_ampphase_di_m.NS.mask01.fits" --include="image_full_ampphase_di_m.NS.app.restored.fits" --include="image_full_low_m*fits" --exclude="*QU_*" --exclude="*fits*" --exclude="*.tgz*" --exclude="*QU_*" --exclude="*DDS0*" --exclude="*DDS1*" --exclude="*DDS2*" --exclude="*.corrupted" '
+            s= 'rsync -azvh --timeout=20 --progress --perms --chmod=a+rwx'+ excludeinclude + target+workdir + ' ' + f
+            #'cd '+workdir+'; rsync -avz --progress --safe-links --inplace --append --partial --timeout=20 '+' '.join(f)+' '+target+'/disks/paradata/shimwell/LoTSS-DR2/archive_DR2_final/'+name
+            print('Running command:',s)
+            retval=call(s,shell=True)
+            if retval==0 or retval==23:
+                break
+            print('Non-zero return value',retval)
+            if retval!=30:
+                die('rsync failed unexpectedly',cname)
+            sleep(10)
         if retval==0:
             break
-        print('Non-zero return value',retval)
-        if retval!=30:
-            die('rsync failed unexpectedly',cname)
-        sleep(10)
-
+    return retval==0
 
 def do_download(cname, basedir='.'):
     # check whether download is needed -- saves rsync
@@ -118,15 +121,16 @@ def do_download(cname, basedir='.'):
     
     update_status(cname,'Downloading')
     os.chdir(basedir)
-    do_rsync_download(cname,'/disks/paradata/shimwell/LoTSS-DR2/archive_DR2_final/',os.getcwd())
-    os.chdir(cname)
-    striparchivename()
-
-    success=make_list(workdir=os.getcwd())
-    if not success:
+    if do_rsync_download(cname,['/disks/paradata/shimwell/LoTSS-DR2/archive_DR2_final/','/disks/paradata/shimwell/LoTSS-DR2/archive/'],os.getcwd()):
+        os.chdir(cname)
+        striparchivename()
+        success=make_list(workdir=os.getcwd())
+        if not success:
+            update_status(cname,'Download failed')
+            raise RuntimeError('Failed to make mslist')
+    else:
         update_status(cname,'Download failed')
-        raise RuntimeError('Failed to make mslist')
-    
+        raise RuntimeError('Failed to download')
     #filechecker()
     fixsymlinks()
     update_status(cname,'Downloaded')
