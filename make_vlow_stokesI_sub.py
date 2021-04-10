@@ -9,6 +9,7 @@ import glob
 from auxcodes import run
 from make_vlow_stokesI import update_status,die
 from upload import myglob, do_rsync, images
+from astropy.io import fits
 
 def do_upload(field,basedir):
     workdir=basedir+'/'+field
@@ -52,7 +53,7 @@ def run_wsclean(useIDG=False,stringMultiscaleScales = "0,4,8,16,32,64,128,256", 
     beam=dint[0].data/dapp[0].data                    
     wsuc=fits.open('WSCLEAN_low-MFS-image.fits')
     wsuc[0].data*=beam[0,0,12:-13,12:-13]                 
-    wsuc.write('WSCLEAN_low-MFS-image-int.fits')  
+    wsuc.writeto('WSCLEAN_low-MFS-image-int.fits')  
 
     update_status(None,'WSCLEAN complete')
     

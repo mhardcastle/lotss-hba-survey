@@ -154,6 +154,10 @@ if __name__=='__main__':
                 outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%s, %s</td><td>%s, %s, %s</td><td>%s</td><td>%s, %s, %s, %s</td></tr>\n' % (id,r['ra'],r['decl'],r['end_date'],scale,fint,fapp,lowint,lowapp,band[0],band[1],band[2],stokesv,stokesqu,stokesquvlow,stokesqu_app,stokesquvlow_app))
 
         outfile.close()
+
+        separator('Publications list')
+        os.system('python /home/mjh/python/ads_library.py')
+
         separator('Quality pipeline')
         os.system('queue_quality.py')
         separator('Sleeping')

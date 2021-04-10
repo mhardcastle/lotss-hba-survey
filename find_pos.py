@@ -28,7 +28,7 @@ class Finder(object):
             self.t=table_from_dict_list(results)
             self.t['sc']=SkyCoord(self.t['ra'],self.t['decl'],unit=u.deg)
             
-    def find(self,ra,dec,offset=4,verbose=False,check_obs=False):
+    def find(self,ra,dec,offset=4,verbose=False,check_obs=False,return_t=False):
         if check_obs:
             sdb=SurveysDB(readonly=True)
 
@@ -53,6 +53,12 @@ class Finder(object):
                     bestfield=r
         if check_obs:
             sdb.close()
+
+        if return_t:
+            print('Returning t')
+            del t['sc']
+            t.sort('sep')
+            return t
             
         if minoffset is None:
             return None

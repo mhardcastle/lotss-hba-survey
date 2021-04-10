@@ -85,6 +85,7 @@ plt.scatter(ra_r,dec_r,marker='o',color='blue',alpha=0.2,zorder=-5,edgecolors='n
 
 _,r=plot_select(results,lambda r:r['dr1']==1,label='Complete (DR1)',color='magenta')
 _,r=plot_select(r,lambda r:r['lgz']==1,label='Complete (internal)',color='orange')
+_,r=plot_select(r,lambda r:r['gz_status']=='Paused',label='Paused',color='red')
 _,r=plot_select(r,lambda r:r['gz_status']=='Complete',label='Complete',color='green')
 _,r=plot_select(r,lambda r:r['gz_status'] in ['In progress'],label='In progress',color='cyan')
 _,r=plot_select(r,lambda r:r['gz_status'] in ['Created','Downloading'],label='Ready to upload',color='yellow')

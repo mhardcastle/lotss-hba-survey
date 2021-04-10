@@ -1,7 +1,7 @@
 from surveys_db import SurveysDB
 
 with SurveysDB(readonly=True) as sdb:
-    sdb.cur.execute('select * from fields where decl>30 and decl<70 and ra>120 and ra<250 and status="Archived"')
+    sdb.cur.execute('select * from fields where (ra>=45 and ra<=75) and decl>=15 and decl<=35 and status="Archived"')
     res=sdb.cur.fetchall()
 
 for r in res:

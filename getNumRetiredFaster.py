@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 from __future__ import print_function
+import requests
 import panoptes_client
-from panoptes_client import Panoptes, Subject, SubjectSet, Project, SubjectWorkflowStatus
+from panoptes_client import Panoptes, Subject, SubjectSet, Project, Workflow, SubjectWorkflowStatus
 from panoptes_client.set_member_subject import SetMemberSubject
 import getpass
 import glob
@@ -21,7 +22,8 @@ while True:
     try:
         project = Project.find(id=projectId)
         print(project.display_name)
-        ssets = project.links.subject_sets
+        workflow=Workflow(assocAndIdWorkflow)
+        ssets = workflow.links.subject_sets # not project!
         workflows = project.links.workflows
 
         workflowStatuses = SubjectWorkflowStatus.where(
@@ -54,6 +56,10 @@ while True:
         print('Panoptes API exception:',e)
         sleep(60)
         continue
+    except requests.exceptions.ConnectionError as e:
+        print('Connection error:',e)
+        sleep(60)
+        continue
         
     #print(ssetRetirementStats)
 
@@ -61,9 +67,9 @@ while True:
     with SurveysDB() as sdb:
         for k in ssetRetirementStats:
             if k[0]=='P':
-                print(k,ssetRetirementStats[k])
-                total+=1
                 r=sdb.get_field(k)
+                print(k,ssetRetirementStats[k],r['rgz_sources'],r['weave_priority'])
+                total+=1
                 if r is not None:
                     r['rgz_complete']=ssetRetirementStats[k]
                     if r['rgz_complete']==r['rgz_sources']:

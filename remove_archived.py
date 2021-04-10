@@ -19,7 +19,7 @@ try:
 except:
     pass
 
-if len(sys.argv)>1:
+if len(sys.argv)>2:
     selected=sys.argv[2:]
 else:
     selected=None
@@ -29,13 +29,16 @@ for r in results:
     location=r['location']
     if not location:
         continue
+    if not os.path.isdir(location):
+        continue
+    print(r['id'],r['location'])
     g=len(glob.glob(location+'/*.archive'))
     g2=len(glob.glob(location+'/*.fz'))
     print(r['id'], g, g2)
     if selected is not None and r['id'] not in selected:
         print('Failed selection, skipping')
         continue
-    if g>3 and g2==4 or selected is not None:
+    if g>3 or selected is not None:
         print('Deleting files from',r['id'],'at',location)
         print('In DR2 dir:',len(glob.glob('/data/lofar/DR2/fields/'+r['id']+'/*NS*int*.fits')),len(glob.glob('/data/lofar/DR2/fields/'+r['id']+'/*.fz')))
         if dryrun:

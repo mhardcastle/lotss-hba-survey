@@ -13,6 +13,9 @@ import threading
 
 target='/data/lofar/DR2/RGZ/'
 lgz=os.environ['LGZPATH']
+for k in ['LOTSS_COMPONENT_CATALOGUE','PANOPTES_PASSWORD']:
+    if k not in os.environ:
+        raise RuntimeError('Variable %s not set' % k)
 
 def update_status(id,**kwargs):
     with SurveysDB() as sdb:
@@ -46,14 +49,30 @@ def download(id):
     else:
         raise RuntimeError('Download failed!')
     
-    
+def check_fields():
+    # check for incorrect numbers of sources
+    with SurveysDB(readonly=True) as sdb:
+        sdb.cur.execute('select * from fields where gz_status="Created" or gz_status="In progress"')
+        res=sdb.cur.fetchall()
+    for r in res:
+        id=r['id']
+        n=r['rgz_sources']
+        nr=len(glob.glob(target+id+'/*-manifest.txt'))
+        if n!=nr:
+            print(id,n,nr)
+            update_status(id,rgz_sources=nr)
+               
 
 def make_images(id):
     print('Making images for %s' % id)
     update_status(id,gz_status="Creating images")
     result=os.system('cd %s; python %s/lgz_create/make_overlays_legacy_cscale.py %s 0 9999' % (target+id, lgz, id+'.fits'))
     if result==0:
-        update_status(id,gz_status='Created')
+        n=len(glob.glob(target+id+'/*manifest.txt'))
+        if n==0:
+            update_status(id,gz_status='No sources')
+        else:
+            update_status(id,gz_status='Created',rgz_sources=n)
     else:
         raise RuntimeError('Make images failed!')
 

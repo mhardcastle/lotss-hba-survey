@@ -19,7 +19,7 @@ tidy_thread=None
 upload_name=None
 upload_thread=None
 basedir='/beegfs/car/mjh/vlow'
-totallimit=10
+totallimit=20
 
 os.chdir(basedir)
 
@@ -28,7 +28,7 @@ while True:
     with SurveysDB(readonly=True) as sdb:
         sdb.cur.execute('select * from fields where vlow_image is not NULL order by end_date desc')
         result=sdb.cur.fetchall()
-        sdb.cur.execute('select * from fields where vlow_image="Required" order by end_date desc')
+        sdb.cur.execute('select * from fields where vlow_image="Required" order by decl desc')
         result2=sdb.cur.fetchall()
         if len(result2)>0:
             nextfield=result2[0]['id']
@@ -94,6 +94,22 @@ while True:
                 command="qsub -v FIELD=%s -N vlow-%s /home/mjh/pipeline-master/ddf-pipeline/torque/vlow_image.qsub" % (field, field)
                 if os.system(command)==0:
                     update_status(field,"Queued")
+
+    if 'DDF complete' in d:
+        for r in result:
+            if r['vlow_image']=='DDF complete':
+                field=r['id']
+                command="qsub -v FIELD=%s -N subtract-%s /home/mjh/pipeline-py3/ddf-pipeline/torque/vlow_subtract.qsub" % (field, field)
+                if os.system(command)==0:
+                    update_status(field,"Subtract queued")
+
+    if 'Subtracted' in d:
+        for r in result:
+            if r['vlow_image']=='Subtracted':
+                field=r['id']
+                command="qsub -v FIELD=%s -N subimage-%s /home/mjh/pipeline-py3/ddf-pipeline/torque/vlow_image_subtracted.qsub" % (field, field)
+                if os.system(command)==0:
+                    update_status(field,"WSCLEAN queued")
 
     if 'Uploaded' in d:
         for r in result:
