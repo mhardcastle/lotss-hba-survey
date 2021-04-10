@@ -29,7 +29,10 @@ def make_custom_config(name,workdir,do_field,averaged=False):
         lotss_field=True
 
     if no_wenss:
-        template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018-NVSS.cfg'
+        if idd['decl']<10.0:
+            template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018-lowdec.cfg'
+        else:
+            template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018-NVSS.cfg'
     else:
         template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018.cfg'
 
