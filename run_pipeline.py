@@ -13,7 +13,7 @@ from unpack import unpack
 from make_mslists import make_list,list_db_update
 from average import average
 from auxcodes import MSList
-from make_custom_config import make_custom_config
+from make_custom_config import make_custom_config,choose_qsub_file
 import numpy as np
 import sys
 import os
@@ -25,9 +25,6 @@ def do_run_pipeline(name,basedir,qsubfile=None,do_field=True):
     and imaging a particular observation
 
     '''
-    if qsubfile is None:
-        qsubfile='/home/mjh/pipeline-master/ddf-pipeline/torque/pipeline.qsub'
-
     workdir=basedir+'/'+name
     try:
         os.mkdir(workdir)
@@ -89,9 +86,13 @@ def do_run_pipeline(name,basedir,qsubfile=None,do_field=True):
         
     report('Creating custom config file from template')
     make_custom_config(name,workdir,do_field,averaged)
+
+    if qsubfile is None:
+        report('Choosing qsub file')
+        qsubfile=choose_qsub_file(name,workdir,do_field)
     
     # now run the job
-    do_run_job(name,basedir=basedir,qsubfile=None,do_field=do_field,dysco=dysco)
+    do_run_job(name,basedir=basedir,qsubfile=qsubfile,do_field=do_field,dysco=dysco)
 
 
 if __name__=='__main__':

@@ -11,6 +11,7 @@ import numpy as np
 import os
 from surveys_db import SurveysDB
 from time import sleep
+import datetime
 
 user = 'mjh22'
 password = os.environ['PANOPTES_PASSWORD']
@@ -21,6 +22,7 @@ assocAndIdWorkflow = 11973
 while True:
     try:
         project = Project.find(id=projectId)
+        print(datetime.datetime.now())
         print(project.display_name)
         workflow=Workflow(assocAndIdWorkflow)
         ssets = workflow.links.subject_sets # not project!
