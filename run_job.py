@@ -16,7 +16,7 @@ def do_run_job(name,basedir,qsubfile=None,do_field=True,prefix='ddfp',dysco=Fals
         print('Local config file exists, using that')
         config=',CONFIG='+g[0]
     if qsubfile is None:
-        qsubfile='/home/mjh/pipeline-master/ddf-pipeline/torque/pipeline.qsub'
+        qsubfile='/home/mjh/pipeline-master/ddf-pipeline/torque/pipeline-fdr14.qsub'
     if dysco:
         qsubfile=qsubfile.replace('.qsub','-fdr14.qsub')
     report('Submit job')

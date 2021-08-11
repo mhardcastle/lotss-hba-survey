@@ -11,9 +11,8 @@ from download_field import download_field
 from run_job import do_run_job
 from unpack import unpack
 from make_mslists import make_list,list_db_update
-from average import average
-from auxcodes import MSList
 from make_custom_config import make_custom_config,choose_qsub_file
+from check_structure import do_check_structure
 import numpy as np
 import sys
 import os
@@ -22,8 +21,8 @@ import glob
 def do_run_pipeline(name,basedir,qsubfile=None,do_field=True):
     '''
     set do_field False for the now obsolete behaviour of downloading
-    and imaging a particular observation
-
+    and imaging a particular observation -- this probably doesn't work any more
+    with do_field True the database must be present
     '''
     workdir=basedir+'/'+name
     try:
@@ -54,28 +53,13 @@ def do_run_pipeline(name,basedir,qsubfile=None,do_field=True):
     os.system('rm '+workdir+'/*.tar.gz')
     os.system('rm '+workdir+'/*.tar')
 
-    averaged=False
     report('Checking structure')
-    g=glob.glob(workdir+'/*.ms')
-    msl=MSList(None,mss=g)
-    dysco=np.any(msl.dysco)
-    uobsids=set(msl.obsids)
-    for thisobs in uobsids:
-        # check one MS with each ID
-        for m,ch,o,hc in zip(msl.mss,msl.channels,msl.obsids,msl.hascorrected):
-            if o==thisobs:
-                if not(hc):
-                    print('MS',m,'has no corrected_data column, force use of DATA')
-                    averaged=True
-                channels=len(ch)
-                print('MS',m,'has',channels,'channels')
-                if channels>20:
-                    update_status(name,'Averaging',workdir=workdir)
-                    print('Averaging needed for',thisobs,'!')
-                    averaged=True
-                    average(wildcard=workdir+'/*'+thisobs+'*')
-                    os.system('rm -r '+workdir+'/*'+thisobs+'*pre-cal.ms')
-                break
+    try:
+        averaged,dysco=do_check_structure(workdir=workdir)
+    except RuntimeError:
+        if do_field:
+            update_status('Check failed',workdir=workdir)
+        raise
     
     report('Making ms lists')
     success=make_list(workdir=workdir)

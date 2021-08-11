@@ -83,5 +83,11 @@ if __name__=='__main__':
             averaged=True
     except:
         pass
-    make_custom_config(sys.argv[1],'.',True,averaged)
+
+    try:
+        field=sys.argv[1]
+    except:
+        field=os.path.basename(os.getcwd())
+    
+    make_custom_config(field,'.',True,averaged)
     
