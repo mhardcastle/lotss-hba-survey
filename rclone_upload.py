@@ -13,22 +13,123 @@ import sys
 import os
 import glob
 from subprocess import call
-
+from auxcodes import report, warn
 from upload import images, shiftimages
+from fixsymlinks import fixsymlinks
 
-def make_tar(tarname,files,workdir,skip=True):
-    outfile=tarname+'.tar'
-    if os.path.isfile(workdir+'/_archive/'+outfile) and skip:
-        print(outfile,'exists, skipping')
-    else:
-        command='cd %s; tar cvf _archive/%s.tar %s' % (workdir,tarname,' '.join(files))
-        print('Running',command)
-        retval=call(command,shell=True)
-        if retval!=0:
-            raise RuntimeError('tar command failed unexpectedly!')
-    return [outfile]
+from astropy.io import fits
+
+readme={'README.txt':'This file',
+        'summary.txt':'Summary of ddf-pipeline run',
+        'logs':'Logfile directory',
+        'fits_headers':'FITS headers of image files',
+        'mslist.txt':'Original MS list',
+        'big-mslist.txt':'Full MS list',
+        'pslocal-fit_state.pickle':'Full offsets fitting structure',
+        'SKO-pslocal.png':'Offset plot for the field',
+        'crossmatch-1.fits':'Bootstrap catalogue iteration 1',
+        'crossmatch-2.fits':'Bootstrap catalogue iteration 2',
+        'crossmatch-results-1.npy':'Bootstrap results iteration 1',
+        'crossmatch-results-2.npy':'Bootstrap results iteration 2',
+        'astromap.fits':'Astrometry accuracy map',
+        'image_full_ampphase_di_m.NS.app.restored.fits':'Full-resolution final image in apparent flux',
+        'image_full_ampphase_di_m.NS.int.restored.fits':'Full-resolution final primary-beam corrected image',
+        'image_full_ampphase_di_m.NS.int.model.fits':'Full-resolution model image',
+        'image_full_ampphase_di_m.NS.int.residual.fits':'Full-resolution residual image',
+        'image_full_ampphase_di_m.NS.mask01.fits':'Full-resolution final mask',
+        'image_full_ampphase_di_m.NS.DicoModel':'Full-resolution final DicoModel',
+        'image_full_ampphase_di_m.NS.tessel.reg':'Full-resolution facet region file',
+        'image_full_low_m.app.restored.fits':'20-arcsec resolution final image in apparent flux',
+        'image_full_low_m.int.restored.fits':'20-arcsec resolution final primary-beam corrected image',
+        'image_full_low_m.int.model.fits':'20-arcsec resolution model image',
+        'image_full_low_m.int.residual.fits':'20-arcsec resolution residual image',
+        'image_full_low_m.mask01.fits':'20-arcsec resolution final mask',
+        'image_full_low_m.DicoModel':'20-arcsec resolution final DicoModel',
+        'image_full_low_m.tessel.reg':'20-arcsec resolution facet region file',
+        'image_full_ampphase_di_m.NS_Band0_shift.app.facetRestored.fits':'Full-resolution Band 0 image in apparent flux',
+        'image_full_ampphase_di_m.NS_Band0_shift.int.facetRestored.fits':'Full-resolution Band 0 primary-beam corrected image',
+        'image_full_ampphase_di_m.NS_Band1_shift.app.facetRestored.fits':'Full-resolution Band 1 image in apparent flux',
+        'image_full_ampphase_di_m.NS_Band1_shift.int.facetRestored.fits':'Full-resolution Band 1 primary-beam corrected image',
+        'image_full_ampphase_di_m.NS_Band2_shift.app.facetRestored.fits':'Full-resolution Band 2 image in apparent flux',
+        'image_full_ampphase_di_m.NS_Band2_shift.int.facetRestored.fits':'Full-resolution Band 2 primary-beam corrected image',
+        'image_full_low_QU.cube.dirty.fits.fz':'Compressed undeconvolved 20-arcsec resolution QU cube in apparent flux',
+        'image_full_low_QU.cube.dirty.corr.fits.fz':'Compressed undeconvolved 20-arcsec resolution QU cube with primary beam correction',
+        'image_full_low_stokesV.dirty.fits':'Undeconvolved 20-arcsec resolution Stokes V image in apparent flux',
+        'image_full_low_stokesV.dirty.corr.fits':'Undeconvolved 20-arcsec resolution Stokes V image with primary beam correction',
+        'image_full_low_stokesV.SmoothNorm.fits':'Undeconvolved 20-arcsec resolution Stokes V image with smooth primary beam correction',
+        'image_full_vlow_QU.cube.dirty.fits.fz':'Compressed undeconvolved 60-arcsec resolution QU cube in apparent flux',
+        'image_full_vlow_QU.cube.dirty.corr.fits.fz':'Compressed undeconvolved 60-arcsec resolution QU cube with primary beam correction'}
+
+def dump_headers(workdir,files):
+    # code from Yan Grange adapted to work in general directory
+    try:
+        os.mkdir(workdir+"/fits_headers")
+    except OSError:
+        pass       # We don't care if the dir already exists
+
+    for fitsfile in files:
+        if fitsfile.endswith('.fz') or fitsfile.endswith('.fits'):
+            hdrs = list()
+            with fits.open(workdir+'/'+fitsfile) as fhand:
+                for hdu in fhand:
+                    hdrs.append(hdu.header)
+
+            for ctr, hdr in enumerate(hdrs):
+                hdr.totextfile(workdir+"/fits_headers/"+fitsfile+"."+str(ctr)+".hdr", overwrite=True)
+
+class Tarrer(object):
+    ''' Instrumented tar file creator which can keep a record of FITS files used and make readme files on the fly '''
+    def __init__(self,workdir):
+        self.workdir=workdir
+        self.files=[]
+        self.tars=[]
+
+    def make_readme(self,tarname,files):
+
+        with open(self.workdir+'/README.txt','w') as outfile:
+            outfile.write('Contents for '+tarname+'.tar\n\n')
+            contents=[]
+            ml=0
+            for f in sorted(files):
+                d='???'
+                if f in readme:
+                    d=readme[f]
+                else:
+                    for k,v in readme.iteritems():
+                        if f.endswith(k):
+                            d=readme[k]
+                contents.append([f,d])
+                if len(f)>ml:
+                    ml=len(f)
+            for f,d in contents:
+                outfile.write(("%-"+str(ml+1)+"s: %s\n") % (f,d))
+
+    def remove_readme(self):
+        os.unlink(self.workdir+'/README.txt')
+                
+    def make_tar(self,tarname,files,skip=True,readme=False):
+        report('Creating '+tarname)
+        workdir=self.workdir
+        outfile=tarname+'.tar'
+        if readme:
+            files.append('README.txt')
+            self.make_readme(tarname,files)
+        
+        if os.path.isfile(workdir+'/_archive/'+outfile) and skip:
+            warn(outfile+' exists, skipping')
+        else:
+            command='cd %s; tar cvf _archive/%s.tar %s' % (workdir,tarname,' '.join(files))
+            warn('Running '+command)
+            retval=call(command,shell=True)
+            if retval!=0:
+                raise RuntimeError('tar command failed unexpectedly!')
+        self.files+=files
+        self.tars.append(outfile)
+        if readme:
+            self.remove_readme()
 
 class MyGlob(object):
+    '''trivial glob wrapper that is initialized with a working directory'''
     def __init__(self,workdir):
         self.workdir=workdir
     def glob(self,g):
@@ -54,44 +155,54 @@ def upload_field(name,basedir=None):
     if not (idd['lotss_field']>0) or idd['proprietary_date'] is not None:
         other=True
 
-    print('Current field status is',idd['status'])
+    warn('Current field status is '+idd['status'])
 
-    update_status(name,'Creating tar',workdir=workdir)
+    report('Fixing symlinks...')
+    fixsymlinks('DDS3_full',verbose=False)
+    fixsymlinks('DDS3_full_slow',stype='merged',verbose=False)
+    fixsymlinks('DDS2_full',verbose=False)
+    report('Creating tar files')
+    update_status(name,'Creating tars',workdir=workdir)
     m=MyGlob(workdir)
-    tars=[]
-    tars+=make_tar('misc',['summary.txt','logs']+
-                   m.glob('*-fit_state.pickle') +
-                   m.glob('*.png') +
-                   m.glob('*mslist*txt') +
-                   m.glob('*crossmatch-results*') +
-                   m.glob('*crossmatch-*.fits'),
-                   workdir)
-    tars+=make_tar('uv',m.glob('*.archive')+['SOLSDIR']+
-                   m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'),workdir)
-    imagelist=['image_dirin_SSD_m.npy.ClusterCat.npy','astromap.fits']+images('image_full_ampphase_di_m.NS',workdir)+images('image_full_low_m',workdir)
+    t=Tarrer(workdir)
+
+    t.make_tar('uv',m.glob('*.archive')+['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg','SOLSDIR']+
+                   m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
+    imagelist=['astromap.fits']+images('image_full_ampphase_di_m.NS',workdir)+images('image_full_low_m',workdir)
     if idd['do_spectral_restored']!=0:
         for i in range(3):
             imagelist+=shiftimages('image_full_ampphase_di_m.NS_Band%i' %i)
-    tars+=make_tar('images',imagelist,workdir)
+    t.make_tar('images',imagelist,readme=True)
 
     if idd['do_polcubes']!=0:
-        tars+=make_tar('stokes',m.glob('image_full_low_stokesV.dirty.*')+
-                       m.glob('image_full_low_stokesV.SmoothNorm.fits')+
-                       m.glob('image_full_low_QU.cube.*'),workdir)
-        tars+=make_tar('stokes_vlow',m.glob('image_full_vlow_QU.cube.*'),workdir)
+        t.make_tar('stokes_large',
+                       m.glob('image_full_low_QU.cube.*'),readme=True)
+        t.make_tar('stokes_small',m.glob('image_full_low_stokesV.dirty.*')+
+                       m.glob('image_full_low_stokesV.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*'),readme=True)
     if idd['do_dynspec']!=0:
-        tars+=make_tar('dynspec',m.glob('DynSpecs*.tgz'),workdir)
-    print('tars is',tars)
-    update_status(name,'Created tar',workdir=workdir)
+        t.make_tar('dynspec',m.glob('DynSpecs*.tgz'))
 
+    # now we can get FITS headers from files we've added
+    report('Make FITS header directory')
+    dump_headers(workdir,t.files)
+        
+    t.make_tar('misc',['summary.txt','logs','fits_headers','mslist.txt','big-mslist.txt']+
+                   m.glob('*-fit_state.pickle') +
+                   m.glob('*.png') +
+                   m.glob('*crossmatch-results*') +
+                   m.glob('*crossmatch-*.fits'),readme=True)
+
+    update_status(name,'Created tar',workdir=workdir)
+    report('Uploading')
     rc=RClone('maca_sksp_tape_DDF.conf',debug=True)
     rc.get_remote()
     if other:
         remote='other/'+name
     else:
         remote='archive/'+name
-    d=rc.execute_live(['-P','copy','_archive']+[rc.remote+'/'+remote])
+    d=rc.execute_live(['-P','copy',workdir+'/_archive']+[rc.remote+'/'+remote])
     if d['err'] or d['code']!=0:
+        update_status(name,'rclone failed',workdir=workdir)
         raise RuntimeError('rclone upload failed!')
     update_status(name,'rcloned',workdir=workdir)
 
