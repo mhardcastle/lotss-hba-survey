@@ -13,11 +13,12 @@ import sys
 import os
 import glob
 from subprocess import call
-from auxcodes import report, warn
+from auxcodes import report, warn, die
 from upload import images, shiftimages
 from fixsymlinks import fixsymlinks
 
 from astropy.io import fits
+from zlib import adler32
 
 readme={'README.txt':'This file',
         'summary.txt':'Summary of ddf-pipeline run',
@@ -59,6 +60,23 @@ readme={'README.txt':'This file',
         'image_full_low_stokesV.SmoothNorm.fits':'Undeconvolved 20-arcsec resolution Stokes V image with smooth primary beam correction',
         'image_full_vlow_QU.cube.dirty.fits.fz':'Compressed undeconvolved 60-arcsec resolution QU cube in apparent flux',
         'image_full_vlow_QU.cube.dirty.corr.fits.fz':'Compressed undeconvolved 60-arcsec resolution QU cube with primary beam correction'}
+
+
+def adler32_checksum(filename):
+
+    BLOCKSIZE=256*1024*1024
+    asum = 1
+    with open(filename,'rb') as f:
+        while True:
+            data = f.read(BLOCKSIZE)
+            if not data:
+                break
+            asum = adler32(data, asum)
+            if asum < 0:
+                asum += 2**32
+    checksum_local = hex(asum)[2:10].zfill(8).lower()
+
+    return checksum_local
 
 def dump_headers(workdir,files):
     # code from Yan Grange adapted to work in general directory
@@ -118,11 +136,11 @@ class Tarrer(object):
         if os.path.isfile(workdir+'/_archive/'+outfile) and skip:
             warn(outfile+' exists, skipping')
         else:
-            command='cd %s; tar cvf _archive/%s.tar %s' % (workdir,tarname,' '.join(files))
+            command='cd %s; tar cf _archive/%s.tar %s' % (workdir,tarname,' '.join(files))
             warn('Running '+command)
             retval=call(command,shell=True)
             if retval!=0:
-                raise RuntimeError('tar command failed unexpectedly!')
+                die('tar command failed unexpectedly!',database=False)
         self.files+=files
         self.tars.append(outfile)
         if readme:
@@ -203,10 +221,29 @@ def upload_field(name,basedir=None):
     d=rc.execute_live(['-P','copy',workdir+'/_archive']+[rc.remote+'/'+remote])
     if d['err'] or d['code']!=0:
         update_status(name,'rclone failed',workdir=workdir)
-        raise RuntimeError('rclone upload failed!')
+        die('rclone upload failed!',database=False)
     update_status(name,'rcloned',workdir=workdir)
 
-                      
+    report('Validate checksums')
+
+    for tarfile in t.tars:
+        print('Checking',tarfile)
+        remote_checksum=rc.get_checksum(remote+'/'+tarfile)
+        print('Computing local checksum, please wait...')
+        local_checksum=adler32_checksum(workdir+'/_archive/'+tarfile)
+        if remote_checksum!=local_checksum:
+            update_status(name,'checksum failed',workdir=workdir)
+            die('Checksum failed! '+remote_checksum+' '+local_checksum,database=False)
+        else:
+            print('Checksum OK!')
+
+    update_status(name,'Verified',workdir=workdir)
+
+    report('Tidying up')
+    for tarfile in t.tars:
+        os.unlink(workdir+'/_archive/'+tarfile)
+    os.rmdir(workdir+'/_archive')
+    
     
 if __name__=='__main__':
     import sys
