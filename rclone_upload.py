@@ -187,6 +187,7 @@ def upload_field(name,basedir=None):
     t.make_tar('uv',m.glob('*.archive')+['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg','SOLSDIR']+
                    m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
     imagelist=['astromap.fits']+images('image_full_ampphase_di_m.NS',workdir)+images('image_full_low_m',workdir)
+    imagelist+=shiftimages('image_full_ampphase_di_m.NS')
     if idd['do_spectral_restored']!=0:
         for i in range(3):
             imagelist+=shiftimages('image_full_ampphase_di_m.NS_Band%i' %i)
@@ -196,7 +197,7 @@ def upload_field(name,basedir=None):
         t.make_tar('stokes_large',
                        m.glob('image_full_low_QU.cube.*'),readme=True)
         t.make_tar('stokes_small',m.glob('image_full_low_stokesV.dirty.*')+
-                       m.glob('image_full_low_stokesV.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*'),readme=True)
+                       m.glob('image_full_*_stokesV.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*'),readme=True)
     if idd['do_dynspec']!=0:
         t.make_tar('dynspec',m.glob('DynSpecs*.tgz'))
 
@@ -243,7 +244,8 @@ def upload_field(name,basedir=None):
     for tarfile in t.tars:
         os.unlink(workdir+'/_archive/'+tarfile)
     os.rmdir(workdir+'/_archive')
-    
+
+    report('Upload completed successfully!')
     
 if __name__=='__main__':
     import sys
