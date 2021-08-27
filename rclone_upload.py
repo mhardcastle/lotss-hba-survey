@@ -35,6 +35,8 @@ readme={'README.txt':'This file',
         'astromap.fits':'Astrometry accuracy map',
         'image_full_ampphase_di_m.NS.app.restored.fits':'Full-resolution final image in apparent flux',
         'image_full_ampphase_di_m.NS.int.restored.fits':'Full-resolution final primary-beam corrected image',
+        'image_full_ampphase_di_m.NS_shift.app.facetRestored.fits':'Full-resolution final image in apparent flux with astrometric corrections applied',
+        'image_full_ampphase_di_m.NS_shift.int.facetRestored.fits':'Full-resolution final primary-beam corrected image with astrometric corrections applied',
         'image_full_ampphase_di_m.NS.int.model.fits':'Full-resolution model image',
         'image_full_ampphase_di_m.NS.int.residual.fits':'Full-resolution residual image',
         'image_full_ampphase_di_m.NS.mask01.fits':'Full-resolution final mask',
@@ -196,7 +198,7 @@ def upload_field(name,basedir=None):
     if idd['do_polcubes']!=0:
         t.make_tar('stokes_large',
                        m.glob('image_full_low_QU.cube.*'),readme=True)
-        t.make_tar('stokes_small',m.glob('image_full_low_stokesV.dirty.*')+
+        t.make_tar('stokes_small',m.glob('image_full_*_stokesV.dirty.*')+
                        m.glob('image_full_*_stokesV.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*'),readme=True)
     if idd['do_dynspec']!=0:
         t.make_tar('dynspec',m.glob('DynSpecs*.tgz'))
