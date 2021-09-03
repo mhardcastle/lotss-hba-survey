@@ -60,6 +60,9 @@ readme={'README.txt':'This file',
         'image_full_low_stokesV.dirty.fits':'Undeconvolved 20-arcsec resolution Stokes V image in apparent flux',
         'image_full_low_stokesV.dirty.corr.fits':'Undeconvolved 20-arcsec resolution Stokes V image with primary beam correction',
         'image_full_low_stokesV.SmoothNorm.fits':'Undeconvolved 20-arcsec resolution Stokes V image with smooth primary beam correction',
+        'image_full_stokesV.dirty.fits':'Undeconvolved full-resolution Stokes V image in apparent flux',
+        'image_full_stokesV.dirty.corr.fits':'Undeconvolved full-resolution Stokes V image with primary beam correction',
+        'image_full_stokesV.SmoothNorm.fits':'Undeconvolved full-resolution Stokes V image with smooth primary beam correction',
         'image_full_vlow_QU.cube.dirty.fits.fz':'Compressed undeconvolved 60-arcsec resolution QU cube in apparent flux',
         'image_full_vlow_QU.cube.dirty.corr.fits.fz':'Compressed undeconvolved 60-arcsec resolution QU cube with primary beam correction'}
 
@@ -229,6 +232,7 @@ def upload_field(name,basedir=None):
 
     report('Validate checksums')
 
+    checksums={}
     for tarfile in t.tars:
         print('Checking',tarfile)
         remote_checksum=rc.get_checksum(remote+'/'+tarfile)
@@ -239,6 +243,9 @@ def upload_field(name,basedir=None):
             die('Checksum failed! '+remote_checksum+' '+local_checksum,database=False)
         else:
             print('Checksum OK!')
+            checksums[tarfile]=local_checksum
+            with SurveysDB() as sdb:
+                sdb.execute('insert into checksums values ( %s, %s, %s)',(name,tarfile, local_checksum))
 
     update_status(name,'Verified',workdir=workdir)
 
@@ -248,7 +255,10 @@ def upload_field(name,basedir=None):
     os.rmdir(workdir+'/_archive')
 
     report('Upload completed successfully!')
+    return checksums
     
 if __name__=='__main__':
     import sys
-    upload_field(sys.argv[1],sys.argv[2])
+    result=upload_field(sys.argv[1],sys.argv[2])
+    print('Checksum dictionary was',result)
+    
