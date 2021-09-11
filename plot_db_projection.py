@@ -85,7 +85,7 @@ for r in dr2_results:
 ra_r,dec_r=cc(ravals,decvals)
 plt.scatter(ra_r,dec_r,marker='o',color='blue',alpha=0.2,zorder=-5,edgecolors='none',s=50,label='DR2')
     
-_,r=plot_select(results,lambda r:r['status'] in ['Archived','Complete'],label='Complete',color='green')
+_,r=plot_select(results,lambda r:r['status'] in ['Archived','Complete','Verified'],label='Complete',color='green')
 _,r=plot_select(r,lambda r:r['status'] in ['Proprietary'],label='Proprietary',color='magenta')
 _,r=plot_select(r,lambda r:r['status'] in ['Running'],label='Running',color='cyan')
 _,r=plot_select(r,lambda r:r['status'] in ['Downloaded','Downloading','Unpacking','Averaging','Ready','Queued','Unpacked'],label='In progress',color='yellow')

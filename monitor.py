@@ -12,7 +12,7 @@ from surveys_db import SurveysDB,get_next
 import os
 import threading
 from run_pipeline import do_run_pipeline
-from upload import do_upload,do_upload_compressed,do_delete_keep
+from rclone_upload import upload_field
 import glob
 import MySQLdb
 
@@ -33,7 +33,7 @@ while True:
 
     try:
         with SurveysDB(readonly=True) as sdb:
-            sdb.cur.execute('select * from fields where status!="Not started" and clustername="%s" order by priority desc, end_date' % cluster)
+            sdb.cur.execute('select * from fields where clustername="'+cluster+'" and status!="Not started" order by priority desc, end_date')
             result=sdb.cur.fetchall()
     except MySQLdb.OperationalError as e:
         print('Database not available! -- sleeping',e)
@@ -106,15 +106,17 @@ while True:
 
     if 'Complete' in d and upload_thread is None:
         for r in result:
-            if r['status']=='Complete' and r['archive_version']==4:
+            if r['status']=='Complete':
                 upload_name=r['id']
                 kw={}
                 print('We need to upload a new file (%s)!' % upload_name)
+                '''
                 if os.path.isdir(basedir+'/'+upload_name+'/KEEP'):
                     # remade directory, remove previous files
                     do_delete_keep(upload_name,basedir)
                     kw['skipstokes']=True
-                upload_thread=threading.Thread(target=do_upload, args=(upload_name,basedir),kwargs=kw)
+                '''
+                upload_thread=threading.Thread(target=upload_field, args=(upload_name,basedir),kwargs=kw)
                 upload_thread.start()
                 break
     '''
