@@ -47,7 +47,7 @@ class Finder(object):
                 count=-1
                 proc_count=-1
             if verbose: print('%-16s %-16s %2i %2i %8.3f %8.3f %6.3f %s' % (r['id'],r['status'],count,proc_count,r['ra'],r['decl'],r['sep'],r['location']))
-            if r['status']=='Archived':
+            if r['status']=='Archived' or r['status']=='Verified':
                 if minoffset is None or r['sep']<minoffset:
                     minoffset=r['sep']
                     bestfield=r

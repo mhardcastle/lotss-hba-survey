@@ -7,7 +7,7 @@ import numpy as np
 hp = HEALPix(nside=1024,order='nested') 
 
 with SurveysDB(readonly=True) as sdb:
-    sdb.cur.execute('select ra,decl from fields where status="Archived"')
+    sdb.cur.execute('select ra,decl from fields where status="Archived" or status="Verified"')
     result=sdb.cur.fetchall()
 
 ra=[]

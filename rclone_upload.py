@@ -200,9 +200,9 @@ def upload_field(name,basedir=None):
 
     if idd['do_polcubes']!=0:
         t.make_tar('stokes_large',
-                       m.glob('image_full_low_QU.cube.*'),readme=True)
+                       m.glob('image_full_low_QU.cube.*.fz'),readme=True)
         t.make_tar('stokes_small',m.glob('image_full_*_stokesV.dirty.*')+
-                       m.glob('image_full_*_stokesV.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*'),readme=True)
+                       m.glob('image_full_*_stokesV.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*.fz'),readme=True)
     if idd['do_dynspec']!=0:
         t.make_tar('dynspec',m.glob('DynSpecs*.tgz'))
 

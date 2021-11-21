@@ -52,6 +52,7 @@ if __name__=='__main__':
         os.chdir('/home/mjh/lofar-surveys/static/lotss_aladin')
         os.system('python survey_status_mysql.py')
 
+        '''
         if not skip_construct:
             # sync mosaics directory
             separator('Mosaic sync')
@@ -59,10 +60,12 @@ if __name__=='__main__':
             for d in ['RA13h_field','RA0h_field']:
                 s="rsync --progress --timeout=60 -avz --exclude 'astroblank-*' --exclude '*.out' --exclude '*.py' --exclude 'background' --exclude '*~' --exclude 'old' --exclude '*.sh' --exclude 'low-mosaic-weights.fits' --exclude 'mosaic.fits' --exclude 'wavelet' --exclude 'model' --exclude 'residual' --exclude 'mosaic.pybdsmmask.fits' --exclude 'mosaic-weights.fits' --exclude 'reproject-*.fits' --exclude 'weight-*.fits' --exclude 'low-reproject-*.fits' --exclude 'low-weight-*.fits' --exclude 'low-mosaic.fits' %s@ssh.strw.leidenuniv.nl:/disks/paradata/shimwell/LoTSS-DR2/mosaics/%s/ ." % (os.environ['DDF_PIPELINE_LEIDENUSER'],d)
                 do_rsync(s)
-            # now go through all archived and completed fields and make sure they're in the DR2 directory
+        '''
+
+        # now go through all archived and completed fields and make sure they're in the DR2 directory
 
         with SurveysDB() as sdb:
-            sdb.cur.execute('select * from fields left join quality on fields.id=quality.id where status="Archived" or status="Complete" order by ra')
+            sdb.cur.execute('select * from fields left join quality on fields.id=quality.id where dr2 or status="Archived" or status="Complete" or status="Verified" order by ra')
             result=sdb.cur.fetchall()
 
         print('There are',len(result),'complete datasets')
@@ -110,24 +113,34 @@ if __name__=='__main__':
                             else:
                                 if not os.path.isfile(tdir+'/'+f):
                                     print('Need to download',id+'/'+f,'from archive')
-                                    download_file(id,f)
+                                    print('But skipping!')
+                                    #download_file(id,f)
 
-        separator('Write web page')
+        separator('Write web pages')
 
-        outfile=open('/home/mjh/lofar-surveys/templates/dr2-mosaics.html','w')
-        for r in result:
-            if r['dr2']==0:
-                continue
-            id=r['id']
-            if os.path.isdir(workdir+'/mosaics/'+id) and os.path.isfile(workdir+'/mosaics/'+id+'/mosaic-blanked.fits'):
-                root='downloads/DR2/mosaics/'+id+'/'
-                f=root+'mosaic-blanked.fits'
-                rms=root+'mosaic.rms.fits'
-                resid=root+'mosaic.resid.fits'
-                low=root+'low-mosaic-blanked.fits'
-                cat=root+'mosaic.cat.fits'
-                outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td></tr>\n' % (id,r['ra'],r['decl'],f,rms,resid,low,cat))
-        outfile.close()
+        for page in ['dr2','ref']:
+            outfile=open('/home/mjh/lofar-surveys/templates/'+page+'-mosaics.html','w')
+            for r in result:
+                if r['dr2']==0:
+                    continue
+                id=r['id']
+                if os.path.isdir(workdir+'/mosaics/'+id) and os.path.isfile(workdir+'/mosaics/'+id+'/mosaic-blanked.fits'):
+                    if page=='dr2':
+                        root='downloads'
+                    else:
+                        root='referee_downloads'
+                    root+='/DR2/mosaics/'+id+'/'
+                    f=root+'mosaic-blanked.fits'
+                    rms=root+'mosaic.rms.fits'
+                    resid=root+'mosaic.resid.fits'
+                    weights=root+'mosaic-weights.fits'
+                    mask=root+'mosaic.pybdsmmask.fits'
+                    low=root+'low-mosaic-blanked.fits'
+                    lowweight=root+'low-mosaic-weights.fits'
+                    image=root+'mosaic-blanked.png'
+                    headers=root+'fits_headers.tar'
+                    outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td></tr>\n' % (id,r['ra'],r['decl'],f,rms,resid,weights,mask,low,lowweight,image,headers))
+            outfile.close()
 
         outfile=open('/home/mjh/lofar-surveys/templates/dr2-fields.html','w')
 
@@ -143,15 +156,15 @@ if __name__=='__main__':
                 for i in range(3):
                     band.append(link('image_full_ampphase_di_m.NS_Band%i_shift.int.facetRestored.fits' % i,id,lroot,'%i' %i, workdir+'/fields/'))
                 stokesv=link('image_full_low_stokesV.dirty.fits',id,lroot,'Download',workdir+'/fields/')
-                stokesqu=link('image_full_low_QU.cube.dirty.corr.fits.fz',id,lroot,'Low true',workdir+'/fields/')
-                stokesquvlow=link('image_full_vlow_QU.cube.dirty.corr.fits.fz',id,lroot,'Vlow true',workdir+'/fields/')
-                stokesqu_app=link('image_full_low_QU.cube.dirty.fits.fz',id,lroot,'Low app',workdir+'/fields/')
-                stokesquvlow_app=link('image_full_vlow_QU.cube.dirty.fits.fz',id,lroot,'Vlow app',workdir+'/fields/')
+                #stokesqu=link('image_full_low_QU.cube.dirty.corr.fits.fz',id,lroot,'Low true',workdir+'/fields/')
+                #stokesquvlow=link('image_full_vlow_QU.cube.dirty.corr.fits.fz',id,lroot,'Vlow true',workdir+'/fields/')
+                #stokesqu_app=link('image_full_low_QU.cube.dirty.fits.fz',id,lroot,'Low app',workdir+'/fields/')
+                #stokesquvlow_app=link('image_full_vlow_QU.cube.dirty.fits.fz',id,lroot,'Vlow app',workdir+'/fields/')
                 if r['nvss_scale'] is None:
                     scale='&mdash;'
                 else:
                     scale="%.3f" % (5.9124/r['nvss_scale'])
-                outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%s, %s</td><td>%s, %s, %s</td><td>%s</td><td>%s, %s, %s, %s</td></tr>\n' % (id,r['ra'],r['decl'],r['end_date'],scale,fint,fapp,lowint,lowapp,band[0],band[1],band[2],stokesv,stokesqu,stokesquvlow,stokesqu_app,stokesquvlow_app))
+                outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%s, %s</td><td>%s, %s, %s</td><td>%s</td></tr>\n' % (id,r['ra'],r['decl'],r['end_date'],scale,fint,fapp,lowint,lowapp,band[0],band[1],band[2],stokesv)) #,stokesqu,stokesquvlow,stokesqu_app,stokesquvlow_app))
 
         outfile.close()
 
