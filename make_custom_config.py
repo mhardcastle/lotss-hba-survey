@@ -12,9 +12,9 @@ def choose_qsub_file(name,workdir,do_field):
         with SurveysDB() as sdb:
             idd=sdb.get_field(name)
         if np.abs(idd['gal_b'])<=10:
-            return '/home/mjh/pipeline-master/ddf-pipeline/torque/pipeline_MW.qsub'
+            return '/home/mjh/pipeline-master/lotss-hba-survey/torque/pipeline_MW.qsub'
         else:
-            return '/home/mjh/pipeline-master/ddf-pipeline/torque/pipeline.qsub'
+            return '/home/mjh/pipeline-master/lotss-hba-survey/torque/pipeline.qsub'
     else:
         return None # leave it to something else to choose
         

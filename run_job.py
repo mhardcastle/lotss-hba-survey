@@ -4,6 +4,7 @@
 from __future__ import print_function
 from surveys_db import update_status, SurveysDB
 from auxcodes import report,warn,die
+from make_custom_config import choose_qsub_file
 import sys
 import os
 import glob
@@ -16,9 +17,7 @@ def do_run_job(name,basedir,qsubfile=None,do_field=True,prefix='ddfp',dysco=Fals
         print('Local config file exists, using that')
         config=',CONFIG='+g[0]
     if qsubfile is None:
-        qsubfile='/home/mjh/pipeline-master/ddf-pipeline/torque/pipeline-fdr14.qsub'
-    if dysco:
-        qsubfile=qsubfile.replace('.qsub','-fdr14.qsub')
+        qsubfile=choose_qsub_file(name,workdir,do_field)
     report('Submit job')
     os.system('qsub -N '+prefix+'-'+name+' -v WD='+workdir+config+' '+qsubfile)
     if do_field:
@@ -31,7 +30,7 @@ def rerun_select():
     for r in results:
         name=r['id']
         print('Submitting job for',name)
-        do_run_job(name,'/beegfs/car/mjh',qsubfile='/home/mjh/pipeline-master/ddf-pipeline/torque/rerun.qsub',prefix='ddfpr')
+        do_run_job(name,'/beegfs/car/mjh',qsubfile='/home/mjh/pipeline-master/lotss-hba-pipeline/torque/rerun.qsub',prefix='ddfpr')
         
 if __name__=='__main__':
     name=sys.argv[1]

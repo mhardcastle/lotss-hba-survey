@@ -72,7 +72,7 @@ if __name__=='__main__':
 
         if not skip_construct:
             separator('Preparing release directory')
-            releasefiles=['image_full_low_stokesV.dirty.fits','image_full_vlow_QU.cube.dirty.corr.fits.fz','image_full_low_QU.cube.dirty.corr.fits.fz','image_full_vlow_QU.cube.dirty.fits.fz','image_full_low_QU.cube.dirty.fits.fz','image_full_low_m.int.restored.fits','image_full_low_m.app.restored.fits','image_full_ampphase_di_m.NS.tessel.reg','image_full_ampphase_di_m.NS_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS_Band0_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_Band1_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_Band0_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS_Band1_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS_Band2_shift.app.facetRestored.fits','astromap.fits','DynSpec*.tgz']
+            releasefiles=['image_full_low_stokesV.dirty.fits','image_full_low_m.int.restored.fits','image_full_low_m.app.restored.fits','image_full_ampphase_di_m.NS.tessel.reg','image_full_ampphase_di_m.NS_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS_Band0_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_Band1_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_Band0_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS_Band1_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS_Band2_shift.app.facetRestored.fits','astromap.fits','DynSpec*.tgz']
 
             os.chdir(workdir+'/fields')
             for r in result:
@@ -109,7 +109,8 @@ if __name__=='__main__':
                             if '*' in f:
                                 g=glob.glob(tdir+'/'+f)
                                 if len(g)==0:
-                                    download_file(id,f)
+                                    print('Cannot find files',(tdir+'/'+f))
+                                    #download_file(id,f)
                             else:
                                 if not os.path.isfile(tdir+'/'+f):
                                     print('Need to download',id+'/'+f,'from archive')
