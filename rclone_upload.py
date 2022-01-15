@@ -19,6 +19,7 @@ from fixsymlinks import fixsymlinks
 
 from astropy.io import fits
 from zlib import adler32
+import timeout_decorator
 
 readme={'README.txt':'This file',
         'summary.txt':'Summary of ddf-pipeline run',
@@ -83,7 +84,16 @@ def adler32_checksum(filename):
 
     return checksum_local
 
-def dump_headers(workdir,files):
+@timeout_decorator.timeout(5,use_signals=False)
+def extract_header(fitsfile):
+    hdrs=[]
+    with fits.open(fitsfile) as fhand:
+        for hdu in fhand:
+            hdrs.append(hdu.header)
+    return hdrs
+        
+
+def dump_headers(workdir,files,verbose=False):
     # code from Yan Grange adapted to work in general directory
     try:
         os.mkdir(workdir+"/fits_headers")
@@ -92,11 +102,12 @@ def dump_headers(workdir,files):
 
     for fitsfile in files:
         if fitsfile.endswith('.fz') or fitsfile.endswith('.fits'):
-            hdrs = list()
-            with fits.open(workdir+'/'+fitsfile) as fhand:
-                for hdu in fhand:
-                    hdrs.append(hdu.header)
-
+            if verbose: print(fitsfile)
+            try:
+                hdrs = extract_header(workdir+'/'+fitsfile)
+            except timeout_decorator.timeout_decorator.TimeoutError:
+                print('File header %s read timed out! Is it corrupt?' % fitsfile)
+                hdrs=[]
             for ctr, hdr in enumerate(hdrs):
                 hdr.totextfile(workdir+"/fits_headers/"+fitsfile+"."+str(ctr)+".hdr", overwrite=True)
 
@@ -118,7 +129,7 @@ class Tarrer(object):
                 if f in readme:
                     d=readme[f]
                 else:
-                    for k,v in readme.iteritems():
+                    for k,v in readme.items():
                         if f.endswith(k):
                             d=readme[k]
                 contents.append([f,d])
@@ -208,7 +219,7 @@ def upload_field(name,basedir=None):
 
     # now we can get FITS headers from files we've added
     report('Make FITS header directory')
-    dump_headers(workdir,t.files)
+    dump_headers(workdir,t.files,verbose=False)
         
     t.make_tar('misc',['summary.txt','logs','fits_headers','mslist.txt','big-mslist.txt']+
                    m.glob('*-fit_state.pickle') +

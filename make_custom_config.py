@@ -77,17 +77,11 @@ def make_custom_config(name,workdir,do_field,averaged=False):
             outfile.write(l)
 
 if __name__=='__main__':
-    averaged=False
-    try:
-        if sys.argv[2]:
-            averaged=True
-    except:
-        pass
-
-    try:
-        field=sys.argv[1]
-    except:
-        field=os.path.basename(os.getcwd())
+    # manual run, must be in directory of download
+    from check_structure import do_check_structure
+    
+    field=os.path.basename(os.getcwd())
+    averaged,dysco=do_check_structure()
     
     make_custom_config(field,'.',True,averaged)
     

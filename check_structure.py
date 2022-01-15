@@ -18,6 +18,7 @@ def do_check_structure(workdir='.'):
     if np.sum(msl.hascorrected)<len(msl.mss) and np.sum(msl.hascorrected)!=0:
         if use_database():
             update_status(None,'Check failed')
+        print(np.sum(msl.hascorrected),len(msl.mss))
         raise RuntimeError('Incompatible mix of CORRECTED_DATA and DATA!')
         
     uobsids=set(msl.obsids)
