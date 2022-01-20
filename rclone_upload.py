@@ -84,7 +84,7 @@ def adler32_checksum(filename):
 
     return checksum_local
 
-@timeout_decorator.timeout(5,use_signals=False)
+#@timeout_decorator.timeout(5,use_signals=False)
 def extract_header(fitsfile):
     hdrs=[]
     with fits.open(fitsfile) as fhand:
