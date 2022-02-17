@@ -19,7 +19,7 @@ from fixsymlinks import fixsymlinks
 
 from astropy.io import fits
 from zlib import adler32
-import timeout_decorator
+#import timeout_decorator
 
 import argparse
 
@@ -105,11 +105,11 @@ def dump_headers(workdir,files,verbose=False):
     for fitsfile in files:
         if fitsfile.endswith('.fz') or fitsfile.endswith('.fits'):
             if verbose: print(fitsfile)
-            try:
-                hdrs = extract_header(workdir+'/'+fitsfile)
-            except timeout_decorator.timeout_decorator.TimeoutError:
-                print('File header %s read timed out! Is it corrupt?' % fitsfile)
-                hdrs=[]
+            #try:
+            hdrs = extract_header(workdir+'/'+fitsfile)
+            #except timeout_decorator.timeout_decorator.TimeoutError:
+            #    print('File header %s read timed out! Is it corrupt?' % fitsfile)
+            #    hdrs=[]
             for ctr, hdr in enumerate(hdrs):
                 hdr.totextfile(workdir+"/fits_headers/"+fitsfile+"."+str(ctr)+".hdr", overwrite=True)
 
@@ -204,11 +204,11 @@ def upload_field(name,basedir=None,split_uv=False):
 
     if split_uv:
         # break the uv tar file into obsids and a misc section
-        t.make_tar('uv_misc',['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg','SOLSDIR']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
+        t.make_tar('uv_misc',['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
         mslist=m.glob('*.archive')
         obsids=set([os.path.basename(ms).split('_')[0] for ms in mslist])
         for obsid in obsids:
-            t.make_tar('uv_'+obsid,m.glob(obsid+'_*.archive'))
+            t.make_tar('uv_'+obsid,m.glob(obsid+'_*.archive')+m.glob('SOLSDIR/'+obsid+'_*'))
     else:
         t.make_tar('uv',m.glob('*.archive')+['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg','SOLSDIR']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
         
