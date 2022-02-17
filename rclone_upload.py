@@ -170,7 +170,7 @@ class MyGlob(object):
         self.workdir=workdir
     def glob(self,g):
         f=glob.glob(self.workdir+'/'+g)
-        return [os.path.basename(file) for file in f]
+        return [fn.replace(self.workdir+'/','') for fn in f]
 
 
 def upload_field(name,basedir=None,split_uv=False):
