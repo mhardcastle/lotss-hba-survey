@@ -21,6 +21,8 @@ from astropy.io import fits
 from zlib import adler32
 import timeout_decorator
 
+import argparse
+
 readme={'README.txt':'This file',
         'summary.txt':'Summary of ddf-pipeline run',
         'logs':'Logfile directory',
@@ -171,7 +173,7 @@ class MyGlob(object):
         return [os.path.basename(file) for file in f]
 
 
-def upload_field(name,basedir=None):
+def upload_field(name,basedir=None,split_uv=False):
     '''Upload the field 'name' stored in the specified directory
         'basedir'.  Do not rely on changing working directory to
         basedir so that this can be run in parallel with other code.'''
@@ -200,8 +202,16 @@ def upload_field(name,basedir=None):
     m=MyGlob(workdir)
     t=Tarrer(workdir)
 
-    t.make_tar('uv',m.glob('*.archive')+['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg','SOLSDIR']+
-                   m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
+    if split_uv:
+        # break the uv tar file into obsids and a misc section
+        t.make_tar('uv_misc',['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg','SOLSDIR']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
+        mslist=m.glob('*.archive')
+        obsids=set([os.path.basename(ms).split('_')[0] for ms in mslist])
+        for obsid in obsids:
+            t.make_tar('uv_'+obsid,m.glob(obsid+'_*.archive'))
+    else:
+        t.make_tar('uv',m.glob('*.archive')+['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg','SOLSDIR']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
+        
     imagelist=['astromap.fits']+images('image_full_ampphase_di_m.NS',workdir)+images('image_full_low_m',workdir)
     imagelist+=shiftimages('image_full_ampphase_di_m.NS')
     if idd['do_spectral_restored']!=0:
@@ -269,7 +279,14 @@ def upload_field(name,basedir=None):
     return checksums
     
 if __name__=='__main__':
-    import sys
-    result=upload_field(sys.argv[1],sys.argv[2])
-    print('Checksum dictionary was',result)
+    parser = argparse.ArgumentParser(description='Rclone upload')
+    parser.add_argument('fields', metavar='N', type=str, nargs='+',
+                    help='Fields to upload')
+    parser.add_argument('--split_uv', action='store_true',help='Split the UV tar files')
+    parser.add_argument('--working_dir', type=str, default='.', help='Working directory')
+    args = parser.parse_args()
+    
+    for f in args.fields:
+        result=upload_field(f,args.working_dir,split_uv=args.split_uv)
+        print('Field',f,'checksum dictionary was',result)
     
