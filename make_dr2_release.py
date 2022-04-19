@@ -119,7 +119,7 @@ if __name__=='__main__':
 
         separator('Write web pages')
 
-        for page in ['dr2','ref']:
+        for page in ['dr2','public']:
             outfile=open('/home/mjh/lofar-surveys/templates/'+page+'-mosaics.html','w')
             for r in result:
                 if r['dr2']==0:
@@ -129,7 +129,7 @@ if __name__=='__main__':
                     if page=='dr2':
                         root='downloads'
                     else:
-                        root='referee_downloads'
+                        root='public'
                     root+='/DR2/mosaics/'+id+'/'
                     f=root+'mosaic-blanked.fits'
                     rms=root+'mosaic.rms.fits'

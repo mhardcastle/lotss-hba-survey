@@ -4,7 +4,8 @@
 #PBS -N ddf-pipeline
 #PBS -l nodes=1:ppn=32
 #PBS -l walltime=168:00:00
-#PBS -k oe
+#PBS -o /beegfs/car/mjh/torque
+#PBS -e /beegfs/car/mjh/torque
 #PBS -q main
 #PBS -W group_list=lofar
 

@@ -56,4 +56,4 @@ if __name__=='__main__':
     names=[l[:10].rstrip() for l in lines[2:]]
 
     t=Table([names],names=['name'])
-    extract_list(t,resolve=True,check_exists=False)
+    extract_list(t,resolve=True,check_exists=True)

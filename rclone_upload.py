@@ -173,7 +173,7 @@ class MyGlob(object):
         return [fn.replace(self.workdir+'/','') for fn in f]
 
 
-def upload_field(name,basedir=None,split_uv=False):
+def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     '''Upload the field 'name' stored in the specified directory
         'basedir'.  Do not rely on changing working directory to
         basedir so that this can be run in parallel with other code.'''
@@ -228,8 +228,9 @@ def upload_field(name,basedir=None,split_uv=False):
         t.make_tar('dynspec',m.glob('DynSpecs*.tgz'))
 
     # now we can get FITS headers from files we've added
-    report('Make FITS header directory')
-    dump_headers(workdir,t.files,verbose=False)
+    if not skip_fits:
+        report('Make FITS header directory')
+        dump_headers(workdir,t.files,verbose=False)
         
     t.make_tar('misc',['summary.txt','logs','fits_headers','mslist.txt','big-mslist.txt']+
                    m.glob('*-fit_state.pickle') +
@@ -283,10 +284,11 @@ if __name__=='__main__':
     parser.add_argument('fields', metavar='N', type=str, nargs='+',
                     help='Fields to upload')
     parser.add_argument('--split_uv', action='store_true',help='Split the UV tar files')
+    parser.add_argument('--skip_fits', action='store_true',help='Split the UV tar files')
     parser.add_argument('--working_dir', type=str, default='.', help='Working directory')
     args = parser.parse_args()
     
     for f in args.fields:
-        result=upload_field(f,args.working_dir,split_uv=args.split_uv)
+        result=upload_field(f,args.working_dir,split_uv=args.split_uv,skip_fits=args.skip_fits)
         print('Field',f,'checksum dictionary was',result)
     
