@@ -6,7 +6,7 @@ import numpy as np
 # pack up the quality results into an astropy table for ease of plotting columns
 
 with SurveysDB() as sdb:
-    sdb.cur.execute('select fields.id,fields.ra,fields.decl,quality.*,avg(observations.elevation_mean) as elevation_mean,avg(integration) as integration from quality left join fields on fields.id=quality.id left join observations on observations.field=quality.id where fields.status="Archived" group by fields.id order by fields.id')
+    sdb.cur.execute('select fields.id,fields.ra,fields.decl,quality.*,avg(observations.elevation_mean) as elevation_mean,avg(integration) as integration from quality left join fields on fields.id=quality.id left join observations on observations.field=quality.id where fields.status="Verified" group by fields.id order by fields.id')
     results=sdb.cur.fetchall()
 
 td={}

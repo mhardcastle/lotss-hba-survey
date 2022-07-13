@@ -46,7 +46,7 @@ for r in results:
         else:
             os.system('rm -r '+location+'/*')
             os.system('rmdir '+location)
-            os.system('rm ~/ddfp-'+r['id']+'.*')
+            #os.system('rm ~/ddfp-'+r['id']+'.*')
             os.system('rm /beegfs/car/mjh/torque/ddfp-'+r['id']+'.*')
         rr=r
         rr['location']=''

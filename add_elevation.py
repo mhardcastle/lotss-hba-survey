@@ -7,7 +7,7 @@ import numpy as np
 obs=EarthLocation(lon=(6+(52/60.0))*u.deg, lat=53*u.deg, height=0*u.m)
 
 with SurveysDB(readonly=True) as sdb:
-    sdb.cur.execute('select id,ra,decl from fields where status="Archived"')
+    sdb.cur.execute('select id,ra,decl from fields where status="Verified"')
     fields=sdb.cur.fetchall()
 
 for r in fields:

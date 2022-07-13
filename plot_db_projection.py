@@ -112,7 +112,7 @@ plt.ylabel('Decl.')
 plt.grid(True)
 plt.legend(loc=4)
 plt.tight_layout()
-plt.title('DR2 processing status at '+datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),loc='right')
+plt.title('LoTSS processing status at '+datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),loc='right')
 if len(sys.argv)>1:
     plt.savefig(sys.argv[1],dpi=250)
 else:
