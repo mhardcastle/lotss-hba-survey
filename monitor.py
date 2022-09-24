@@ -109,14 +109,8 @@ while True:
         for r in result:
             if r['status']=='Complete':
                 upload_name=r['id']
-                kw={}
+                kw={'split_uv':True} # changed 24/09/22
                 print('We need to upload a new file (%s)!' % upload_name)
-                '''
-                if os.path.isdir(basedir+'/'+upload_name+'/KEEP'):
-                    # remade directory, remove previous files
-                    do_delete_keep(upload_name,basedir)
-                    kw['skipstokes']=True
-                '''
                 upload_thread=threading.Thread(target=upload_field, args=(upload_name,basedir),kwargs=kw)
                 upload_thread.start()
                 break

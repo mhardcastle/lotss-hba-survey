@@ -87,7 +87,10 @@ if __name__=='__main__':
                     resolved_release=[]
                     for f in releasefiles:
                         if '*' in f:
-                            resolved_release+=[os.path.basename(g) for g in glob.glob(location+'/'+f)]
+                            try:
+                                resolved_release+=[os.path.basename(g) for g in glob.glob(location+'/'+f)]
+                            except TypeError:
+                                print('Issue with file',f)
                         else:
                             resolved_release.append(f)                       
 

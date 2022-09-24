@@ -56,9 +56,9 @@ class Finder(object):
 
         if return_t:
             print('Returning t')
-            del t['sc']
-            t.sort('sep')
-            return t
+            del tdet['sc']
+            tdet.sort('sep')
+            return tdet
             
         if minoffset is None:
             return None
