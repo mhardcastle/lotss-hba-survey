@@ -21,9 +21,9 @@ def table_from_dict_list(l):
     return Table(coldict)
 
 class Finder(object):
-    def __init__(self):
+    def __init__(self,dr2=False):
         with SurveysDB(readonly=True) as sdb:
-            sdb.cur.execute('select * from fields left join quality on fields.id=quality.id order by fields.id')
+            sdb.cur.execute('select * from fields left join quality on fields.id=quality.id %s order by fields.id' % ('where dr2' if dr2 else ''))
             results=sdb.cur.fetchall()
             self.t=table_from_dict_list(results)
             self.t['sc']=SkyCoord(self.t['ra'],self.t['decl'],unit=u.deg)
@@ -55,7 +55,6 @@ class Finder(object):
             sdb.close()
 
         if return_t:
-            print('Returning t')
             del tdet['sc']
             tdet.sort('sep')
             return tdet

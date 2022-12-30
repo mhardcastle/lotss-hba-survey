@@ -43,6 +43,8 @@ if __name__=='__main__':
         print(datetime.now())
         print()
 
+        os.system('chmod +r /beegfs/car/mjh/torque/*')
+        
         # make status plot
         separator('Making plot')
         os.system('plot_db_projection.py /home/mjh/lofar-surveys/static/Tier1-dbstatus.png')
