@@ -24,9 +24,10 @@ if len(sys.argv)>2:
 else:
     selected=None
 
-for i in range(len(selected)):
-    if selected[i]=='.':
-        selected[i]=os.getcwd().split('/')[-1]
+if selected:
+    for i in range(len(selected)):
+        if selected[i]=='.':
+            selected[i]=os.getcwd().split('/')[-1]
     
 deleted=[]
 for r in results:

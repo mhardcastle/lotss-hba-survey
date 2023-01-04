@@ -18,6 +18,8 @@ download_thread=None
 download_name=None
 stage_thread=None
 stage_name=None
+unpack_thread=None
+unpack_name=None
 #tidy_thread=None
 #upload_name=None
 #upload_thread=None
@@ -29,13 +31,25 @@ def do_download(field):
     update_status(field,operation,'Downloading')
     success=True
     try:
-        prepare_field(field,basedir+'/'+field,verbose=True)
+        prepare_field(field,basedir+'/'+field,verbose=True,operations=['download'])
     except RuntimeError:
         success=False
     if success:
         update_status(field,operation,'Downloaded')
     else:
         update_status(field,operation,'Download failed')
+
+def do_unpack(field):
+    update_status(field,operation,'Unpacking')
+    success=True
+    try:
+        success=prepare_field(field,basedir+'/'+field,verbose=True,operations=['untar','fixsymlinks','makelist'])
+    except RuntimeError:
+        success=False
+    if success:
+        update_status(field,operation,'Unpacked')
+    else:
+        update_status(field,operation,'Unpack failed')
 
 def do_stage(field):
     update_status(field,operation,'Staging')
@@ -57,9 +71,11 @@ os.chdir(basedir)
 
 2. any Staged dataset can be downloaded. At most one download thread (which uses prepare_field): set status to Downloaded on successful complete
 
-3. any Downloaded dataset can have the processing script run on it. Set status to Started on start. (status set to Verified on upload)
+3. any Downloaded dataset can be unpacked. Set status to Unpacked when done (also uses prepare_field).
 
-4. any Verified dataset can have the tidy up script run on it.
+4. any Unpacked dataset can have the processing script run on it. Set status to Started on start. (status set to Verified on upload)
+
+5. any Verified dataset can have the tidy up script run on it.
 '''
 
 while True:
@@ -103,6 +119,8 @@ while True:
 
     if download_thread is not None:
         print('Download thread is running (%s)' % download_name)
+    if unpack_thread is not None:
+        print('Unpack thread is running (%s)' % unpack_name)
     if stage_thread is not None:
         print('Stage thread is running (%s)' % stage_name)
         
@@ -110,6 +128,10 @@ while True:
         print('Download thread seems to have terminated')
         download_thread=None
 
+    if unpack_thread is not None and not unpack_thread.isAlive():
+        print('Unpack thread seems to have terminated')
+        unpack_thread=None
+        
     if stage_thread is not None and not stage_thread.isAlive():
         print('Stage thread seems to have terminated')
         stage_thread=None
@@ -128,27 +150,31 @@ while True:
         download_thread=threading.Thread(target=do_download, args=(download_name,))
         download_thread.start()
 
-    if 'Downloaded' in d:
-        for field in fd['Downloaded']:
-            print('Running a new job',field)
-            command="qsub -v FIELD=%s -N reprocessing-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/dynspec.qsub" % (field, field)
-            if os.system(command)==0:
-                update_status(field,operation,"Queued")
+    if 'Downloaded' in d and unpack_thread is None:
+        unpack_name=fd['Downloaded'][0]
+        print('We need to unpack a new file (%s)!' % unpack_name)
+        unpack_thread=threading.Thread(target=do_unpack, args=(unpack_name,))
+        unpack_thread.start()
 
-    # this code does not work but is a placeholder for tidy-up code to be implemented
-    if 'Uploaded' in d:
-        for r in result:
-            if r['vlow_image']=='Uploaded':
-                field=r['id']
-                print('Tidying uploaded directory for',field)
-                target='/data/lofar/DR2/fields/'+field
-                for f in ['image_full_vlow_nocut_m.app.restored.fits','image_full_vlow_nocut_m.int.restored.fits','WSCLEAN_low-MFS-image.fits','WSCLEAN_low-MFS-image-int.fits']:
-                    command='cp '+basedir+'/'+field+'/'+f+' '+target
-                    print('running',command)
-                    os.system(command)
-                command='rm -r '+basedir+'/'+field
+    if 'Unpacked' in d:
+        for field in fd['Unpacked']:
+            print('Running a new job',field)
+            update_status(field,operation,"Queued")
+            command="qsub -v FIELD=%s -N reprocessing-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/dynspec.qsub" % (field, field)
+
+    if 'Verified' in d:
+        for field in fd['Verified']:
+            print('Tidying uploaded directory for',field)
+            target='/data/lofar/DR2/fields/'+field
+            g=glob.glob(basedir+'/'+field+'/*.tgz')
+            for f in g:
+                command='cp '+f+' '+target
+                print('running',command)
                 os.system(command)
-                update_status(field,'Archived')
+            command='rm -r '+basedir+'/'+field
+            print('running',command)
+            os.system(command)
+            update_status(field,operation,'Complete')
 
     print('\n\n-----------------------------------------------\n\n')
         
