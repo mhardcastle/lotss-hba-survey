@@ -160,7 +160,9 @@ while True:
         for field in fd['Unpacked']:
             print('Running a new job',field)
             update_status(field,operation,"Queued")
-            command="qsub -v FIELD=%s -N reprocessing-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/dynspec.qsub" % (field, field)
+            command="qsub -v FIELD=%s -N repro-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/dynspec.qsub" % (field, field)
+            if os.system(command):
+                update_status(field,operation,"Submission failed")
 
     if 'Verified' in d:
         for field in fd['Verified']:
