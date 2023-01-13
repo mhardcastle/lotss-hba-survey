@@ -90,94 +90,94 @@ while True:
         else:
             nextfield=None
 
-    d={}
-    fd={}
-    for r in result:
-        status=r['status']
-        if status in d:
-            d[status]=d[status]+1
-            fd[status].append(r['id'])
-        else:
-            d[status]=1
-            fd[status]=[r['id']]
-    d['Not started']=len(result2)
-    print('\n\n-----------------------------------------------\n\n')
-    print('Full-field reprocessing (%s) status on cluster %s' % (operation,cluster))
-    print(datetime.datetime.now())
-    print()
-    failed=0
-    for k in sorted(d.keys()):
-        print("%-20s : %i" % (k,d[k]))
-        if 'ailed' in k:
-            failed+=d[k]
+        d={}
+        fd={}
+        for r in result:
+            status=r['status']
+            if status in d:
+                d[status]=d[status]+1
+                fd[status].append(r['id'])
+            else:
+                d[status]=1
+                fd[status]=[r['id']]
+        d['Not started']=len(result2)
+        print('\n\n-----------------------------------------------\n\n')
+        print('Full-field reprocessing (%s) status on cluster %s' % (operation,cluster))
+        print(datetime.datetime.now())
+        print()
+        failed=0
+        for k in sorted(d.keys()):
+            print("%-20s : %i" % (k,d[k]))
+            if 'ailed' in k:
+                failed+=d[k]
 
-    print()
-    ksum=len(glob.glob(basedir+'/*'))-failed
-    if ksum<0: ksum=0
-    print(ksum,'live directories out of',totallimit)
-    print('Next field to work on is',nextfield)
+        print()
+        ksum=len(glob.glob(basedir+'/*'))-failed
+        if ksum<0: ksum=0
+        print(ksum,'live directories out of',totallimit)
+        print('Next field to work on is',nextfield)
 
-    if download_thread is not None:
-        print('Download thread is running (%s)' % download_name)
-    if unpack_thread is not None:
-        print('Unpack thread is running (%s)' % unpack_name)
-    if stage_thread is not None:
-        print('Stage thread is running (%s)' % stage_name)
-        
-    if download_thread is not None and not download_thread.isAlive():
-        print('Download thread seems to have terminated')
-        download_thread=None
+        if download_thread is not None:
+            print('Download thread is running (%s)' % download_name)
+        if unpack_thread is not None:
+            print('Unpack thread is running (%s)' % unpack_name)
+        if stage_thread is not None:
+            print('Stage thread is running (%s)' % stage_name)
 
-    if unpack_thread is not None and not unpack_thread.isAlive():
-        print('Unpack thread seems to have terminated')
-        unpack_thread=None
-        
-    if stage_thread is not None and not stage_thread.isAlive():
-        print('Stage thread seems to have terminated')
-        stage_thread=None
+        if download_thread is not None and not download_thread.isAlive():
+            print('Download thread seems to have terminated')
+            download_thread=None
 
-    if stage_thread is None and nextfield is not None and 'Staged' not in d:
-        # We only need one field staged at a time
-        stage_name=nextfield
-        print('We need to stage a new field (%s)' % stage_name)
-        update_status(stage_name,operation,'Staging')
-        stage_thread=threading.Thread(target=do_stage,args=(stage_name,))
-        stage_thread.start()
-        
-    if ksum<totallimit and 'Staged' in d and download_thread is None:
-        download_name=fd['Staged'][0]
-        print('We need to download a new file (%s)!' % download_name)
-        download_thread=threading.Thread(target=do_download, args=(download_name,))
-        download_thread.start()
+        if unpack_thread is not None and not unpack_thread.isAlive():
+            print('Unpack thread seems to have terminated')
+            unpack_thread=None
 
-    if 'Downloaded' in d and unpack_thread is None:
-        unpack_name=fd['Downloaded'][0]
-        print('We need to unpack a new file (%s)!' % unpack_name)
-        unpack_thread=threading.Thread(target=do_unpack, args=(unpack_name,))
-        unpack_thread.start()
+        if stage_thread is not None and not stage_thread.isAlive():
+            print('Stage thread seems to have terminated')
+            stage_thread=None
 
-    if 'Unpacked' in d:
-        for field in fd['Unpacked']:
-            print('Running a new job',field)
-            update_status(field,operation,"Queued")
-            command="qsub -v FIELD=%s -N repro-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/dynspec.qsub" % (field, field)
-            if os.system(command):
-                update_status(field,operation,"Submission failed")
+        if stage_thread is None and nextfield is not None and 'Staged' not in d:
+            # We only need one field staged at a time
+            stage_name=nextfield
+            print('We need to stage a new field (%s)' % stage_name)
+            update_status(stage_name,operation,'Staging')
+            stage_thread=threading.Thread(target=do_stage,args=(stage_name,))
+            stage_thread.start()
 
-    if 'Verified' in d:
-        for field in fd['Verified']:
-            print('Tidying uploaded directory for',field)
-            target='/data/lofar/DR2/fields/'+field
-            g=glob.glob(basedir+'/'+field+'/*.tgz')
-            for f in g:
-                command='cp '+f+' '+target
+        if ksum<totallimit and 'Staged' in d and download_thread is None:
+            download_name=fd['Staged'][0]
+            print('We need to download a new file (%s)!' % download_name)
+            download_thread=threading.Thread(target=do_download, args=(download_name,))
+            download_thread.start()
+
+        if 'Downloaded' in d and unpack_thread is None:
+            unpack_name=fd['Downloaded'][0]
+            print('We need to unpack a new file (%s)!' % unpack_name)
+            unpack_thread=threading.Thread(target=do_unpack, args=(unpack_name,))
+            unpack_thread.start()
+
+        if 'Unpacked' in d:
+            for field in fd['Unpacked']:
+                print('Running a new job',field)
+                update_status(field,operation,"Queued")
+                command="qsub -v FIELD=%s -N repro-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/dynspec.qsub" % (field, field)
+                if os.system(command):
+                    update_status(field,operation,"Submission failed")
+
+        if 'Verified' in d:
+            for field in fd['Verified']:
+                print('Tidying uploaded directory for',field)
+                target='/data/lofar/DR2/fields/'+field
+                g=glob.glob(basedir+'/'+field+'/*.tgz')
+                for f in g:
+                    command='cp '+f+' '+target
+                    print('running',command)
+                    os.system(command)
+                command='rm -r '+basedir+'/'+field
                 print('running',command)
                 os.system(command)
-            command='rm -r '+basedir+'/'+field
-            print('running',command)
-            os.system(command)
-            update_status(field,operation,'Complete')
+                update_status(field,operation,'Complete')
 
-    print('\n\n-----------------------------------------------\n\n')
+        print('\n\n-----------------------------------------------\n\n')
         
     sleep(60)
