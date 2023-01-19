@@ -18,9 +18,16 @@ import stager_access
 
 
 #################################
-## CLUSTER SPECIFICS - config file
-cluster = 'cosma'  ## but set as environment variable DDF_PIPELINE_CLUSTER
-basedir = '/cosma5/data/durham/dc-mora2/surveys/'
+## CLUSTER SPECIFICS - use environment variables
+
+'''
+export DDF_PIPELINE_CLUSTER=cosma
+export LINC_DATA_DIR=/cosma5/data/durham/dc-mora2/surveys/
+'''
+
+
+cluster = os.getenv('DDF_PIPELINE_CLUSTER')
+basedir = os.getenv('LINC_DATA_DIR')
 
 
 download_thread=None
@@ -43,35 +50,6 @@ get_lbcalibrator
 set_lbcalibrator
 '''
 
-def stage_cal( id, srmpath='https://public.spider.surfsara.nl/project/lofarvlbi/srmlists/' ):
-    srmfilename = id + '_srms.txt'
-    response = requests.get(os.path.join(srmpath,srmfilename))
-    data = response.text
-    uris = data.rstrip('\n').split('\n')
-    stage_id = stager_access.stage(uris)
-    update_status(id, 'Staging', stage_id=stage_id )
-    return stage_id
-
-def download_cal( id ):
-    ## adapted (loosely) from tim's scripts 
-    ## get the srmlist
-    srmfilename = id+'_srms.txt'
-    ## start staging
-    stage_id = stage_cal( srmfilename )
-    ## check the status - this should finish when staging is done
-    check_stage( stageid, srmfilename )
-    ## now download the data
-    print('Cal download status',cal_download_status)
-    ## stage the data if not and then download
-    if cal_download_status == False:
-        cal_stage_id = stage_data_non_sara(calsrm)
-        print('Checking calibrator %s is staged'%fieldproperties['calib_OBSID'])
-        check_stage_non_sara(calsrm,cal_stage_id)
-        print('Downloading calibrator %s'%fieldproperties['calib_OBSID'])
-        download_data(calsrm,outcaldir,False)
-
-
-
 def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,survey=None):
     # adapted from surveys_db
     # utility function to just update the status of a field
@@ -90,6 +68,70 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
         sdb.db_set('lb_calibrators',idd)
     sdb.close()        
 
+##############################
+## staging
+
+def stage_cal( id, srmpath='https://public.spider.surfsara.nl/project/lofarvlbi/srmlists/' ):
+    srmfilename = id + '_srms.txt'
+    response = requests.get(os.path.join(srmpath,srmfilename))
+    data = response.text
+    uris = data.rstrip('\n').split('\n')
+    stage_id = stager_access.stage(uris)
+    update_status(id, 'Staging', stage_id=stage_id )
+    return stage_id
+
+def do_stage(field):
+    update_status(field,'Staging')
+    success=True
+    try:
+        stage_field(field,basedir+'/'+field,verbose=True)
+    except RuntimeError:
+        success=False
+    if success:
+        update_status(field,operation,'Staged')
+    else:
+        update_status(field,operation,'Stage failed')
+
+##############################
+## downloading
+
+############# NEED TO CHANGE TO USE MACAROONS
+
+def do_download( id ):
+    update_status(id,'Downloading')
+    ## get the staging id from the surveys database
+    with SurveysDB(readonly=True) as sdb:
+        idd=sdb.db_get('lb_calibrators',id)
+        stage_id = idd['staging_id']
+    sdb.close()
+
+    ## create a directory and change to it
+    cdir = os.getcwd()
+
+    ## get the surls from the stager API
+    surls = stager_access.get_surls_online(stage_id)
+    if len(surls) > 0:
+        caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
+        os.makedirs(id,exist_ok=True)
+        os.chdir(caldir)
+        ### NEED TO REPLACE THIS BIT WITH RCLONE STUFF!
+        if 'juelich' in surls[0]:
+            for surl in surls:
+                os.system('wget --no-check-certificate --user=morabito --password=HZRGastron10 https://lofar-download.fz-juelich.de/webserver-lofar/SRMFifoGet.py?surl='+surl)
+        os.chdir(cdir)
+        ## check that everything was downloaded
+        tarfiles = glob.glob(os.path.join(caldir,'*tar'))
+        if len(tarfiles) == len(surls):
+            print('Download successful for {:s}'.format(id) )
+            update_status(id,'Downloaded',stage_id=0)
+    else:
+        print('SURLs do not appear to be online for {:s} (staging id {:s})'.format(id,str(stage_id)))
+        update_status(id,'Download failed')
+
+##############################
+## downloading
+
+############# NEED TO CHANGE BASED ON MACAROON USE
 
 def do_unpack(field):
     update_status(field,operation,'Unpacking')
@@ -104,19 +146,27 @@ def do_unpack(field):
     else:
         update_status(field,operation,'Unpack failed')
 
-def do_stage(field):
-    update_status(field,'Staging')
-    success=True
-    try:
-        stage_field(field,basedir+'/'+field,verbose=True)
-    except RuntimeError:
-        success=False
-    if success:
-        update_status(field,operation,'Staged')
+def unpack_tarfiles(field):
+    cdir = os.getcwd()
+    caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(field))
+    os.chdir(caldir)
+    tarfiles = glob.glob('SRMF*tar')
+    ## need to rename them - this loop can be deleted once no longer using html
+    for tf in tarfiles:
+        tmp = tf.split('%2FL')[-1]
+        os.system('mv {:s} {:s}'.format(tf, tmp))
+        os.system('rm {:s}'.format(tf))
+    tarfiles = glob.glob('*.tar')
+    for tf in tar:
+        os.system('tar xvf {:s}'.tf)
+    ## check that everything is ok
+    msfiles = glob.glob('*MS')
+    if len(msfiles) == len(tarfiles):
+        os.system('rm *.tar')
+        success = True
     else:
-        update_status(field,operation,'Stage failed')
-        
-os.chdir(basedir)
+        success = False
+    return success
 
 ''' Logic is as follows:
 
@@ -145,7 +195,6 @@ while True:
 
         d={} ## len(fd)
         fd={}  ## dictionary of fields of a given status type
-        sid={}
         for r in result:
             status=r['status']
             if status in d:
@@ -154,8 +203,6 @@ while True:
             else:
                 d[status]=1
                 fd[status]=[r['id']]
-            if status == 'Staging':
-                sid[r['staging_id']] = r['id']
         d['Not started']=len(result2)
         print('\n\n-----------------------------------------------\n\n')
         print('LB calibrator status on cluster %s' % (cluster))
@@ -205,13 +252,15 @@ while True:
         if 'Staging' in d.keys():
             ## get the staging ids and then check if they are complete
             ## loop over ids and call database to get staging id
-            for s in sid:
-                stage_status = stager_access.get_status(s)
-                #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
-                if stage_status == 'success':
-                    print('Staging for {:s} is complete, updating status'.format(sid[s]))
-                    update_status(sid[s],'Staged',stage_id=0)
-        
+            for r in result:
+                if r['status'] = 'Staging':
+                    stage_status = stager_access.get_status(s)
+                    #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
+                    if stage_status == 'success':
+                        print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
+                        update_status(r['id'],'Staged') ## don't reset the staging id till download happens
+
+        ## this does one download at a time
         if ksum<totallimit and 'Staged' in d and download_thread is None:
             download_name=fd['Staged'][0]
             print('We need to download a new file (%s)!' % download_name)
@@ -219,6 +268,7 @@ while True:
             download_thread=threading.Thread(target=do_download, args=(download_name,))
             download_thread.start()
 
+        ## unpacking the files
         if 'Downloaded' in d and unpack_thread is None:
             unpack_name=fd['Downloaded'][0]
             print('We need to unpack a new file (%s)!' % unpack_name)
@@ -230,11 +280,14 @@ while True:
                 print('Running a new job',field)
                 update_status(field,"Queued")
                 ### will need to change the script
-                command="qsub -v FIELD=%s -N repro-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/dynspec.qsub" % (field, field)
+                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh" % (field, str(basedir).rstrip('/'))
                 if os.system(command):
                     update_status(field,"Submission failed")
 
-        ## need to step here where we check that if it's done, the pipeline run was successful. 
+        ## need to step here where we check that if it's done, the pipeline run was successful
+        
+
+    LOGFILES=${OUTPUT_DIR}/logfiles.tar.gz
 
         ## this will also need to be changed to use macaroons to copy back to spider
         if 'Verified' in d:
