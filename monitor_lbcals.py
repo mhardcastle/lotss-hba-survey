@@ -114,10 +114,17 @@ def do_download( id ):
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
         os.makedirs(id,exist_ok=True)
         os.chdir(caldir)
-        ### NEED TO REPLACE THIS BIT WITH RCLONE STUFF!
+        ### NEED TO REPLACE THIS BIT WITH RCLONE STUFF OR GRID CERTIFICATE
         if 'juelich' in surls[0]:
             for surl in surls:
-                os.system('wget --no-check-certificate --user=morabito --password=HZRGastron10 https://lofar-download.fz-juelich.de/webserver-lofar/SRMFifoGet.py?surl='+surl)
+                dest = os.path.basename(surl)
+                os.system('gfal-copy {:s} {:s}'.format(surl,dest))
+        if 'psnc' in surls[0]:
+            for surl in surls:
+                dest = os.path.basename(surl)
+                os.system('gfal-copy {:s} {:s}'.format(surl,dest))
+        if 'sara' in surls[0]:
+            ## can use a macaroon
         os.chdir(cdir)
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
