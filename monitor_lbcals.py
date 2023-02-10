@@ -9,7 +9,7 @@ from surveys_db import SurveysDB, tag_field, get_cluster
 
 ## need to update this
 #from run_full_field_reprocessing_pipeline import stage_field
-## from reprocessing_utils import prepare_field  ## ddf-pipeline utils
+#from reprocessing_utils import prepare_field  ## ddf-pipeline utils
 import os
 import threading
 import glob
@@ -112,7 +112,7 @@ def do_download( id ):
     surls = stager_access.get_surls_online(stage_id)
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
-        os.makedirs(id,exist_ok=True)
+        os.makedirs(caldir,exist_ok=True)
         os.chdir(caldir)
         ### NEED TO REPLACE THIS BIT WITH RCLONE STUFF OR GRID CERTIFICATE
         if 'juelich' in surls[0]:
@@ -125,6 +125,7 @@ def do_download( id ):
                 os.system('gfal-copy {:s} {:s}'.format(surl,dest))
         if 'sara' in surls[0]:
             ## can use a macaroon
+            
         os.chdir(cdir)
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
@@ -141,17 +142,23 @@ def do_download( id ):
 ############# NEED TO CHANGE BASED ON MACAROON USE
 
 def do_unpack(field):
-    update_status(field,operation,'Unpacking')
+    update_status(field,'Unpacking')
     success=True
-    try:
-        ## function that unpacks tar files, end result is MS on disk
-        success=prepare_field(field,basedir+'/'+field,verbose=True,operations=['untar','fixsymlinks','makelist'])
-    except RuntimeError:
-        success=False
-    if success:
-        update_status(field,operation,'Unpacked')
+    cdir = os.getcwd()
+    caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
+    os.chdir(caldir)
+    ## get the tarfiles
+    tarfiles = glob.glob('*tar')
+    for trf in tarfiles:
+        os.system( 'tar -xvf {:s}'.format(trf) )
+    ## check that everything unpacked
+    msfiles = glob.glob('L*MS')
+    if len(msfiles) == len(tarfiles):
+        update_status(field,'Unpacked')
+        os.system('rm *.tar')
     else:
-        update_status(field,operation,'Unpack failed')
+        update_status(field,'Unpack failed')
+    os.chdir(cdir)
 
 def unpack_tarfiles(field):
     cdir = os.getcwd()
@@ -294,7 +301,6 @@ while True:
         ## need to step here where we check that if it's done, the pipeline run was successful
         
 
-    LOGFILES=${OUTPUT_DIR}/logfiles.tar.gz
 
         ## this will also need to be changed to use macaroons to copy back to spider
         if 'Verified' in d:
