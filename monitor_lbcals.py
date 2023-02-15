@@ -23,6 +23,9 @@ import stager_access
 '''
 export DDF_PIPELINE_CLUSTER=cosma
 export LINC_DATA_DIR=/cosma5/data/durham/dc-mora2/surveys/
+
+export DDF_PIPELINE_CLUSTER=spider
+export LINC_DATA_DIR=/project/lofarvlbi/Share/surveys
 '''
 
 
