@@ -297,7 +297,7 @@ while True:
                 print('Running a new job',field)
                 update_status(field,"Queued")
                 ### will need to change the script
-                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh" % (field, str(basedir).rstrip('/'))
+                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
                 if os.system(command):
                     update_status(field,"Submission failed")
 
