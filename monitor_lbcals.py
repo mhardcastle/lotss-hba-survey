@@ -31,7 +31,7 @@ export LINC_DATA_DIR=/project/lofarvlbi/Share/surveys
 
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
 basedir = os.getenv('LINC_DATA_DIR')
-
+procdir = os.path.join(basedir,'processing')
 
 download_thread=None
 download_name=None
@@ -140,9 +140,7 @@ def do_download( id ):
         update_status(id,'Download failed')
 
 ##############################
-## downloading
-
-############# NEED TO CHANGE BASED ON MACAROON USE
+## unpacking
 
 def do_unpack(field):
     update_status(field,'Unpacking')
@@ -183,7 +181,28 @@ def unpack_tarfiles(field):
         success = True
     else:
         success = False
+    os.chdir(cdir)
     return success
+
+##############################
+## verifying
+
+def check_field(field):
+    cdir = os.getcwd()
+    procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
+    outdir = os.path.join(procdir,field)
+    os.chdir(outdir)
+    os.system('rm -rf tmp*')
+    if os.path.isfile('finished.txt'):
+        if os.path.isfile('cal_solutions.h5'):
+            os.system('tar cvzf {:s}.tgz inspection *.json cal_solutions.h5')
+            success = True
+        else:
+            success = False
+    else:
+        success = False
+    os.chdir(cdir)
+
 
 ''' Logic is as follows:
 
@@ -301,14 +320,31 @@ while True:
                 if os.system(command):
                     update_status(field,"Submission failed")
 
-        ## need to step here where we check that if it's done, the pipeline run was successful
-        
-
+        if 'Queued' in d:
+            for field in fd['Queued']:
+                ## need some sort of file to be written at the end
+                print('Verifying processing for',field)
+                result = check_field(field)
+                if result:
+                    update_status(field,'Verified')
+                else:
+                    update_status(field,'Workflow failed')
 
         ## this will also need to be changed to use macaroons to copy back to spider
         if 'Verified' in d:
             for field in fd['Verified']:
                 print('Tidying uploaded directory for',field)
+
+                ## use rclone / macaroon to copy the tgz file
+                g=glob.glob(os.path.join(procdir,field)+'*tgz')
+                ## check that it's copied properly ...
+
+                ## delete the directory
+                os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
+                ## delete the initial data
+                os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
+
+
                 target='/data/lofar/DR2/fields/'+field
                 g=glob.glob(basedir+'/'+field+'/*.tgz')
                 for f in g:
