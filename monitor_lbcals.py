@@ -23,9 +23,11 @@ import stager_access
 '''
 export DDF_PIPELINE_CLUSTER=cosma
 export LINC_DATA_DIR=/cosma5/data/durham/dc-mora2/surveys/
+export MACAROON_DIR=/cosma/home/durham/dc-mora2/macaroons/
 
 export DDF_PIPELINE_CLUSTER=spider
 export LINC_DATA_DIR=/project/lofarvlbi/Share/surveys
+export MACAROON_DIR=
 '''
 
 
@@ -195,14 +197,14 @@ def check_field(field):
     os.system('rm -rf tmp*')
     if os.path.isfile('finished.txt'):
         if os.path.isfile('cal_solutions.h5'):
-            os.system('tar cvzf {:s}.tgz inspection *.json cal_solutions.h5')
+            os.system('tar cvzf {:s}.tgz inspection *.json cal_solutions.h5'.format(field))
             success = True
         else:
             success = False
     else:
         success = False
     os.chdir(cdir)
-
+    return success
 
 ''' Logic is as follows:
 
@@ -336,6 +338,26 @@ while True:
                 print('Tidying uploaded directory for',field)
 
                 ## use rclone / macaroon to copy the tgz file
+
+
+
+    update_status(name,'Created tar',workdir=workdir)
+    report('Uploading')
+    rc=RClone('maca_sksp_tape_DDF.conf',debug=True)
+    rc.get_remote()
+    if other:
+        remote='other/'+name
+    else:
+        remote='archive/'+name
+    d=rc.execute_live(['-P','copy',workdir+'/_archive']+[rc.remote+'/'+remote])
+    if d['err'] or d['code']!=0:
+        update_status(name,'rclone failed',workdir=workdir)
+        die('rclone upload failed!',database=False)
+    update_status(name,'rcloned',workdir=workdir)
+
+    report('Validate checksums')
+
+
                 g=glob.glob(os.path.join(procdir,field)+'*tgz')
                 ## check that it's copied properly ...
 
