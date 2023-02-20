@@ -15,6 +15,7 @@ import threading
 import glob
 import requests
 import stager_access
+from rclone import RClone   ## pip3 install --user python-rclone
 
 
 #################################
@@ -34,6 +35,8 @@ export MACAROON_DIR=
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
 basedir = os.getenv('LINC_DATA_DIR')
 procdir = os.path.join(basedir,'processing')
+macaroon_dir = os.getenv('MACAROON_DIR')
+macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi_upload.conf'))[0]
 
 download_thread=None
 download_name=None
@@ -358,8 +361,11 @@ while True:
     report('Validate checksums')
 
 
-                g=glob.glob(os.path.join(procdir,field)+'*tgz')
+                tarfile = glob.glob(os.path.join(procdir,field)+'/*tgz')[0]
                 ## check that it's copied properly ...
+                rc = RClone( macaroon, debug=True )
+                rc.run_cmd( 'mkdir disk/surveys/test' )
+                rc.copy( tarfile, os.path.join('disk/survey
 
                 ## delete the directory
                 os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
