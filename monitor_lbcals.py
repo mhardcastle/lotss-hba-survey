@@ -15,7 +15,7 @@ import threading
 import glob
 import requests
 import stager_access
-from rclone import RClone   ## pip3 install --user python-rclone
+from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
 
 
 #################################
@@ -37,6 +37,7 @@ basedir = os.getenv('LINC_DATA_DIR')
 procdir = os.path.join(basedir,'processing')
 macaroon_dir = os.getenv('MACAROON_DIR')
 macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi_upload.conf'))[0]
+
 
 download_thread=None
 download_name=None
@@ -133,7 +134,12 @@ def do_download( id ):
                 os.system('gfal-copy {:s} {:s}'.format(surl,dest))
         if 'sara' in surls[0]:
             ## can use a macaroon
-            
+            macaroon_dir = os.getenv('MACAROON_DIR')        
+            lta_macaroon = glob.glob(os.path.join(macaroon_dir,'*LTA.conf'))[0]
+            rc = Rclone( lta_macaroon, debug=True )
+            rc.get_remote()
+            for surl in surls:
+                d = rc.execute_live(['-P', 'copy', surl ]+[ ...... ])            
         os.chdir(cdir)
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
@@ -256,7 +262,7 @@ while True:
                 failed+=d[k]
 
         print()
-        ksum=len(glob.glob(basedir+'/*'))-failed
+        ksum=(len(glob.glob(basedir+'/*'))-4)-failed
         if ksum<0: ksum=0
         print(ksum,'live directories out of',totallimit)
         print('Next field to work on is',nextfield)
@@ -281,8 +287,9 @@ while True:
             print('Stage thread seems to have terminated')
             stage_thread=None
 
-        ## at the moment this isn't working because nothing has been started and so d is empty
-        if 'Staging' in d.keys():
+        if 'Staging' not in d.keys():
+            ## the logic 
+
             if d['Staging'] < staginglimit and nextfield is not None and 'Staged' not in d:
                 stage_name=nextfield
                 print('We need to stage a new field (%s)' % stage_name)
@@ -341,48 +348,19 @@ while True:
                 print('Tidying uploaded directory for',field)
 
                 ## use rclone / macaroon to copy the tgz file
-
-
-
-    update_status(name,'Created tar',workdir=workdir)
-    report('Uploading')
-    rc=RClone('maca_sksp_tape_DDF.conf',debug=True)
-    rc.get_remote()
-    if other:
-        remote='other/'+name
-    else:
-        remote='archive/'+name
-    d=rc.execute_live(['-P','copy',workdir+'/_archive']+[rc.remote+'/'+remote])
-    if d['err'] or d['code']!=0:
-        update_status(name,'rclone failed',workdir=workdir)
-        die('rclone upload failed!',database=False)
-    update_status(name,'rcloned',workdir=workdir)
-
-    report('Validate checksums')
-
-
                 tarfile = glob.glob(os.path.join(procdir,field)+'/*tgz')[0]
-                ## check that it's copied properly ...
-                rc = RClone( macaroon, debug=True )
-                rc.run_cmd( 'mkdir disk/surveys/test' )
-                rc.copy( tarfile, os.path.join('disk/survey
-
-                ## delete the directory
-                os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
-                ## delete the initial data
-                os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
-
-
-                target='/data/lofar/DR2/fields/'+field
-                g=glob.glob(basedir+'/'+field+'/*.tgz')
-                for f in g:
-                    command='cp '+f+' '+target
-                    print('running',command)
-                    os.system(command)
-                command='rm -r '+basedir+'/'+field
-                print('running',command)
-                os.system(command)
-                update_status(field,'Complete')
+                rc = Rclone( macaroon, debug=True )
+                rc.get_remote()
+                d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
+                if d['err'] or d['code']!=0:
+                    update_status(field,'rclone failed')
+                    print('Rclone failed for field {:s}'.format(field))
+                else:
+                    update_status(field,'Complete')
+                    ## delete the directory
+                    os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
+                    ## delete the initial data
+                    os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
 
         print('\n\n-----------------------------------------------\n\n')
         
