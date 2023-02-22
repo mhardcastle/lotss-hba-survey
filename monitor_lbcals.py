@@ -140,6 +140,25 @@ def do_download( id ):
             rc.get_remote()
             for surl in surls:
                 d = rc.execute_live(['-P', 'copy', surl ]+[ ...... ])            
+
+
+
+
+                rc = RClone( macaroon, debug=True )
+                rc.get_remote()
+                d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
+                if d['err'] or d['code']!=0:
+                    update_status(field,'rclone failed')
+                    print('Rclone failed for field {:s}'.format(field))
+                else:
+                    update_status(field,'Complete')
+                    ## delete the directory
+                    os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
+                    ## delete the initial data
+                    os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
+
+
+
         os.chdir(cdir)
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
@@ -287,16 +306,18 @@ while True:
             print('Stage thread seems to have terminated')
             stage_thread=None
 
-        if 'Staging' not in d.keys():
-            ## the logic 
+        ## need to start staging if: staging isn't happening -or- staging is happening but less than staging limit
+        if 'Staging' in d.keys()
+            nstage = d['Staging']
+        else:
+            nstage = 0
 
-            if d['Staging'] < staginglimit and nextfield is not None and 'Staged' not in d:
-                stage_name=nextfield
-                print('We need to stage a new field (%s)' % stage_name)
-                stage_thread=threading.Thread(target=stage_cal,args=(stage_name,))
-                stage_thread.start()
+        if nstage < staginglimit and nextfield is not None and 'Staged' not in d:
+            stage_name=nextfield
+            print('We need to stage a new field (%s)' % stage_name)
+            stage_thread=threading.Thread(target=stage_cal,args=(stage_name,))
+            stage_thread.start()
 
-        ## this won't exist at the start so need some logic to avoid errors in d['Staging'] eg. if 'Staging' in d.keys()
         if 'Staging' in d.keys():
             ## get the staging ids and then check if they are complete
             ## loop over ids and call database to get staging id
@@ -349,7 +370,7 @@ while True:
 
                 ## use rclone / macaroon to copy the tgz file
                 tarfile = glob.glob(os.path.join(procdir,field)+'/*tgz')[0]
-                rc = Rclone( macaroon, debug=True )
+                rc = RClone( macaroon, debug=True )
                 rc.get_remote()
                 d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
                 if d['err'] or d['code']!=0:
