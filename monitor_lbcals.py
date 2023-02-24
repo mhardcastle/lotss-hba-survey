@@ -87,7 +87,6 @@ def stage_cal( id, srmpath='https://public.spider.surfsara.nl/project/lofarvlbi/
     uris = data.rstrip('\n').split('\n')
     stage_id = stager_access.stage(uris)
     update_status(id, 'Staging', stage_id=stage_id )
-    return stage_id
 
 def do_stage(field):
     update_status(field,'Staging')
@@ -119,6 +118,8 @@ def do_download( id ):
 
     ## get the surls from the stager API
     surls = stager_access.get_surls_online(stage_id)
+    project = surls[0].split('/')[-3]
+    obsid = surls[0].split('/')[-2]
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
         os.makedirs(caldir,exist_ok=True)
@@ -138,10 +139,13 @@ def do_download( id ):
             lta_macaroon = glob.glob(os.path.join(macaroon_dir,'*LTA.conf'))[0]
             rc = Rclone( lta_macaroon, debug=True )
             rc.get_remote()
+            rc.multicopy()
+
             for surl in surls:
                 d = rc.execute_live(['-P', 'copy', surl ]+[ ...... ])            
 
 
+srm://lofar-srm.fz-juelich.de:8443/pnfs/fz-juelich.de/data/lofar/ops/projects/com10_001/707930/L707930_SB018_uv.MS_9dd9b473.tar
 
 
                 rc = RClone( macaroon, debug=True )
@@ -294,20 +298,20 @@ while True:
             ## can be more clever about this and have thread terminate so able to start another one and then 
             print('Stage thread is running (%s)' % stage_name)
 
-        if download_thread is not None and not download_thread.isAlive():
+        if download_thread is not None and not download_thread.is_alive():
             print('Download thread seems to have terminated')
             download_thread=None
 
-        if unpack_thread is not None and not unpack_thread.isAlive():
+        if unpack_thread is not None and not unpack_thread.is_alive():
             print('Unpack thread seems to have terminated')
             unpack_thread=None
 
-        if stage_thread is not None and not stage_thread.isAlive():
+        if stage_thread is not None and not stage_thread.is_alive():
             print('Stage thread seems to have terminated')
             stage_thread=None
 
         ## need to start staging if: staging isn't happening -or- staging is happening but less than staging limit
-        if 'Staging' in d.keys()
+        if 'Staging' in d.keys():
             nstage = d['Staging']
         else:
             nstage = 0
@@ -321,13 +325,17 @@ while True:
         if 'Staging' in d.keys():
             ## get the staging ids and then check if they are complete
             ## loop over ids and call database to get staging id
-            for r in result:
-                if r['status'] = 'Staging':
-                    stage_status = stager_access.get_status(s)
-                    #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
-                    if stage_status == 'success':
-                        print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
-                        update_status(r['id'],'Staged') ## don't reset the staging id till download happens
+            for field in fd['Staging']:
+                ## get the stage id
+                r = [ item for item in result if item['id'] == field ][0]
+                s = r['staging_id']
+                stage_status = stager_access.get_status(s)
+                #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
+                if stage_status == 'success':
+                    print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
+                    update_status(r['id'],'Staged') ## don't reset the staging id till download happens
+                else:
+                    print('Staging for {:s} is {:s}'.format(field,stage_status))
 
         ## this does one download at a time
         if ksum<totallimit and 'Staged' in d and download_thread is None:
@@ -366,8 +374,6 @@ while True:
         ## this will also need to be changed to use macaroons to copy back to spider
         if 'Verified' in d:
             for field in fd['Verified']:
-                print('Tidying uploaded directory for',field)
-
                 ## use rclone / macaroon to copy the tgz file
                 tarfile = glob.glob(os.path.join(procdir,field)+'/*tgz')[0]
                 rc = RClone( macaroon, debug=True )
@@ -377,6 +383,7 @@ while True:
                     update_status(field,'rclone failed')
                     print('Rclone failed for field {:s}'.format(field))
                 else:
+                    print('Tidying uploaded directory for',field)
                     update_status(field,'Complete')
                     ## delete the directory
                     os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
