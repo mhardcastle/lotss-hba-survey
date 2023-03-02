@@ -120,6 +120,7 @@ def do_download( id ):
     surls = stager_access.get_surls_online(stage_id)
     project = surls[0].split('/')[-3]
     obsid = surls[0].split('/')[-2]
+    obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
         os.makedirs(caldir,exist_ok=True)
@@ -135,34 +136,15 @@ def do_download( id ):
                 os.system('gfal-copy {:s} {:s}'.format(surl,dest))
         if 'sara' in surls[0]:
             ## can use a macaroon
+            files = [ os.path.basename(val) for val in surls ]
             macaroon_dir = os.getenv('MACAROON_DIR')        
             lta_macaroon = glob.glob(os.path.join(macaroon_dir,'*LTA.conf'))[0]
             rc = Rclone( lta_macaroon, debug=True )
             rc.get_remote()
-            rc.multicopy()
-
-            for surl in surls:
-                d = rc.execute_live(['-P', 'copy', surl ]+[ ...... ])            
-
-
-srm://lofar-srm.fz-juelich.de:8443/pnfs/fz-juelich.de/data/lofar/ops/projects/com10_001/707930/L707930_SB018_uv.MS_9dd9b473.tar
-
-
-                rc = RClone( macaroon, debug=True )
-                rc.get_remote()
-                d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
-                if d['err'] or d['code']!=0:
-                    update_status(field,'rclone failed')
-                    print('Rclone failed for field {:s}'.format(field))
-                else:
-                    update_status(field,'Complete')
-                    ## delete the directory
-                    os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
-                    ## delete the initial data
-                    os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
-
-
-
+            d = rc.multicopy(rc.remote+os.path.join(obsid_path),files,caldir)
+            if d['err'] or d['code']!=0:
+                update_status(field,'rclone failed')
+                print('Rclone failed for field {:s}'.format(field))
         os.chdir(cdir)
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
