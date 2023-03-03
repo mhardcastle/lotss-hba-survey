@@ -129,11 +129,11 @@ def do_download( id ):
         if 'juelich' in surls[0]:
             for surl in surls:
                 dest = os.path.basename(surl)
-                os.system('gfal-copy {:s} {:s}'.format(surl,dest))
+                os.system('gfal-copy {:s} {:s}'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest))
         if 'psnc' in surls[0]:
             for surl in surls:
                 dest = os.path.basename(surl)
-                os.system('gfal-copy {:s} {:s}'.format(surl,dest))
+                os.system('gfal-copy {:s} {:s}'.format(surl.replace('srm://lta-head.lofar.psnc.pl:8443','gsiftp://gridftp.lofar.psnc.pl:2811'),dest))
         if 'sara' in surls[0]:
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
