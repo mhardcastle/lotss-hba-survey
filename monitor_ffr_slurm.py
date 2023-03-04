@@ -167,7 +167,7 @@ while True:
     if 'Verified' in d:
         for field in fd['Verified']:
             print('Tidying uploaded directory for',field)
-            target='mjh@lofar.herts.ac.uk/data/lofar/DR2/fields/'+field+':'
+            target='mjh@lofar.herts.ac.uk:/data/lofar/DR2/fields/'+field
             g=glob.glob(basedir+'/'+field+'/*.tgz')
             for f in g:
                 command='scp '+f+' '+target
