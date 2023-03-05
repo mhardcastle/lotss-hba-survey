@@ -25,7 +25,7 @@ unpack_name=None
 #upload_thread=None
 basedir='/home/azimuth/DS'
 operation='DynSpecMS'
-totallimit=6
+totallimit=8
 
 def do_download(field):
     update_status(field,operation,'Downloading')
@@ -80,15 +80,20 @@ os.chdir(basedir)
 
 while True:
 
-    with SurveysDB(readonly=True) as sdb:
-        sdb.cur.execute('select * from full_field_reprocessing where operation="'+operation+'" and clustername="'+cluster+'" order by priority desc,id')
-        result=sdb.cur.fetchall()
-        sdb.cur.execute('select * from full_field_reprocessing where operation="'+operation+'" and status="Not started" and priority>0 order by priority desc,id')
-        result2=sdb.cur.fetchall()
-        if len(result2)>0:
-            nextfield=result2[0]['id']
-        else:
-            nextfield=None
+    try:
+        with SurveysDB(readonly=True) as sdb:
+            sdb.cur.execute('select * from full_field_reprocessing where operation="'+operation+'" and clustername="'+cluster+'" order by priority desc,id')
+            result=sdb.cur.fetchall()
+            sdb.cur.execute('select * from full_field_reprocessing where operation="'+operation+'" and status="Not started" and priority>0 order by priority desc,id')
+            result2=sdb.cur.fetchall()
+            if len(result2)>0:
+                nextfield=result2[0]['id']
+            else:
+                nextfield=None
+    except Exception as err:
+        # catch ssh tunnel exceptions and ignore them to force a retry
+        print(f"{type(err).__name__} was raised: {err}")
+
 
     d={}
     fd={}
