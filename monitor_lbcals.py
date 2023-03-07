@@ -28,7 +28,7 @@ export MACAROON_DIR=/cosma/home/durham/dc-mora2/macaroons/
 
 export DDF_PIPELINE_CLUSTER=spider
 export LINC_DATA_DIR=/project/lofarvlbi/Share/surveys
-export MACAROON_DIR=
+export MACAROON_DIR=/home/lofarvlbi-lmorabito/macaroons/
 '''
 
 
