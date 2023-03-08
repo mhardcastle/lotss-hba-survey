@@ -29,6 +29,10 @@ export MACAROON_DIR=/cosma/home/durham/dc-mora2/macaroons/
 export DDF_PIPELINE_CLUSTER=spider
 export LINC_DATA_DIR=/project/lofarvlbi/Share/surveys
 export MACAROON_DIR=/home/lofarvlbi-lmorabito/macaroons/
+
+export DDF_PIPELINE_CLUSTER=galahad
+export LINC_DATA_DIR=
+export MACAROON_DIR=
 '''
 
 
@@ -299,7 +303,7 @@ while True:
         else:
             nstage = 0
 
-        if nstage < staginglimit and nextfield is not None and 'Staged' not in d:
+        if nstage < staginglimit and nextfield is not None:
             stage_name=nextfield
             print('We need to stage a new field (%s)' % stage_name)
             stage_thread=threading.Thread(target=stage_cal,args=(stage_name,))
