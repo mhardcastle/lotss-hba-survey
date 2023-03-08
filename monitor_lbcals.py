@@ -92,22 +92,8 @@ def stage_cal( id, srmpath='https://public.spider.surfsara.nl/project/lofarvlbi/
     stage_id = stager_access.stage(uris)
     update_status(id, 'Staging', stage_id=stage_id )
 
-def do_stage(field):
-    update_status(field,'Staging')
-    success=True
-    try:
-        stage_field(field,basedir+'/'+field,verbose=True)
-    except RuntimeError:
-        success=False
-    if success:
-        update_status(field,operation,'Staged')
-    else:
-        update_status(field,operation,'Stage failed')
-
 ##############################
 ## downloading
-
-############# NEED TO CHANGE TO USE MACAROONS
 
 def do_download( id ):
     update_status(id,'Downloading')
@@ -144,9 +130,11 @@ def do_download( id ):
             files = [ os.path.basename(val) for val in surls ]
             macaroon_dir = os.getenv('MACAROON_DIR')        
             lta_macaroon = glob.glob(os.path.join(macaroon_dir,'*LTA.conf'))[0]
-            rc = Rclone( lta_macaroon, debug=True )
+            rc = RClone( lta_macaroon, debug=True )
             rc.get_remote()
-            d = rc.multicopy(rc.remote+os.path.join(obsid_path),files,caldir)
+            #d = rc.multicopy(rc.remote+obsid_path,files,caldir)
+            for f in files:
+                d = rc.execute_live(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
             if d['err'] or d['code']!=0:
                 update_status(field,'rclone failed')
                 print('Rclone failed for field {:s}'.format(field))
@@ -181,29 +169,6 @@ def do_unpack(field):
     else:
         update_status(field,'Unpack failed')
     os.chdir(cdir)
-
-def unpack_tarfiles(field):
-    cdir = os.getcwd()
-    caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(field))
-    os.chdir(caldir)
-    tarfiles = glob.glob('SRMF*tar')
-    ## need to rename them - this loop can be deleted once no longer using html
-    for tf in tarfiles:
-        tmp = tf.split('%2FL')[-1]
-        os.system('mv {:s} {:s}'.format(tf, tmp))
-        os.system('rm {:s}'.format(tf))
-    tarfiles = glob.glob('*.tar')
-    for tf in tar:
-        os.system('tar xvf {:s}'.tf)
-    ## check that everything is ok
-    msfiles = glob.glob('*MS')
-    if len(msfiles) == len(tarfiles):
-        os.system('rm *.tar')
-        success = True
-    else:
-        success = False
-    os.chdir(cdir)
-    return success
 
 ##############################
 ## verifying
