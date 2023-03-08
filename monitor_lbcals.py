@@ -102,10 +102,8 @@ def do_download( id ):
         idd=sdb.db_get('lb_calibrators',id)
         stage_id = idd['staging_id']
     sdb.close()
-
     ## create a directory and change to it
     cdir = os.getcwd()
-
     ## get the surls from the stager API
     surls = stager_access.get_surls_online(stage_id)
     project = surls[0].split('/')[-3]
@@ -114,15 +112,15 @@ def do_download( id ):
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
         os.makedirs(caldir,exist_ok=True)
-        os.chdir(caldir)
+        #os.chdir(caldir)
         if 'juelich' in surls[0]:
             for surl in surls:
-                dest = os.path.basename(surl)
+                dest = os.path.join(caldir,os.path.basename(surl))
                 os.system('gfal-copy {:s} {:s} > gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest))
             os.system('rm gfal.log')
         if 'psnc' in surls[0]:
             for surl in surls:
-                dest = os.path.basename(surl)
+                dest = os.path.join(caldir,os.path.basename(surl))
                 os.system('gfal-copy {:s} {:s} > gfal.log 2>&1'.format(surl.replace('srm://lta-head.lofar.psnc.pl:8443','gsiftp://gridftp.lofar.psnc.pl:2811'),dest))
             os.system('rm gfal.log')
         if 'sara' in surls[0]:
@@ -138,7 +136,7 @@ def do_download( id ):
             if d['err'] or d['code']!=0:
                 update_status(field,'rclone failed')
                 print('Rclone failed for field {:s}'.format(field))
-        os.chdir(cdir)
+        #os.chdir(cdir)
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
         if len(tarfiles) == len(surls):
@@ -156,11 +154,12 @@ def do_unpack(field):
     success=True
     cdir = os.getcwd()
     caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
-    os.chdir(caldir)
+    #os.chdir(caldir)
     ## get the tarfiles
-    tarfiles = glob.glob('*tar')
+    tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
         os.system( 'tar -xvf {:s}'.format(trf) )
+        os.system( 'mv {:s} {:s}'.format('_'.join(os.path.basename(trf).split('_')[0:-1]),caldir))
     ## check that everything unpacked
     msfiles = glob.glob('L*MS')
     if len(msfiles) == len(tarfiles):
@@ -168,7 +167,7 @@ def do_unpack(field):
         os.system('rm *.tar')
     else:
         update_status(field,'Unpack failed')
-    os.chdir(cdir)
+    #os.chdir(cdir)
 
 ##############################
 ## verifying
@@ -177,17 +176,17 @@ def check_field(field):
     cdir = os.getcwd()
     procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
     outdir = os.path.join(procdir,field)
-    os.chdir(outdir)
-    os.system('rm -rf tmp*')
-    if os.path.isfile('finished.txt'):
-        if os.path.isfile('cal_solutions.h5'):
-            os.system('tar cvzf {:s}.tgz inspection *.json cal_solutions.h5'.format(field))
+    #os.chdir(outdir)
+    os.system('rm -rf {:s}/tmp*'.format(outdir))
+    if os.path.isfile(os.path.join(outdir,'finished.txt')):
+        if os.path.isfile(os.path.join(outdir,'cal_solutions.h5')):
+            os.system('tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(field,outdir,outdir,outdir))
             success = True
         else:
             success = False
     else:
         success = False
-    os.chdir(cdir)
+    #os.chdir(cdir)
     return success
 
 ''' Logic is as follows:
