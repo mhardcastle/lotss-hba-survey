@@ -326,7 +326,7 @@ while True:
         if 'Verified' in d:
             for field in fd['Verified']:
                 ## use rclone / macaroon to copy the tgz file
-                tarfile = glob.glob(os.path.join(procdir,field)+'/*tgz')[0]
+                tarfile = glob.glob(field+'*tgz')[0]
                 rc = RClone( macaroon, debug=True )
                 rc.get_remote()
                 d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
@@ -340,6 +340,8 @@ while True:
                     os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
                     ## delete the initial data
                     os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
+                    ## delete the tarfile
+                    os.system( 'rm {:s}.tar'.format(field))
 
         print('\n\n-----------------------------------------------\n\n')
         
