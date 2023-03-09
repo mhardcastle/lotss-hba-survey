@@ -158,13 +158,14 @@ def do_unpack(field):
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
-        os.system( 'tar -xvf {:s}'.format(trf) )
+        os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
         os.system( 'mv {:s} {:s}'.format('_'.join(os.path.basename(trf).split('_')[0:-1]),caldir))
     ## check that everything unpacked
     msfiles = glob.glob('L*MS')
     if len(msfiles) == len(tarfiles):
         update_status(field,'Unpacked')
         os.system('rm *.tar')
+        os.system('rm {:s}_unpack.log'.format(field))
     else:
         update_status(field,'Unpack failed')
     #os.chdir(cdir)
