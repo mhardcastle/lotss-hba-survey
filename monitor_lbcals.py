@@ -47,10 +47,8 @@ stage_thread=None
 stage_name=None
 unpack_thread=None
 unpack_name=None
-#tidy_thread=None
-#upload_name=None
-#upload_thread=None
-#operation='DynSpecMS'
+verify_thread=None
+verify_name=None
 totallimit=20
 staginglimit=2
 
