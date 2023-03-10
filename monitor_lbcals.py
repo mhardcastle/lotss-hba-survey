@@ -102,8 +102,6 @@ def do_download( id ):
         idd=sdb.db_get('lb_calibrators',id)
         stage_id = idd['staging_id']
     sdb.close()
-    ## create a directory and change to it
-    cdir = os.getcwd()
     ## get the surls from the stager API
     surls = stager_access.get_surls_online(stage_id)
     project = surls[0].split('/')[-3]
@@ -112,7 +110,6 @@ def do_download( id ):
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
         os.makedirs(caldir,exist_ok=True)
-        #os.chdir(caldir)
         if 'juelich' in surls[0]:
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
@@ -136,7 +133,6 @@ def do_download( id ):
             if d['err'] or d['code']!=0:
                 update_status(field,'rclone failed')
                 print('Rclone failed for field {:s}'.format(field))
-        #os.chdir(cdir)
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
         if len(tarfiles) == len(surls):
@@ -152,32 +148,27 @@ def do_download( id ):
 def do_unpack(field):
     update_status(field,'Unpacking')
     success=True
-    cdir = os.getcwd()
     caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
-    #os.chdir(caldir)
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
         os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
         os.system( 'mv {:s} {:s}'.format('_'.join(os.path.basename(trf).split('_')[0:-1]),caldir))
     ## check that everything unpacked
-    msfiles = glob.glob('L*MS')
+    msfiles = glob.glob('{:s}/L*MS'.format(caldir))
     if len(msfiles) == len(tarfiles):
         update_status(field,'Unpacked')
-        os.system('rm *.tar')
+        os.system('rm {:s}/*.tar'.format(caldir))
         os.system('rm {:s}_unpack.log'.format(field))
     else:
         update_status(field,'Unpack failed')
-    #os.chdir(cdir)
 
 ##############################
 ## verifying
 
 def check_field(field):
-    cdir = os.getcwd()
     procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
     outdir = os.path.join(procdir,field)
-    #os.chdir(outdir)
     os.system('rm -rf {:s}/tmp*'.format(outdir))
     if os.path.isfile(os.path.join(outdir,'finished.txt')):
         if os.path.isfile(os.path.join(outdir,'cal_solutions.h5')):
@@ -187,7 +178,6 @@ def check_field(field):
             success = False
     else:
         success = False
-    #os.chdir(cdir)
     return success
 
 ''' Logic is as follows:
