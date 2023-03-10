@@ -205,135 +205,135 @@ while True:
         else:
             nextfield=None
 
-        d={} ## len(fd)
-        fd={}  ## dictionary of fields of a given status type
-        for r in result:
-            status=r['status']
-            if status in d:
-                d[status]=d[status]+1
-                fd[status].append(r['id'])
-            else:
-                d[status]=1
-                fd[status]=[r['id']]
-        d['Not started']=len(result2)
-        print('\n\n-----------------------------------------------\n\n')
-        print('LB calibrator status on cluster %s' % (cluster))
-        print(datetime.datetime.now())
-        print()
-        failed=0
-        for k in sorted(d.keys()):
-            print("%-20s : %i" % (k,d[k]))
-            if 'ailed' in k:
-                failed+=d[k]
-
-        print()
-        ksum=(len(glob.glob(basedir+'/*'))-4)-failed
-        if ksum<0: ksum=0
-        print(ksum,'live directories out of',totallimit)
-        print('Next field to work on is',nextfield)
-
-        if download_thread is not None:
-            print('Download thread is running (%s)' % download_name)
-        if unpack_thread is not None:
-            print('Unpack thread is running (%s)' % unpack_name)
-        if stage_thread is not None:
-            ## can be more clever about this and have thread terminate so able to start another one and then 
-            print('Stage thread is running (%s)' % stage_name)
-
-        if download_thread is not None and not download_thread.is_alive():
-            print('Download thread seems to have terminated')
-            download_thread=None
-
-        if unpack_thread is not None and not unpack_thread.is_alive():
-            print('Unpack thread seems to have terminated')
-            unpack_thread=None
-
-        if stage_thread is not None and not stage_thread.is_alive():
-            print('Stage thread seems to have terminated')
-            stage_thread=None
-
-        ## need to start staging if: staging isn't happening -or- staging is happening but less than staging limit
-        if 'Staging' in d.keys():
-            nstage = d['Staging']
+    d={} ## len(fd)
+    fd={}  ## dictionary of fields of a given status type
+    for r in result:
+        status=r['status']
+        if status in d:
+            d[status]=d[status]+1
+            fd[status].append(r['id'])
         else:
-            nstage = 0
+            d[status]=1
+            fd[status]=[r['id']]
+    d['Not started']=len(result2)
+    print('\n\n-----------------------------------------------\n\n')
+    print('LB calibrator status on cluster %s' % (cluster))
+    print(datetime.datetime.now())
+    print()
+    failed=0
+    for k in sorted(d.keys()):
+        print("%-20s : %i" % (k,d[k]))
+        if 'ailed' in k:
+            failed+=d[k]
 
-        if nstage < staginglimit and nextfield is not None:
-            stage_name=nextfield
-            print('We need to stage a new field (%s)' % stage_name)
-            stage_thread=threading.Thread(target=stage_cal,args=(stage_name,))
-            stage_thread.start()
+    print()
+    ksum=(len(glob.glob(basedir+'/*'))-4)-failed
+    if ksum<0: ksum=0
+    print(ksum,'live directories out of',totallimit)
+    print('Next field to work on is',nextfield)
 
-        if 'Staging' in d.keys():
-            ## get the staging ids and then check if they are complete
-            ## loop over ids and call database to get staging id
-            for field in fd['Staging']:
-                ## get the stage id
-                r = [ item for item in result if item['id'] == field ][0]
-                s = r['staging_id']
-                stage_status = stager_access.get_status(s)
-                #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
-                if stage_status == 'success':
-                    print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
-                    update_status(r['id'],'Staged') ## don't reset the staging id till download happens
-                else:
-                    print('Staging for {:s} is {:s}'.format(field,stage_status))
+    if download_thread is not None:
+        print('Download thread is running (%s)' % download_name)
+    if unpack_thread is not None:
+        print('Unpack thread is running (%s)' % unpack_name)
+    if stage_thread is not None:
+        ## can be more clever about this and have thread terminate so able to start another one and then 
+        print('Stage thread is running (%s)' % stage_name)
 
-        ## this does one download at a time
-        if ksum<totallimit and 'Staged' in d and download_thread is None:
-            download_name=fd['Staged'][0]
-            print('We need to download a new file (%s)!' % download_name)
-            ## probably want to pass the staging id here
-            download_thread=threading.Thread(target=do_download, args=(download_name,))
-            download_thread.start()
+    if download_thread is not None and not download_thread.is_alive():
+        print('Download thread seems to have terminated')
+        download_thread=None
 
-        ## unpacking the files
-        if 'Downloaded' in d and unpack_thread is None:
-            unpack_name=fd['Downloaded'][0]
-            print('We need to unpack a new file (%s)!' % unpack_name)
-            unpack_thread=threading.Thread(target=do_unpack, args=(unpack_name,))
-            unpack_thread.start()
+    if unpack_thread is not None and not unpack_thread.is_alive():
+        print('Unpack thread seems to have terminated')
+        unpack_thread=None
 
-        if 'Unpacked' in d:
-            for field in fd['Unpacked']:
-                print('Running a new job',field)
-                update_status(field,"Queued")
-                ### will need to change the script
-                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
-                if os.system(command):
-                    update_status(field,"Submission failed")
+    if stage_thread is not None and not stage_thread.is_alive():
+        print('Stage thread seems to have terminated')
+        stage_thread=None
 
-        if 'Queued' in d:
-            for field in fd['Queued']:
-                ## need some sort of file to be written at the end
-                print('Verifying processing for',field)
-                result = check_field(field)
-                if result:
-                    update_status(field,'Verified')
-                else:
-                    update_status(field,'Workflow failed')
+    ## need to start staging if: staging isn't happening -or- staging is happening but less than staging limit
+    if 'Staging' in d.keys():
+        nstage = d['Staging']
+    else:
+        nstage = 0
 
-        ## this will also need to be changed to use macaroons to copy back to spider
-        if 'Verified' in d:
-            for field in fd['Verified']:
-                ## use rclone / macaroon to copy the tgz file
-                tarfile = glob.glob(field+'*tgz')[0]
-                rc = RClone( macaroon, debug=True )
-                rc.get_remote()
-                d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
-                if d['err'] or d['code']!=0:
-                    update_status(field,'rclone failed')
-                    print('Rclone failed for field {:s}'.format(field))
-                else:
-                    print('Tidying uploaded directory for',field)
-                    update_status(field,'Complete')
-                    ## delete the directory
-                    os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
-                    ## delete the initial data
-                    os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
-                    ## delete the tarfile
-                    os.system( 'rm {:s}.tar'.format(field))
+    if nstage < staginglimit and nextfield is not None:
+        stage_name=nextfield
+        print('We need to stage a new field (%s)' % stage_name)
+        stage_thread=threading.Thread(target=stage_cal,args=(stage_name,))
+        stage_thread.start()
 
-        print('\n\n-----------------------------------------------\n\n')
-        
+    if 'Staging' in d.keys():
+        ## get the staging ids and then check if they are complete
+        ## loop over ids and call database to get staging id
+        for field in fd['Staging']:
+            ## get the stage id
+            r = [ item for item in result if item['id'] == field ][0]
+            s = r['staging_id']
+            stage_status = stager_access.get_status(s)
+            #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
+            if stage_status == 'success':
+                print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
+                update_status(r['id'],'Staged') ## don't reset the staging id till download happens
+            else:
+                print('Staging for {:s} is {:s}'.format(field,stage_status))
+
+    ## this does one download at a time
+    if ksum<totallimit and 'Staged' in d and download_thread is None:
+        download_name=fd['Staged'][0]
+        print('We need to download a new file (%s)!' % download_name)
+        ## probably want to pass the staging id here
+        download_thread=threading.Thread(target=do_download, args=(download_name,))
+        download_thread.start()
+
+    ## unpacking the files
+    if 'Downloaded' in d and unpack_thread is None:
+        unpack_name=fd['Downloaded'][0]
+        print('We need to unpack a new file (%s)!' % unpack_name)
+        unpack_thread=threading.Thread(target=do_unpack, args=(unpack_name,))
+        unpack_thread.start()
+
+    if 'Unpacked' in d:
+        for field in fd['Unpacked']:
+            print('Running a new job',field)
+            update_status(field,'Queued')
+            ### will need to change the script
+            command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
+            if os.system(command):
+                update_status(field,"Submission failed")
+
+    if 'Queued' in d:
+        for field in fd['Queued']:
+            ## need some sort of file to be written at the end
+            print('Verifying processing for',field)
+            result = check_field(field)
+            if result:
+                update_status(field,'Verified')
+            else:
+                update_status(field,'Workflow failed')
+
+    ## this will also need to be changed to use macaroons to copy back to spider
+    if 'Verified' in d:
+        for field in fd['Verified']:
+            ## use rclone / macaroon to copy the tgz file
+            tarfile = glob.glob(field+'*tgz')[0]
+            rc = RClone( macaroon, debug=True )
+            rc.get_remote()
+            d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
+            if d['err'] or d['code']!=0:
+                update_status(field,'rclone failed')
+                print('Rclone failed for field {:s}'.format(field))
+            else:
+                print('Tidying uploaded directory for',field)
+                update_status(field,'Complete')
+                ## delete the directory
+                os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
+                ## delete the initial data
+                os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
+                ## delete the tarfile
+                os.system( 'rm {:s}.tar'.format(field))
+
+    print('\n\n-----------------------------------------------\n\n')
+    
     sleep(60)
