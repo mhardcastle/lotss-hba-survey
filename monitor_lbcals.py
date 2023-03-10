@@ -39,8 +39,6 @@ export MACAROON_DIR=
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
 basedir = os.getenv('LINC_DATA_DIR')
 procdir = os.path.join(basedir,'processing')
-macaroon_dir = os.getenv('MACAROON_DIR')
-macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi_upload.conf'))[0]
 
 
 download_thread=None
@@ -180,6 +178,26 @@ def check_field(field):
         success = False
     return success
 
+def do_verify(field):
+    tarfile = glob.glob(field+'*tgz')[0]
+    macaroon_dir = os.getenv('MACAROON_DIR')
+    macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi_upload.conf'))[0]
+    rc = RClone( macaroon, debug=True )
+    rc.get_remote()
+    d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
+    if d['err'] or d['code']!=0:
+        update_status(field,'rclone failed')
+        print('Rclone failed for field {:s}'.format(field))
+    else:
+        print('Tidying uploaded directory for',field)
+        update_status(field,'Complete')
+        ## delete the directory
+        os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
+        ## delete the initial data
+        os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
+        ## delete the tarfile
+        os.system( 'rm {:s}.tgz'.format(field))
+
 ''' Logic is as follows:
 
 1. if there is a not started dataset, first operation is always to stage a dataset (NB a different operation if it's on rclone or on SDR -- can do SDR first). At most one staging thread. Set status to Staged on sucessful complete. From this point on we only look for datasets that are associated with the local cluster.
@@ -237,8 +255,9 @@ while True:
     if unpack_thread is not None:
         print('Unpack thread is running (%s)' % unpack_name)
     if stage_thread is not None:
-        ## can be more clever about this and have thread terminate so able to start another one and then 
         print('Stage thread is running (%s)' % stage_name)
+    if verify_thread is not None:
+        print('Verify thread is running (%s)' % verify_name)
 
     if download_thread is not None and not download_thread.is_alive():
         print('Download thread seems to have terminated')
@@ -251,6 +270,10 @@ while True:
     if stage_thread is not None and not stage_thread.is_alive():
         print('Stage thread seems to have terminated')
         stage_thread=None
+
+    if verify_thread is not None and not verify_thread.is_alive():
+        print('Verify thread seems to have terminated')
+        verify_thread=None
 
     ## need to start staging if: staging isn't happening -or- staging is happening but less than staging limit
     if 'Staging' in d.keys():
@@ -314,25 +337,11 @@ while True:
                 update_status(field,'Workflow failed')
 
     ## this will also need to be changed to use macaroons to copy back to spider
-    if 'Verified' in d:
-        for field in fd['Verified']:
-            ## use rclone / macaroon to copy the tgz file
-            tarfile = glob.glob(field+'*tgz')[0]
-            rc = RClone( macaroon, debug=True )
-            rc.get_remote()
-            d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
-            if d['err'] or d['code']!=0:
-                update_status(field,'rclone failed')
-                print('Rclone failed for field {:s}'.format(field))
-            else:
-                print('Tidying uploaded directory for',field)
-                update_status(field,'Complete')
-                ## delete the directory
-                os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
-                ## delete the initial data
-                os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
-                ## delete the tarfile
-                os.system( 'rm {:s}.tar'.format(field))
+    if 'Verified' in d and verify_thread is None:
+        verify_name = fd['Verified'][0]
+        verify_thread=threading.Thread(target=do_verify, args=(verify_name,))
+        verify_thread.start()
+
 
     print('\n\n-----------------------------------------------\n\n')
     
