@@ -165,13 +165,10 @@ def do_unpack(field):
 def check_field(field):
     procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
     outdir = os.path.join(procdir,field)
-    os.system('rm -rf {:s}/tmp*'.format(outdir))
-    if os.path.isfile(os.path.join(outdir,'finished.txt')):
-        if os.path.isfile(os.path.join(outdir,'cal_solutions.h5')):
-            os.system('tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(field,outdir,outdir,outdir))
-            success = True
-        else:
-            success = False
+    if os.path.isfile(os.path.join(outdir,'cal_solutions.h5')):
+        os.system('tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(field,outdir,outdir,outdir))
+        os.system('rm -rf {:s}/tmp*'.format(outdir))
+        success = True
     else:
         success = False
     return success
@@ -326,13 +323,14 @@ while True:
 
     if 'Queued' in d:
         for field in fd['Queued']:
-            ## need some sort of file to be written at the end
             print('Verifying processing for',field)
-            result = check_field(field)
-            if result:
-                update_status(field,'Verified')
-            else:
-                update_status(field,'Workflow failed')
+            outdir = os.path.join(procdir,field)
+            if os.path.isfile(os.path.join(outdir,'finished.txt')):        
+                result = check_field(field)
+                if result:
+                    update_status(field,'Verified')
+                else:
+                    update_status(field,'Workflow failed')
 
     ## this will also need to be changed to use macaroons to copy back to spider
     if 'Verified' in d and verify_thread is None:
