@@ -279,8 +279,9 @@ while True:
     if nstage < staginglimit and nextfield is not None:
         stage_name=nextfield
         print('We need to stage a new field (%s)' % stage_name)
-        stage_thread=threading.Thread(target=stage_cal,args=(stage_name,))
-        stage_thread.start()
+        stage_cal(stage_name)
+        #stage_thread=threading.Thread(target=stage_cal,args=(stage_name,))
+        #stage_thread.start()
 
     if 'Staging' in d.keys():
         ## get the staging ids and then check if they are complete
