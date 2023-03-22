@@ -125,7 +125,7 @@ def do_download( id ):
             rc.get_remote()
             #d = rc.multicopy(rc.remote+obsid_path,files,caldir)
             for f in files:
-                d = rc.execute_live(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
+                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
             if d['err'] or d['code']!=0:
                 update_status(field,'rclone failed')
                 print('Rclone failed for field {:s}'.format(field))
@@ -296,7 +296,7 @@ while True:
                 print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
                 update_status(r['id'],'Staged') ## don't reset the staging id till download happens
             else:
-                print('Staging for {:s} is {:s}'.format(field,stage_status))
+                print('Staging for {:s} is {:s} (staging id {:s})'.format(field,stage_status,s))
 
     ## this does one download at a time
     if ksum<totallimit and 'Staged' in d and download_thread is None:
