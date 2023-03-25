@@ -322,9 +322,9 @@ def filter_catalogs(pointdirectories,pointingras,pointingdecs,mosaiccat,outname,
     regionfile.write('global color=green font="helvetica 10 normal" select=1 highlite=1 edit=1 move=1 delete=1 include=1 fixed=0 source\n')
     regionfile.write('fk5\n')
     for i in range(0,len(sourceids)):
-	if not np.isnan(maj[i]):
+        if not np.isnan(maj[i]):
             regionfile.write('ellipse(%s,%s,%s,%s,%s)\n'%(sourcera[i],sourcedec[i],maj[i],smin[i],pa[i]+90))
-	else:
+        else:
             regionfile.write('box(%s,%s,5.0",5.0",0.0)\n'%(sourcera[i],sourcedec[i]))
     regionfile.close()
 
