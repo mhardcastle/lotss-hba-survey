@@ -51,6 +51,7 @@ verify_thread=None
 verify_name=None
 totallimit=20
 staginglimit=2
+maxstaged=6
 
 '''
 updated in MySQL_utils.py:
@@ -273,10 +274,14 @@ while True:
     ## need to start staging if: staging isn't happening -or- staging is happening but less than staging limit
     if 'Staging' in d.keys():
         nstage = d['Staging']
-    else:
-        nstage = 0
+        nstaged = d['Staged']
+        check_stage = (nstage <=2) + (nstaged <= maxstaged)
+        if check_stage == 1:
+            do_stage = False
+        else:
+            do_stage = True
 
-    if nstage < staginglimit and nextfield is not None:
+    if do_stage and nextfield is not None:
         stage_name=nextfield
         print('We need to stage a new field (%s)' % stage_name)
         stage_cal(stage_name)
