@@ -280,6 +280,8 @@ while True:
             do_stage = False
         else:
             do_stage = True
+    else:
+        do_stage = True
 
     if do_stage and nextfield is not None:
         stage_name=nextfield
