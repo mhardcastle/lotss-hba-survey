@@ -53,6 +53,12 @@ totallimit=20
 staginglimit=2
 maxstaged=6
 
+## cluster specific queuing limits
+if cluster == 'spider':
+    maxqueue = 10
+if cluster == 'cosma':
+    maxqueue = 3
+
 '''
 updated in MySQL_utils.py:
 update_status
@@ -321,13 +327,18 @@ while True:
         unpack_thread.start()
 
     if 'Unpacked' in d:
+        nq = d['Queued']
         for field in fd['Unpacked']:
-            print('Running a new job',field)
-            update_status(field,'Queued')
-            ### will need to change the script
-            command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
-            if os.system(command):
-                update_status(field,"Submission failed")
+            if nq <= maxqueue:
+                nq = nq + 1
+                print('Running a new job',field)
+                update_status(field,'Queued')
+                ### will need to change the script
+                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
+                if os.system(command):
+                    update_status(field,"Submission failed")
+            else:
+                print( 'Queue is full, {:s} waiting for submission'.format(field) )
 
     if 'Queued' in d:
         for field in fd['Queued']:
