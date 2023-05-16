@@ -280,7 +280,10 @@ while True:
     ## need to start staging if: staging isn't happening -or- staging is happening but less than staging limit
     if 'Staging' in d.keys():
         nstage = d['Staging']
-        nstaged = d['Staged']
+        if 'Staged' in d.keys():
+            nstaged = d['Staged']
+        else:
+            nstaged = 0
         check_stage = (nstage <=2) + (nstaged <= maxstaged)
         if check_stage == 1:
             do_stage = False
