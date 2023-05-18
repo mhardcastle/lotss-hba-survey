@@ -330,7 +330,10 @@ while True:
         unpack_thread.start()
 
     if 'Unpacked' in d:
-        nq = d['Queued']
+        if 'Queued' in d:
+            nq = d['Queued']
+        else:
+            nq = 0
         for field in fd['Unpacked']:
             if nq <= maxqueue:
                 nq = nq + 1
