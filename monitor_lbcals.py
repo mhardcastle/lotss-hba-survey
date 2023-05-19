@@ -35,7 +35,7 @@ export LINC_DATA_DIR=
 export MACAROON_DIR=
 '''
 
-
+user = os.getenv('USER')
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
 basedir = os.getenv('LINC_DATA_DIR')
 procdir = os.path.join(basedir,'processing')
@@ -216,7 +216,7 @@ def do_verify(field):
 while True:
 
     with SurveysDB(readonly=True) as sdb:
-        sdb.cur.execute('select * from lb_calibrators where clustername="'+cluster+'" order by priority,id')
+        sdb.cur.execute('select * from lb_calibrators where clustername="'+cluster+'" and username="'+user+'" order by priority,id')
         result=sdb.cur.fetchall()
         sdb.cur.execute('select * from lb_calibrators where status="Not started" and priority>0 order by priority,id')
         result2=sdb.cur.fetchall()
