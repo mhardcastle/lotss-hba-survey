@@ -233,6 +233,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
         dump_headers(workdir,t.files,verbose=False)
         
     t.make_tar('misc',['summary.txt','logs','fits_headers','mslist.txt','big-mslist.txt']+
+                   m.glob('mslist-*txt') +
                    m.glob('*-fit_state.pickle') +
                    m.glob('*.png') +
                    m.glob('*crossmatch-results*') +
