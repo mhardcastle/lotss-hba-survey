@@ -36,6 +36,8 @@ export MACAROON_DIR=
 '''
 
 user = os.getenv('USER')
+if len(user) > 20:
+    user = user[0:20]
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
 basedir = os.getenv('LINC_DATA_DIR')
 procdir = os.path.join(basedir,'processing')
