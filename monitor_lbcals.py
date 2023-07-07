@@ -337,7 +337,7 @@ while True:
         else:
             nq = 0
         for field in fd['Unpacked']:
-            if nq <= maxqueue:
+            if nq < maxqueue:
                 nq = nq + 1
                 print('Running a new job',field)
                 update_status(field,'Queued')
