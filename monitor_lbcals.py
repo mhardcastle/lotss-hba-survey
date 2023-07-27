@@ -59,7 +59,7 @@ maxstaged=6
 if cluster == 'spider':
     maxqueue = 10
 if cluster == 'cosma':
-    maxqueue = 3
+    maxqueue = 5
 
 '''
 updated in MySQL_utils.py:
