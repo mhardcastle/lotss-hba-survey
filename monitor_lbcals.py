@@ -288,11 +288,11 @@ while True:
         nstaged = d['Staged']
     else:
         nstaged = 0
-    check_stage = (nstage <=2) + (nstaged <= maxstaged)
-    if check_stage == 1:
-        do_stage = False
-    else:
-        do_stage = True
+    if nstaged < maxstaged:
+        if nstage <= 2:
+            do_stage = True
+        else:
+            do_stage = False
 
     if do_stage and nextfield is not None:
         stage_name=nextfield
