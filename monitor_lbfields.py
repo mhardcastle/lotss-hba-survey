@@ -59,7 +59,7 @@ maxstaged=6
 if cluster == 'spider':
     maxqueue = 10
 if cluster == 'cosma':
-    maxqueue = 5
+    maxqueue = 3
 
 '''
 updated in MySQL_utils.py:
@@ -206,18 +206,31 @@ def do_verify(field):
 
 1. if there is a not started dataset, first operation is always to stage a dataset (NB a different operation if it's on rclone or on SDR -- can do SDR first). At most one staging thread. Set status to Staged on sucessful complete. From this point on we only look for datasets that are associated with the local cluster.
 
-2. any Staged dataset can be downloaded. At most one download thread (which uses prepare_field): set status to Downloaded on successful complete
+2. any Staged dataset can be downloaded. At most one download thread: set status to Downloaded on successful complete
 
-3. any Downloaded dataset can be unpacked. Set status to Unpacked when done (also uses prepare_field).
+3. any Downloaded dataset can be unpacked. Set status to Unpacked when done.
 
-4. any Unpacked dataset can have the processing script run on it. Set status to Started on start. (status set to Verified on upload)
+4. any Unpacked dataset can have processing run on it. Set status to Started on start. (status set to Verified on upload)
 
-5. any Verified dataset can have the tidy up script run on it.
+    Processing:
+        - pre-facet-target (if needed)
+            --> verify, tidy
+        - ddf-pipeline light (if needed)
+            --> verify, tidy
+        - delay calibration
+            --> verify, tidy
+        - split directions
+            --> verify, tidy
+        - 1" imaging 
+            --> verify, tidy
+
+5. upload data products back
 '''
 
 while True:
 
     with SurveysDB(readonly=True) as sdb:
+        #### CHANGE QUERIES TO USE TARGET TABLE
         sdb.cur.execute('select * from lb_calibrators where clustername="'+cluster+'" and username="'+user+'" order by priority,id')
         result=sdb.cur.fetchall()
         sdb.cur.execute('select * from lb_calibrators where status="Not started" and priority>0 order by priority,id')
@@ -239,7 +252,7 @@ while True:
             fd[status]=[r['id']]
     d['Not started']=len(result2)
     print('\n\n-----------------------------------------------\n\n')
-    print('LB calibrator status on cluster %s' % (cluster))
+    print('LB target reprocessing status on cluster %s' % (cluster))
     print(datetime.datetime.now())
     print()
     failed=0
@@ -288,20 +301,18 @@ while True:
         nstaged = d['Staged']
     else:
         nstaged = 0
-    if nstaged < maxstaged:
-        if nstage <= 2:
-            do_stage = True
-        else:
-            do_stage = False
-    else:
+    check_stage = (nstage <=2) + (nstaged <= maxstaged)
+    if check_stage == 1:
         do_stage = False
+    else:
+        do_stage = True
+
+    ## do we want to check that calibrator solutions exist first?
 
     if do_stage and nextfield is not None:
         stage_name=nextfield
         print('We need to stage a new field (%s)' % stage_name)
         stage_cal(stage_name)
-        #stage_thread=threading.Thread(target=stage_cal,args=(stage_name,))
-        #stage_thread.start()
 
     if 'Staging' in d.keys():
         ## get the staging ids and then check if they are complete
@@ -339,7 +350,7 @@ while True:
         else:
             nq = 0
         for field in fd['Unpacked']:
-            if nq < maxqueue:
+            if nq <= maxqueue:
                 nq = nq + 1
                 print('Running a new job',field)
                 update_status(field,'Queued')
