@@ -60,12 +60,12 @@ readme={'README.txt':'This file',
         'image_full_ampphase_di_m.NS_Band2_shift.int.facetRestored.fits':'Full-resolution Band 2 primary-beam corrected image',
         'image_full_low_QU.cube.dirty.fits.fz':'Compressed undeconvolved 20-arcsec resolution QU cube in apparent flux',
         'image_full_low_QU.cube.dirty.corr.fits.fz':'Compressed undeconvolved 20-arcsec resolution QU cube with primary beam correction',
-        'image_full_low_stokesV.dirty.fits':'Undeconvolved 20-arcsec resolution Stokes V image in apparent flux',
-        'image_full_low_stokesV.dirty.corr.fits':'Undeconvolved 20-arcsec resolution Stokes V image with primary beam correction',
-        'image_full_low_stokesV.SmoothNorm.fits':'Undeconvolved 20-arcsec resolution Stokes V image with smooth primary beam correction',
-        'image_full_stokesV.dirty.fits':'Undeconvolved full-resolution Stokes V image in apparent flux',
-        'image_full_stokesV.dirty.corr.fits':'Undeconvolved full-resolution Stokes V image with primary beam correction',
-        'image_full_stokesV.SmoothNorm.fits':'Undeconvolved full-resolution Stokes V image with smooth primary beam correction',
+        'image_full_low_stokesV*.dirty.fits':'Undeconvolved 20-arcsec resolution Stokes V image in apparent flux',
+        'image_full_low_stokesV*.dirty.corr.fits':'Undeconvolved 20-arcsec resolution Stokes V image with primary beam correction',
+        'image_full_low_stokesV*.SmoothNorm.fits':'Undeconvolved 20-arcsec resolution Stokes V image with smooth primary beam correction',
+        'image_full_stokesV*.dirty.fits':'Undeconvolved full-resolution Stokes V image in apparent flux',
+        'image_full_stokesV*.dirty.corr.fits':'Undeconvolved full-resolution Stokes V image with primary beam correction',
+        'image_full_stokesV*.SmoothNorm.fits':'Undeconvolved full-resolution Stokes V image with smooth primary beam correction',
         'image_full_vlow_QU.cube.dirty.fits.fz':'Compressed undeconvolved 60-arcsec resolution QU cube in apparent flux',
         'image_full_vlow_QU.cube.dirty.corr.fits.fz':'Compressed undeconvolved 60-arcsec resolution QU cube with primary beam correction'}
 
@@ -222,8 +222,8 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     if idd['do_polcubes']!=0:
         t.make_tar('stokes_large',
                        m.glob('image_full_low_QU.cube.*.fz'),readme=True)
-        t.make_tar('stokes_small',m.glob('image_full_*_stokesV.dirty.*')+
-                       m.glob('image_full_*_stokesV.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*.fz'),readme=True)
+        t.make_tar('stokes_small',m.glob('image_full_*_stokesV*.dirty.*')+
+                       m.glob('image_full_*_stokesV*.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*.fz'),readme=True)
     if idd['do_dynspec']!=0:
         t.make_tar('dynspec',m.glob('DynSpecs*.tgz'))
 
@@ -233,6 +233,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
         dump_headers(workdir,t.files,verbose=False)
         
     t.make_tar('misc',['summary.txt','logs','fits_headers','mslist.txt','big-mslist.txt']+
+                   m.glob('mslist-*txt') +
                    m.glob('*-fit_state.pickle') +
                    m.glob('*.png') +
                    m.glob('*crossmatch-results*') +
