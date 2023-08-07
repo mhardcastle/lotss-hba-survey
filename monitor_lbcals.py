@@ -123,7 +123,7 @@ def do_download( id ):
         if 'psnc' in surls[0]:
             logfile = '{:s}_wget.log'.format(id)
             for surl in surls:
-                os.system('wget --no-check-certificate https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl={:s} -P {:s} > {:s} 2>&1'.format(surl,caldir,logfile)
+                os.system('wget --no-check-certificate https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl={:s} -P {:s} > {:s} 2>&1'.format(surl,caldir,logfile))
             files = glob.glob('SRMF*tar')
             for ff in files:
                 tmp = ff.split('%2F')[-1]
