@@ -116,16 +116,16 @@ def do_download( id ):
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
         os.makedirs(caldir,exist_ok=True)
         if 'juelich' in surls[0]:
+            logfile = '{:s}_gfal.log'.format(id)
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,id))
-            os.system('rm {:s}_gfal.log'.format(id))
+                os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
         if 'psnc' in surls[0]:
+            logfile = '{:s}_wget.log'.format(id)
             for surl in surls:
-                dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lta-head.lofar.psnc.pl:8443','gsiftp://gridftp.lofar.psnc.pl:2811'),dest,id))
-            os.system('rm {:s}_gfal.log'.format(id))
+                os.system('wget --no-check-certificate https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl={:s} -P {:s} > {:s} 2>&1'.format(surl,caldir,logfile)
         if 'sara' in surls[0]:
+            logfile = ''
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
             macaroon_dir = os.getenv('MACAROON_DIR')        
@@ -143,6 +143,8 @@ def do_download( id ):
         if len(tarfiles) == len(surls):
             print('Download successful for {:s}'.format(id) )
             update_status(id,'Downloaded',stage_id=0)
+            if os.path.exists(logfile):
+                os.system('rm {:s}'.format(logfile))
     else:
         print('SURLs do not appear to be online for {:s} (staging id {:s})'.format(id,str(stage_id)))
         update_status(id,'Download failed')
