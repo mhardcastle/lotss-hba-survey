@@ -122,11 +122,11 @@ def do_download( id ):
                 os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
         if 'psnc' in surls[0]:
             logfile = '{:s}_wget.log'.format(id)
-            with open('html.txt','w') as f:
+            with open(os.path.join(caldir,'html.txt'),'w') as f:
                 for surl in surls:
                     f.write('https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl={:s}\n'.format(surl))
             f.close()
-            os.system('wget -i html.txt --no-check-certificate -P {:s} > {:s} 2>&1'.format(caldir,logfile))
+            os.system('wget -i {:s} --no-check-certificate -P {:s} > {:s} 2>&1'.format(os.path.join(caldir,'html.txt'),caldir,logfile))
             files = glob.glob('SRMF*tar')
             for ff in files:
                 tmp = ff.split('%2F')[-1]
