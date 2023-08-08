@@ -127,7 +127,7 @@ def do_download( id ):
                     f.write('https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl={:s}\n'.format(surl))
             f.close()
             os.system('wget -i {:s} --no-check-certificate -P {:s} > {:s} 2>&1'.format(os.path.join(caldir,'html.txt'),caldir,logfile))
-            files = glob.glob('SRMF*tar')
+            files = glob.glob(os.path.join(caldir,'SRMF*tar'))
             for ff in files:
                 tmp = ff.split('%2F')[-1]
                 os.system('mv {:s} {:s}'.format(ff,os.path.join(caldir,tmp)))
