@@ -8,7 +8,8 @@ from __future__ import print_function
 from __future__ import absolute_import
 from time import sleep
 import datetime
-from surveys_db import SurveysDB,get_next
+from surveys_db import SurveysDB
+from db_utils import get_next
 import os
 import threading
 from run_pipeline import do_run_pipeline

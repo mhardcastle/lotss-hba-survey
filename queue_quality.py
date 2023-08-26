@@ -31,7 +31,7 @@ qcount=len(queued)
 for r in results:
     
     id=r['id']
-    dir='/data/lofar/DR2/fields/'+id
+    dir='/data/lofar/DR3/fields/'+id
     if not os.path.isfile(dir+'/image_full_ampphase_di_m.NS_shift.app.facetRestored.fits'):
         print(id,'does not have the images!')
         continue
