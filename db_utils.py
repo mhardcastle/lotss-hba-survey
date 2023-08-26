@@ -3,14 +3,40 @@ from surveys_db import SurveysDB
 
 # Utility functions for the LoTSS HBA survey, formerly part of surveys_db.py.
 
-def get_next():
+def get_next(verbose=False):
     # return the name of the top-priority field with appropriate status
     sdb=SurveysDB(readonly=True)
-    sdb.cur.execute('select fields.id as id,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority,fields.lotss_field,fields.required_integration from fields left join observations on (observations.field=fields.id) where fields.status="Not started" and (observations.status="Archived" or observations.status="DI_processed") and (gal_b>10 or gal_b<-10 or gal_b is NULL or fields.priority>9) group by fields.id having (s>(0.95*fields.required_integration) or lotss_field=0) order by fields.priority desc,ra desc')
+    sdb.cur.execute('select fields.id as id,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority,fields.lotss_field,fields.required_integration,fields.deepfield from fields left join observations on (observations.field=fields.id) where fields.status="Not started" and (observations.status="Archived" or observations.status="DI_processed") and (gal_b>10 or gal_b<-10 or gal_b is NULL or fields.priority>9 or lotss_field=0) group by fields.id having s>(0.95*fields.required_integration) order by fields.priority desc,ra desc')
     results=sdb.cur.fetchall()
+    # Now do a check for elements of a deep field
+    for i,r in enumerate(results):
+        if verbose:
+            print(r)
+        if not r['deepfield']:
+            # this is the next field, no complication
+            break
+        else:
+            df=sdb.db_get('deepfields',r['deepfield'])
+            if df is None:
+                print('Warning, field %s is supposed to be in deep field %s but no such field exists in the table!' % (r['id'],r['deepfield']))
+                continue
+            else:
+                if df['start_field']==r['id']:
+                    # this is the first field of a sequence, go ahead
+                    break
+                else:
+                    # this is a member of a deep field, can only do it
+                    # if the deep field status is appropriate
+                    if df['status']=='Checked':
+                        break
+                    else:
+                        continue
+    else:
+        r=None
+
     sdb.close()
-    if len(results)>0:
-        return results[0]['id']
+    if r:
+        return r['id']
     else:
         return None
 
