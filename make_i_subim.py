@@ -47,7 +47,9 @@ if __name__=='__main__':
     else:
         wd='/data/lofar/DR2/fields/'+field
         if not os.path.isdir(wd):
-            print('DR2 directory does not exist')
+            wd='/data/lofar/DR3/fields/'+field
+        if not os.path.isdir(wd):
+            raise RuntimeError('Directory does not exist')
         else:
             print('Extracting FULL total intensity cutout')
             extract_and_save(wd+'/image_full_ampphase_di_m.NS_shift.int.facetRestored.fits',ra,dec,imsize,outname=objname+'_I.fits')
