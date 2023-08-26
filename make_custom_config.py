@@ -7,6 +7,9 @@ from surveys_db import SurveysDB
 import numpy as np
 from add_galcoords import add_galcoords
 
+def choose_batch_file(name,workdir,do_field):
+    return '/home/azimuth/pipeline.sh'
+
 def choose_qsub_file(name,workdir,do_field):
     if do_field:
         with SurveysDB() as sdb:
