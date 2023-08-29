@@ -152,6 +152,13 @@ def do_download( id ):
             update_status(id,'Downloaded',stage_id=0)
             if os.path.exists(logfile):
                 os.system('rm {:s}'.format(logfile))
+        else:
+            ## find what hasn't downloaded
+            trfs = [ os.path.basename(trf) for trf in tarfiles ]
+            not_downloaded = [ surl for surl in surls if os.path.basename(surl) not in trfs ]
+            os.system('echo Number of files downloaded does not match number staged >> {:s}'.format(logfile))
+            for nd in not_downloaded:
+                os.system('echo {:s} {:s}'.format(nd, logfile))
     else:
         print('SURLs do not appear to be online for {:s} (staging id {:s})'.format(id,str(stage_id)))
         update_status(id,'Download failed')
