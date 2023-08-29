@@ -26,9 +26,12 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
     if len(t)==0: return False
 
     # open the central image to get BMAJ, BMIN
-    images='/data/lofar/DR2/fields'
     for n in range(len(t)):
         cfield=t[n]
+        if cfield['dr2']:
+            images='/data/lofar/DR2/fields'
+        else:
+            images='/data/lofar/DR3/fields'
         try:
             if do_low:
                 hdu=fits.open(images+'/'+cfield['id']+'/image_full_low_m.app.restored.fits')
@@ -87,6 +90,10 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
             if r['status']!='Archived' and r['status']!='Verified':
                 continue
             p=r['id']
+            if r['dr2']:
+                images='/data/lofar/DR2/fields'
+            else:
+                images='/data/lofar/DR3/fields'
             mosaicdirs.append(images+'/'+p)
             try:
                 qualitydict = sdb.get_quality(p)
@@ -101,8 +108,8 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
     mos_args=dotdict({'save':False, 'load':False,'exact':False,'use_shifted':True,'find_noise':True,'beamcut':beamcut,'header':header,'directories':mosaicdirs,'scale':scales,'do_lowres':do_low})
     print(mos_args)
     make_mosaic(mos_args)
-    os.system('mv mosaic.fits %s-mosaic.fits' % objname)
-    os.system('mv mosaic-weights.fits %s-mosaic-weights.fits' % objname)
+    os.system('mv mosaic.fits %s-mosaic-low.fits' % objname)
+    os.system('mv mosaic-weights.fits %s-mosaic-low-weights.fits' % objname)
     return True
     
 if __name__=='__main__':

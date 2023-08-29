@@ -37,6 +37,7 @@ readme={'README.txt':'This file',
         'crossmatch-results-2.npy':'Bootstrap results iteration 2',
         'astromap.fits':'Astrometry accuracy map',
         'image_full_ampphase_di_m.NS.app.restored.fits':'Full-resolution final image in apparent flux',
+        'image_full_ampphase_di_m.NS.psf.fits':'Full-resolution final PSF image',
         'image_full_ampphase_di_m.NS.int.restored.fits':'Full-resolution final primary-beam corrected image',
         'image_full_ampphase_di_m.NS_shift.app.facetRestored.fits':'Full-resolution final image in apparent flux with astrometric corrections applied',
         'image_full_ampphase_di_m.NS_shift.int.facetRestored.fits':'Full-resolution final primary-beam corrected image with astrometric corrections applied',
@@ -105,11 +106,11 @@ def dump_headers(workdir,files,verbose=False):
     for fitsfile in files:
         if fitsfile.endswith('.fz') or fitsfile.endswith('.fits'):
             if verbose: print(fitsfile)
-            #try:
-            hdrs = extract_header(workdir+'/'+fitsfile)
-            #except timeout_decorator.timeout_decorator.TimeoutError:
-            #    print('File header %s read timed out! Is it corrupt?' % fitsfile)
-            #    hdrs=[]
+            try:
+                hdrs=extract_header(workdir+'/'+fitsfile)
+            except IOError as e:
+                print('File header %s IO error %s -- skipping' % (fitsfile,e))
+                hdrs=[]
             for ctr, hdr in enumerate(hdrs):
                 hdr.totextfile(workdir+"/fits_headers/"+fitsfile+"."+str(ctr)+".hdr", overwrite=True)
 
