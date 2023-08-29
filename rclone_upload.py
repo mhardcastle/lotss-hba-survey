@@ -271,7 +271,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
             with SurveysDB() as sdb:
                 sdb.execute('insert into checksums values ( %s, %s, %s)',(name,tarfile, local_checksum))
 
-    update_status(name,'Verified',workdir=workdir)
+    update_status(name,'Verified',workdir=workdir,av=5)
 
     report('Tidying up')
     for tarfile in t.tars:

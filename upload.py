@@ -21,7 +21,7 @@ def myglob(g,workdir):
     return [os.path.basename(file) for file in f]
 
 def images(rootname,workdir):
-    l=[rootname+'.'+f+'.fits' for f in ['app.restored','int.restored','int.model','int.residual']]
+    l=[rootname+'.'+f+'.fits' for f in ['app.restored','int.restored','int.model','int.residual','psf']]
     n=1
     while os.path.isfile(workdir+'/'+rootname+'.mask%02i.fits' % n):
         n+=1
