@@ -198,6 +198,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     fixsymlinks('DDS3_full',verbose=False)
     fixsymlinks('DDS3_full_slow',stype='merged',verbose=False)
     fixsymlinks('DDS2_full',verbose=False)
+    os.symlink(workdir+'/image_full_low.psf.fits',workdir+'/image_full_low_m.psf.fits')
     report('Creating tar files')
     update_status(name,'Creating tars',workdir=workdir)
     m=MyGlob(workdir)
