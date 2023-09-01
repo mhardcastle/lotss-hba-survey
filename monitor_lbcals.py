@@ -157,8 +157,18 @@ def do_download( id ):
             trfs = [ os.path.basename(trf) for trf in tarfiles ]
             not_downloaded = [ surl for surl in surls if os.path.basename(surl) not in trfs ]
             os.system('echo Number of files downloaded does not match number staged >> {:s}'.format(logfile))
-            for nd in not_downloaded:
-                os.system('echo {:s} {:s}'.format(nd, logfile))
+            if 'juelich' in not_downloaded[0]:
+                for surl in not_downloaded:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
+            tarfiles = glob.glob(os.path.join(caldir,'*tar'))
+            if len(tarfiles) == len(surls):
+                print('Download successful for {:s}'.format(id) )
+                update_status(id,'Downloaded',stage_id=0)
+                if os.path.exists(logfile):
+                    os.system('rm {:s}'.format(logfile))
+            else:
+                os.system('echo Attempt to re-download failed >> {:s} 2>&1'.format(logfile))
     else:
         print('SURLs do not appear to be online for {:s} (staging id {:s})'.format(id,str(stage_id)))
         update_status(id,'Download failed')
