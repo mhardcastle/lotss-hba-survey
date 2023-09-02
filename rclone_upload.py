@@ -155,7 +155,7 @@ class Tarrer(object):
         if os.path.isfile(workdir+'/_archive/'+outfile) and skip:
             warn(outfile+' exists, skipping')
         else:
-            command='cd %s; tar cf _archive/%s.tar %s' % (workdir,tarname,' '.join(files))
+            command='cd %s; tar cfh _archive/%s.tar %s' % (workdir,tarname,' '.join(files))
             warn('Running '+command)
             retval=call(command,shell=True)
             if retval!=0:

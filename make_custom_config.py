@@ -21,7 +21,7 @@ def choose_qsub_file(name,workdir,do_field):
     else:
         return None # leave it to something else to choose
         
-def make_custom_config(name,workdir,do_field,averaged=False):
+def make_custom_config(name,workdir,do_field,averaged=False,tdir=None):
     if do_field:
         with SurveysDB() as sdb:
             idd=sdb.get_field(name)
@@ -62,23 +62,29 @@ def make_custom_config(name,workdir,do_field,averaged=False):
             template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018.cfg'
 
     lines=open(template).readlines()
-    outfile=open(workdir+'/tier1-config.cfg','w')
-    for l in lines:
-        if 'colname' in l and averaged:
-            outfile.write('colname=DATA\n')
-        elif '[control]' in l and no_tgss:
-            outfile.write(l+'redo_DI=True\n')
-        elif 'do_dynspec' in l and not do_dynspec:
-            outfile.write('do_dynspec=False\n')
-        elif 'spectral_restored' in l and not do_spectral_restored:
-            outfile.write('spectral_restored=False\n')
-        elif 'polcubes' in l and 'compress' not in l and not do_polcubes:
-            outfile.write('polcubes=False\n')
-        elif 'stokesv' in l and not do_stokesv:
-            outfile.write('stokesv=False\n')
-        else:
-            outfile.write(l)
+    with open(workdir+'/tier1-config.cfg','w') as outfile:
+        for l in lines:
+            if 'colname' in l and averaged:
+                outfile.write('colname=DATA\n')
+            elif '[control]' in l and no_tgss:
+                outfile.write(l+'redo_DI=True\n')
+            elif '[image]' in l and tdir:
+                outfile.write(l+'clusterfile=%s/image_dirin_SSD_m.npy.ClusterCat.npy\n' % tdir)
+            elif 'do_dynspec' in l and not do_dynspec:
+                outfile.write('do_dynspec=False\n')
+            elif 'spectral_restored' in l and not do_spectral_restored:
+                outfile.write('spectral_restored=False\n')
+            elif 'polcubes' in l and 'compress' not in l and not do_polcubes:
+                outfile.write('polcubes=False\n')
+            elif 'stokesv' in l and not do_stokesv:
+                outfile.write('stokesv=False\n')
+            else:
+                outfile.write(l)
 
+        if tdir is not None:
+            outfile.write("\n[inputmodel]\nbasedicomodel=%s\nbaseimagename=%s\nbasemaskname=%s\n" % (tdir+'/image_full_ampphase_di_m.NS',tdir+'/image_full_ampphase_di_m.NS.app.restored.fits',tdir+'image_full_ampphase_di_m.NS.mask01.fits'))
+
+            
 if __name__=='__main__':
     # manual run, must be in directory of download
     from check_structure import do_check_structure

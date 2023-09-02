@@ -8,7 +8,7 @@ import os
 import sys
 
 
-def download_image(field,filename='images.tar'):
+def download_image(field,filename='images.tar',remote='archive'):
     archive='/data/lofar/DR3/fields/'
     wd=archive+field
     if not os.path.isdir(wd):
@@ -17,7 +17,7 @@ def download_image(field,filename='images.tar'):
     
     rc=RClone('maca_sksp_tape_DDF.conf',debug=True)
     rc.get_remote()
-    remote='archive/'+field
+    remote=remote+'/'+field
     d=rc.execute_live(['-P','copy',rc.remote+'/'+remote+'/'+filename,wd])
     if d['err'] or d['code']!=0:
         raise RuntimeError('Download failed')
