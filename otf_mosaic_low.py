@@ -89,6 +89,8 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
         for r in t:
             if r['status']!='Archived' and r['status']!='Verified':
                 continue
+            if r['proprietary_date']:
+                continue
             p=r['id']
             if r['dr2']:
                 images='/data/lofar/DR2/fields'
