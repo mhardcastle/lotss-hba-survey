@@ -82,7 +82,7 @@ def make_custom_config(name,workdir,do_field,averaged=False,tdir=None):
                 outfile.write(l)
 
         if tdir is not None:
-            outfile.write("\n[inputmodel]\nbasedicomodel=%s\nbaseimagename=%s\nbasemaskname=%s\n" % (tdir+'/image_full_ampphase_di_m.NS',tdir+'/image_full_ampphase_di_m.NS.app.restored.fits',tdir+'image_full_ampphase_di_m.NS.mask01.fits'))
+            outfile.write("\n[inputmodel]\nbasedicomodel=%s\nbaseimagename=%s\nbasemaskname=%s\n" % (tdir+'/image_full_ampphase_di_m.NS',tdir+'/image_full_ampphase_di_m.NS.app.restored.fits',tdir+'/image_full_ampphase_di_m.NS.mask01.fits'))
 
             
 if __name__=='__main__':
