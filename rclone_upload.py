@@ -144,10 +144,15 @@ class Tarrer(object):
     def remove_readme(self):
         os.unlink(self.workdir+'/README.txt')
                 
-    def make_tar(self,tarname,files,skip=True,readme=False):
+    def make_tar(self,tarname,files,skip=True,readme=False,ignore_missing=False):
         report('Creating '+tarname)
         workdir=self.workdir
         outfile=tarname+'.tar'
+        if ignore_missing:
+            newfiles=[f for f in files if os.path.isfile(workdir+'/'+f)]
+            if len(newfiles)!=len(files):
+                warn('Skipping %i missing files' % (len(files)-len(newfiles)))
+                files=newfiles
         if readme:
             files.append('README.txt')
             self.make_readme(tarname,files)
@@ -206,7 +211,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
 
     if split_uv:
         # break the uv tar file into obsids and a misc section
-        t.make_tar('uv_misc',['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
+        t.make_tar('uv_misc',['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'),ignore_missing=True)
         mslist=m.glob('*.archive')
         obsids=set([os.path.basename(ms).split('_')[0] for ms in mslist])
         for obsid in obsids:
