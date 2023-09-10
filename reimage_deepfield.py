@@ -75,7 +75,7 @@ def do_reimage_deepfield(fieldname):
                     run('tar xvf '+fn+' image_full_ampphase_di_m.NS_shift.app.facetRestored.fits; mv image_full_ampphase_di_m.NS_shift.app.facetRestored.fits '+imagename)
             elif 'misc' in fn:
                 if f==startfield:
-                    run('tar xvf '+fn+' DDS\\* image_dirin_SSD_m.npy.ClusterCat.npy image_full_ampphase_di_m.NS.mask01.fits image_full_ampphase_di_m.NS.DicoModel')
+                    run('tar xvf '+fn+' DDS\\* image_dirin_SSD_m.npy.ClusterCat.npy image_full_ampphase_di_m.NS.DicoModel')
                 else:
                     run('tar xvf '+fn+' DDS\\*')
             else:
