@@ -69,12 +69,15 @@ def do_reimage_deepfield(fieldname):
             raise RuntimeError('Download failed')
         for fn in files:
             if 'images' in fn:
-                run('tar xvf '+fn+' image_full_ampphase_di_m.NS_shift.app.facetRestored.fits; mv image_full_ampphase_di_m.NS_shift.app.facetRestored.fits '+imagename)
+                if f==startfield:
+                    run('tar xvf '+fn+' image_full_ampphase_di_m.NS.mask01.fits image_full_ampphase_di_m.NS_shift.app.facetRestored.fits; mv image_full_ampphase_di_m.NS_shift.app.facetRestored.fits '+imagename)
+                else:
+                    run('tar xvf '+fn+' image_full_ampphase_di_m.NS_shift.app.facetRestored.fits; mv image_full_ampphase_di_m.NS_shift.app.facetRestored.fits '+imagename)
             elif 'misc' in fn:
                 if f==startfield:
-                    run('tar xvf '+fn+' DDS* image_dirin_SSD_m.npy.ClusterCat.npy image_full_ampphase_di_m.NS.mask01.fits image_full_ampphase_di_m.NS.DicoModel')
+                    run('tar xvf '+fn+' DDS\\* image_dirin_SSD_m.npy.ClusterCat.npy image_full_ampphase_di_m.NS.mask01.fits image_full_ampphase_di_m.NS.DicoModel')
                 else:
-                    run('tar xvf '+fn+' DDS*')
+                    run('tar xvf '+fn+' DDS\\*')
             else:
                 os.system('tar xvf '+fn) # since this will complain about hard links
         
