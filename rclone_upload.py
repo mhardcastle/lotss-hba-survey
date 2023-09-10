@@ -160,7 +160,7 @@ class Tarrer(object):
         if os.path.isfile(workdir+'/_archive/'+outfile) and skip:
             warn(outfile+' exists, skipping')
         else:
-            command='cd %s; tar cfh _archive/%s.tar %s' % (workdir,tarname,' '.join(files))
+            command='cd %s; tar cf _archive/%s.tar %s' % (workdir,tarname,' '.join(files))
             warn('Running '+command)
             retval=call(command,shell=True)
             if retval!=0:
@@ -203,10 +203,8 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     fixsymlinks('DDS3_full',verbose=False)
     fixsymlinks('DDS3_full_slow',stype='merged',verbose=False)
     fixsymlinks('DDS2_full',verbose=False)
-    try:
-        os.symlink(workdir+'/image_full_low.psf.fits',workdir+'/image_full_low_m.psf.fits')
-    except:
-        pass
+    # next line allows image_full_low to be uploaded properly
+    os.system('cp '+workdir+'/image_full_low.psf.fits '+workdir+'/image_full_low_m.psf.fits')
     report('Creating tar files')
     update_status(name,'Creating tars',workdir=workdir)
     m=MyGlob(workdir)

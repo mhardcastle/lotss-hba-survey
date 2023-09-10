@@ -19,11 +19,13 @@ import sys
 import os
 from auxcodes import run as ddf_run
 from rclone import RClone
+import glob
+from make_extended_mask import merge_mask
 
 def run(s):
     ddf_run(s,database=False)
 
-def do_reimage_deepfield(fieldname):
+def get_deepfield(fieldname):
     with SurveysDB(readonly=True) as sdb:
         r=sdb.db_get('deepfields',fieldname)
         if r is None:
@@ -44,8 +46,12 @@ def do_reimage_deepfield(fieldname):
                 remotes.append('other')
             else:
                 remotes.append('archive')
-                
-    print('About to reimage using fields',fields)
+    return startfield,fields,remotes
+    
+def do_download_deepfield(fieldname):
+
+    startfield,fields,remotes=get_deepfield(fieldname)
+    print('About to download fields',fields)
     if not os.path.isdir(fieldname):
         os.mkdir(fieldname)
     os.chdir(fieldname)
@@ -81,8 +87,21 @@ def do_reimage_deepfield(fieldname):
             else:
                 os.system('tar xvf '+fn) # since this will complain about hard links
         
+def do_stack_deepfield(fieldname):
+    if os.path.isdir(fieldname):
+        os.chdir(fieldname)
+    _,fields,_=get_deepfield(fieldname)
+    stackfile=fieldname+'.app.stack.fits'
+    if os.path.isfile(stackfile):
+        warn('Stack file %s exists, skipping the stack' % stackfile)
+    report('Stacking')
+    stack([f+'.app.restored.fits' for f in fields],outname=stackfile)
+    report('Making mask')
+    run('MakeMask.py --Th=3 --Box=50,2 --RestoredIm='+stackfile)
+    merge_mask(stackfile+'.mask.fits','image_full_ampphase_di_m.NS.mask01.fits',fieldname+'.mask-merged.fits')
     
-
 if __name__=='__main__':
     fieldname=sys.argv[1]
-    do_reimage_deepfield(fieldname)
+    #do_download_deepfield(fieldname)
+    do_stack_deepfield(fieldname)
+    
