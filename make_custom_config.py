@@ -32,7 +32,7 @@ def make_custom_config(name,workdir,do_field,averaged=False,tdir=None):
 
         no_wenss=((idd['decl']<32) | (idd['decl']>72))
         no_tgss=(idd['no_tgss']==1)
-        if idd['lotss_field']>0:
+        if idd['lotss_field']>0 or idd['ilotss_field']>0:
             lotss_field=True
             do_polcubes=True
             do_dynspec=True

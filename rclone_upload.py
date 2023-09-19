@@ -193,9 +193,15 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     with SurveysDB(readonly=True) as sdb:
         idd=sdb.get_field(name)
 
-    other=False
-    if not (idd['lotss_field']>0) or idd['proprietary_date'] is not None:
-        other=True
+    # Choose remote directory
+    if idd['proprietary_date'] is not None:
+        archive='other'
+    elif idd['lotss_field']>0:
+        archive='archive'
+    elif idd['ilotss_field']>0:
+        archive='ILoTSS'
+    else:
+        archive='other'
 
     warn('Current field status is '+idd['status'])
 
@@ -251,10 +257,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     report('Uploading')
     rc=RClone('maca_sksp_tape_DDF.conf',debug=True)
     rc.get_remote()
-    if other:
-        remote='other/'+name
-    else:
-        remote='archive/'+name
+    remote=archive+'/'+name
     d=rc.execute_live(['-P','copy',workdir+'/_archive']+[rc.remote+'/'+remote])
     if d['err'] or d['code']!=0:
         update_status(name,'rclone failed',workdir=workdir)
