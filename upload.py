@@ -125,6 +125,7 @@ def do_upload(name,basedir,skipstokes=False):
         f+=myglob('image_full_low_QU.cube.*',workdir)
         f+=myglob('image_full_vlow_QU.cube.*',workdir)
     f+=myglob('*.archive',workdir)
+    f+=myglob('*frequencies.txt',workdir)
 
     do_rsync(name,basedir,f)
     compressed_done=(len(myglob('*.archive',workdir))>0)
