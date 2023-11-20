@@ -30,9 +30,10 @@ export DDF_PIPELINE_CLUSTER=spider
 export LINC_DATA_DIR=/project/lofarvlbi/Share/surveys
 export MACAROON_DIR=/home/lofarvlbi-lmorabito/macaroons/
 
-export DDF_PIPELINE_CLUSTER=galahad
-export LINC_DATA_DIR=
-export MACAROON_DIR=
+export DDF_PIPELINE_CLUSTER=azimuth
+export LINC_DATA_DIR=/home/azimuth/surveys/
+export MACAROON_DIR=/home/azimuth/macaroons/
+export LOFAR_SINGULARITY=/home/azimuth/software/singularity/lofar_sksp_v4.4.0_cascadelake_cascadelake_ddf_mkl_cuda.sif
 '''
 
 user = os.getenv('USER')
@@ -41,7 +42,6 @@ if len(user) > 20:
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
 basedir = os.getenv('LINC_DATA_DIR')
 procdir = os.path.join(basedir,'processing')
-
 
 download_thread=None
 download_name=None
@@ -74,7 +74,7 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
     # name can be None (work it out from cwd), or string (field name)
     id=name 
     with SurveysDB(survey=survey) as sdb:
-        idd=sdb.db_get('lb_calibrators',id)
+        idd=sdb.db_get('lb_fields',id)
         if idd is None:
           raise RuntimeError('Unable to find database entry for field "%s".' % id)
         idd['status']=status
@@ -83,15 +83,17 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
             idd[time]=datetime.datetime.now()
         if stage_id is not None:
             idd['staging_id']=stage_id
-        sdb.db_set('lb_calibrators',idd)
+        sdb.db_set('lb_fields',idd)
     sdb.close()        
 
 ##############################
 ## staging
 
-def stage_cal( id, srmpath='https://public.spider.surfsara.nl/project/lofarvlbi/srmlists/' ):
-    srmfilename = id + '_srms.txt'
-    response = requests.get(os.path.join(srmpath,srmfilename))
+def stage_cal( id, survey=None ):
+    with SurveysDB(survey=survey) as sdb:
+        idd = sdb.db_get('lb_fields',id)
+    srmfilename = idd['srmfile']
+    response = requests.get(srmfilename)
     data = response.text
     uris = data.rstrip('\n').split('\n')
     stage_id = stager_access.stage(uris)
@@ -104,7 +106,7 @@ def do_download( id ):
     update_status(id,'Downloading')
     ## get the staging id from the surveys database
     with SurveysDB(readonly=True) as sdb:
-        idd=sdb.db_get('lb_calibrators',id)
+        idd=sdb.db_get('lb_fields',id)
         stage_id = idd['staging_id']
     sdb.close()
     ## get the surls from the stager API
@@ -150,15 +152,48 @@ def do_download( id ):
 ##############################
 ## unpacking
 
+def dysco_compress(caldir,msfile):
+    msfile = os.path.join(caldir,msfile)
+    success=True
+    with open(os.path.join(caldir,'dysco_compress.parset'),'w') as f:
+        f.write('msin={:s}\n'.format(msfile))
+        f.write('msin.datacolumn=DATA\n')
+        f.write('msout={:s}.tmp\n'.format(msfile))
+        f.write('msout.datacolumn=DATA\n')
+        f.write('msout.storagemanager=dysco\n')
+        f.write('steps=[count]')
+    sing_img = os.getenv('LOFAR_SINGULARITY')
+    os.system('singularity exec -B {:s} {:s} DP3 {:s}'.format(os.getcwd(),sing_img,os.path.join(caldir,'dysco_compress.parset')))
+    if os.path.exists('{:s}.tmp'.format(msfile)):
+        os.system('rm -r {:s}'.format(msfile))
+        os.system('mv {:s}.tmp {:s}'.format(msfile,msfile))
+    else:
+        print('something went wrong with dysco compression for {:s}'.format(msfile))
+        success=False
+    return(success)
+
+    
 def do_unpack(field):
     update_status(field,'Unpacking')
     success=True
+    do_dysco=False
     caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
+    ## check if needs dysco compression
+    gb_filesize = os.path.getsize(tarfiles[0])/(1024*1024*1024)
+    if gb_filesize > 40.:
+        do_dysco = True
     for trf in tarfiles:
         os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
-        os.system( 'mv {:s} {:s}'.format('_'.join(os.path.basename(trf).split('_')[0:-1]),caldir))
+        msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
+        os.system( 'mv {:s} {:s}'.format(msname,caldir))
+        if do_dysco:
+            dysco_success = dysco_compress(caldir,msname)
+            ## ONLY FOR NOW
+            if dysco_success:
+                os.system('rm {:s}'.format(trf))
+                
     ## check that everything unpacked
     msfiles = glob.glob('{:s}/L*MS'.format(caldir))
     if len(msfiles) == len(tarfiles):
@@ -231,9 +266,9 @@ while True:
 
     with SurveysDB(readonly=True) as sdb:
         #### CHANGE QUERIES TO USE TARGET TABLE
-        sdb.cur.execute('select * from lb_calibrators where clustername="'+cluster+'" and username="'+user+'" order by priority,id')
+        sdb.cur.execute('select * from lb_fields where clustername="'+cluster+'" and username="'+user+'" order by priority,id')
         result=sdb.cur.fetchall()
-        sdb.cur.execute('select * from lb_calibrators where status="Not started" and priority>0 order by priority,id')
+        sdb.cur.execute('select * from lb_fields where status="Not started" and priority>0 order by priority,id')
         result2=sdb.cur.fetchall()
         if len(result2)>0:
             nextfield=result2[0]['id']
