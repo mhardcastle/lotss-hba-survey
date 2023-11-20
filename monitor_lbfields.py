@@ -33,6 +33,10 @@ export MACAROON_DIR=/home/lofarvlbi-lmorabito/macaroons/
 export DDF_PIPELINE_CLUSTER=galahad
 export LINC_DATA_DIR=
 export MACAROON_DIR=
+
+export DDF_PIPELINE_CLUSTER=azimuth
+export LINC_DATA_DIR=/home/azimuth/surveys
+export MACAROON_DIR=/home/azimuth/macaroons
 '''
 
 user = os.getenv('USER')
@@ -42,7 +46,6 @@ cluster = os.getenv('DDF_PIPELINE_CLUSTER')
 basedir = os.getenv('LINC_DATA_DIR')
 procdir = os.path.join(basedir,'processing')
 
-
 download_thread=None
 download_name=None
 stage_thread=None
@@ -51,15 +54,23 @@ unpack_thread=None
 unpack_name=None
 verify_thread=None
 verify_name=None
-totallimit=20
-staginglimit=2
-maxstaged=6
 
-## cluster specific queuing limits
+## traffic management
 if cluster == 'spider':
     maxqueue = 10
+    totallimit=20
+    staginglimit=2
+    maxstaged=6
 if cluster == 'cosma':
     maxqueue = 3
+    totallimit=20
+    staginglimit=2
+    maxstaged=6
+if cluster == 'azimuth':
+    maxqueue = 1
+    totallimit=1
+    staginglimit=1
+    maxstaged=1
 
 '''
 updated in MySQL_utils.py:
@@ -230,10 +241,11 @@ def do_verify(field):
 while True:
 
     with SurveysDB(readonly=True) as sdb:
-        #### CHANGE QUERIES TO USE TARGET TABLE
-        sdb.cur.execute('select * from lb_calibrators where clustername="'+cluster+'" and username="'+user+'" order by priority,id')
+        ## all fields for this specific cluster
+        sdb.cur.execute('select * from lb_fields where clustername="'+cluster+'" and username="'+user+'" order by priority,id')
         result=sdb.cur.fetchall()
-        sdb.cur.execute('select * from lb_calibrators where status="Not started" and priority>0 order by priority,id')
+        ## all fields not started
+        sdb.cur.execute('select * from lb_fields where status="Not started" and priority>0 order by priority,id')
         result2=sdb.cur.fetchall()
         if len(result2)>0:
             nextfield=result2[0]['id']
