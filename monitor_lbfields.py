@@ -84,7 +84,67 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
         if stage_id is not None:
             idd['staging_id']=stage_id
         sdb.db_set('lb_fields',idd)
-    sdb.close()        
+    sdb.close()  
+
+##############################
+## finding solutions
+
+def collect_solutions( name, survey=None ):
+    with SurveysDB(survey=survey) as sdb:
+        sdb.execute('select * from observations where field="'+name+'"')
+        fld = sdb.cur.fetchall()
+    if len(fld) > 1:
+        print('There is more than one observation for this field ... ')
+    else:
+        fld = fld[0]
+        obsid = fld['id']
+        calibrator_id = ['calibrator_id']
+
+    ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
+    macaroons = ['maca_sksp_tape_spiderlinc.conf','maca_sksp_tape_spiderpref3.conf','maca_sksp_distrib_Pref3.conf']
+    overall_success = True
+    rclone_works = True
+    obsname = 'L'+str(obsid)
+    success = False
+    for macaroon in macaroons:
+        macname = os.path.join(os.getenv('MACAROON_DIR'),macaroon)
+        try:
+            rc = RClone(macname,debug=True)
+        except RuntimeError as e:
+            print('rclone setup failed, probably RCLONE_CONFIG_DIR not set:',e)
+            rclone_works=False
+                
+        if rclone_works:
+            try:
+                remote_obs = rc.get_dirs()
+            except OSError as e:
+                print('rclone command failed, probably rclone not installed or RCLONE_COMMAND not set:',e)
+                rclone_works=False
+        
+        if rclone_works and obsname in remote_obs:
+            print('Data available in rclone repository, downloading solutions!')
+            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
+            if d['err'] or d['code']!=0:
+                print('Rclone failed to download solutions')
+            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
+            if d['err'] or d['code']!=0:
+                print('Rclone failed to download inspection plots')
+            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'logs.tar')]+[caldir]) 
+            if d['err'] or d['code']!=0:
+                print('Rclone failed to download logs')
+            break
+    
+    ## find the ddf-pipeline solutions
+    cmd = 'uberftp -ls gsiftp://gridftp.grid.sara.nl:2811/pnfs/grid.sara.nl/data/lofar/user/sksp/archive/SKSP_DDF_PIPELINE/archive/'+name
+    try: 
+        os.system( cmd + ' > {:s}_ddf.txt'.format(name) )
+        ddf_exists = True
+    except OSError as e:
+        print(e)
+        ddf_exists = False
+        
+
+      
 
 ##############################
 ## staging
