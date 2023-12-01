@@ -106,6 +106,7 @@ def collect_solutions( name, survey=None ):
     rclone_works = True
     obsname = 'L'+str(obsid)
     success = False
+    caldir = os.path.join(os.getenv('LINC_DATA_DIR'),name)
     for macaroon in macaroons:
         macname = os.path.join(os.getenv('MACAROON_DIR'),macaroon)
         try:
@@ -123,9 +124,9 @@ def collect_solutions( name, survey=None ):
         
         if rclone_works and obsname in remote_obs:
             print('Data available in rclone repository, downloading solutions!')
-            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
-            if d['err'] or d['code']!=0:
-                print('Rclone failed to download solutions')
+            #d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
+            #if d['err'] or d['code']!=0:
+            #    print('Rclone failed to download solutions')
             d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
             if d['err'] or d['code']!=0:
                 print('Rclone failed to download inspection plots')
