@@ -16,7 +16,8 @@ import glob
 import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
-
+from download_file import download_file ## in ddf-pipeline/utils
+import progress_bar
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -135,17 +136,18 @@ def collect_solutions( name, survey=None ):
                 print('Rclone failed to download logs')
             break
     
-    ## find the ddf-pipeline solutions
+    ## find the ddf-pipeline solutions -- check private solutions
     cmd = 'uberftp -ls gsiftp://gridftp.grid.sara.nl:2811/pnfs/grid.sara.nl/data/lofar/user/sksp/archive/SKSP_DDF_PIPELINE/archive/'+name
-    try: 
-        os.system( cmd + ' > {:s}_ddf.txt'.format(name) )
+    result = os.system(cmd)
+    if result == 0:
         ddf_exists = True
-    except OSError as e:
-        print(e)
-        ddf_exists = False
-        
+    else:
+        ## check the public solutions
+        url = 'https://repository.surfsara.nl/datasets/lotss-dr2/'+name.replace('+','-')+'/files'
+        download_file( os.path.join(url,'uv.tar'), os.path.join(name,'uv.tar'), catch_codes=(500,),retry_partial=True,progress_bar=progress_bar,verify=False )        
 
-      
+
+
 
 ##############################
 ## staging
