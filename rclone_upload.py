@@ -35,6 +35,7 @@ readme={'README.txt':'This file',
         'crossmatch-2.fits':'Bootstrap catalogue iteration 2',
         'crossmatch-results-1.npy':'Bootstrap results iteration 1',
         'crossmatch-results-2.npy':'Bootstrap results iteration 2',
+        'frequencies.txt':'Frequencies used for the bootstrap',
         'astromap.fits':'Astrometry accuracy map',
         'image_full_ampphase_di_m.NS.app.restored.fits':'Full-resolution final image in apparent flux',
         'image_full_ampphase_di_m.NS.psf.fits':'Full-resolution final PSF image',
@@ -251,7 +252,8 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
                    m.glob('*-fit_state.pickle') +
                    m.glob('*.png') +
                    m.glob('*crossmatch-results*') +
-                   m.glob('*crossmatch-*.fits'),readme=True)
+                   m.glob('*crossmatch-*.fits') +
+                   m.glob('*frequencies.txt'),readme=True)
 
     update_status(name,'Created tar',workdir=workdir)
     report('Uploading')
