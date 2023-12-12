@@ -109,6 +109,8 @@ while True:
     if 'Complete' in d and upload_thread is None:
         for r in result:
             if r['status']=='Complete':
+                with SurveysDB() as sdb:
+                    sdb.create_quality(r['id']) # should make a blank entry, so if we reprocess, the pipeline will run again
                 upload_name=r['id']
                 kw={'split_uv':True} # changed 24/09/22
                 print('We need to upload a new file (%s)!' % upload_name)
