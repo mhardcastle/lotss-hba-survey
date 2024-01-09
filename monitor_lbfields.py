@@ -44,6 +44,8 @@ cluster = os.getenv('DDF_PIPELINE_CLUSTER')
 basedir = os.getenv('LINC_DATA_DIR')
 procdir = os.path.join(basedir,'processing')
 
+solutions_thread=None
+solutions_name=None
 download_thread=None
 download_name=None
 stage_thread=None
@@ -89,6 +91,29 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
 
 ##############################
 ## finding solutions
+
+def get_public_ddf( name ):
+    url = 'https://repository.surfsara.nl/datasets/lotss-dr2/'+name.replace('+','-')+'/files'
+    solfile = os.path.join(name,'uv.tar')
+    dl_files = ['uv.tar','images.tar','misc.tar']
+    cwd = os.getcwd()
+    for dlf in dl_files:
+        download_file( os.path.join(url,dlf), os.path.join(name,dlf), catch_codes=(500,),retry_partial=True,progress_bar=progress_bar,verify=False )
+        os.chdir(os.path.join(cwd,name))
+        os.system('tar xvf {:s} logs'.format(solfile))
+    
+'''
+So the things needed for the subtract are:
+SOLSDIR
+DDS3_full_slow*.npz
+DDS3_full*smoothed.npz
+image_full_ampphase_di_m.NS.mask01.fits
+image_full_ampphase_di_m.NS.DicoModel
+image_dirin_SSD_m.npy.ClusterCat.npy
+and if the bootstrap is applied
+L*frequencies.txt (which can probably be reconstructed if missing)
+*crossmatch-results-2.npy (edited) 
+'''
 
 def collect_solutions( name, survey=None ):
     with SurveysDB(survey=survey) as sdb:
@@ -143,8 +168,7 @@ def collect_solutions( name, survey=None ):
         ddf_exists = True
     else:
         ## check the public solutions
-        url = 'https://repository.surfsara.nl/datasets/lotss-dr2/'+name.replace('+','-')+'/files'
-        download_file( os.path.join(url,'uv.tar'), os.path.join(name,'uv.tar'), catch_codes=(500,),retry_partial=True,progress_bar=progress_bar,verify=False )        
+        
 
 
 
@@ -365,6 +389,10 @@ while True:
     print(ksum,'live directories out of',totallimit)
     print('Next field to work on is',nextfield)
 
+
+    if solutions_thread is not None:
+        print('Solutions thread is running (%s)' % solutions_name )
+
     if download_thread is not None:
         print('Download thread is running (%s)' % download_name)
     if unpack_thread is not None:
@@ -390,7 +418,7 @@ while True:
         print('Verify thread seems to have terminated')
         verify_thread=None
 
-    ## need to start staging if: staging isn't happening -or- staging is happening but less than staging limit
+    ## Start any staging
     if 'Staging' in d.keys():
         nstage = d['Staging']
     else:
@@ -405,16 +433,16 @@ while True:
     else:
         do_stage = True
 
-    ## do we want to check that calibrator solutions exist first?
-
     if do_stage and nextfield is not None:
         stage_name=nextfield
         print('We need to stage a new field (%s)' % stage_name)
         stage_cal(stage_name)
+        ## while staging, collect the solutions
+        solutions_thread=threading.Thread(target=collect_solutions, args=(stage_name,))
 
+    ## for things that are staging, calculate 
     if 'Staging' in d.keys():
         ## get the staging ids and then check if they are complete
-        ## loop over ids and call database to get staging id
         for field in fd['Staging']:
             ## get the stage id
             r = [ item for item in result if item['id'] == field ][0]
