@@ -17,7 +17,7 @@ from time import sleep
 from auxcodes import run
 from getcpus import getcpus
 from surveys_db import use_database,SurveysDB,get_id
-from run_extraction_pipeline import do_sdr_and_rclone_download
+from reprocessing_utils import do_sdr_and_rclone_download, striparchivename
 from fixsymlinks import fixsymlinks
 
 # Reimage at very low resolution
@@ -53,16 +53,6 @@ def get_solutions_timerange(sols):
     t = np.load(sols)['BeamTimes']
     return np.min(t),np.max(t)
 
-
-def striparchivename():
-  mslist = glob.glob('L*_SB*.ms.archive')
-  for ms in mslist:
-      outname = ms.rstrip('.archive')
-      cmd = 'ln -s ' + ms + ' ' + outname
-      print (cmd)
-      os.system(cmd)
-
-  return
 
 def do_download(cname, basedir='.'):
     # check whether download is needed

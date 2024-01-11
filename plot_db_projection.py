@@ -48,13 +48,15 @@ def plot_select(r,sf,label,**kwargs):
     return r_in,r_out
     
 with SurveysDB(readonly=True) as sdb:
-    sdb.cur.execute('select fields.id as id,ra,decl,lotss_field,fields.status as status,observations.status as ostatus,observations.location as location,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority from fields left join observations on (observations.field=fields.id) group by fields.id having lotss_field=1 and ostatus is not null and (ostatus!="Scheduled" or status!="Not started")')
+    #sdb.cur.execute('select fields.id as id,ra,decl,lotss_field,fields.status as status,observations.status as ostatus,observations.location as location,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority,required_integration from fields left join observations on (observations.field=fields.id) group by fields.id having lotss_field=1 and ostatus is not null and ((ostatus="Archived" or ostatus="DI_Processed") or status!="Not started")')
+    sdb.cur.execute('select fields.id as id,ra,decl,lotss_field,fields.status as status,observations.status as ostatus,observations.location as location,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority,required_integration from fields left join observations on (observations.field=fields.id) and (observations.status="Archived" or observations.status="DI_Processed") group by fields.id having lotss_field=1')
+
     #sdb.cur.execute('select * from fields where status!="Not started"')
     results=sdb.cur.fetchall()
-    sdb.cur.execute('select ra,decl from fields where dr2>0')
-    dr2_results=sdb.cur.fetchall()
+    #sdb.cur.execute('select ra,decl from fields where dr2>0')
+    #dr2_results=sdb.cur.fetchall()
     
-print(len(results),'fields have some observations')
+print(len(results),'fields in database')
         
 fig = plt.figure(figsize=(16, 8))
 fig.add_subplot(111, projection='aitoff')
@@ -76,25 +78,25 @@ for b in [-10,0,10]:
     plt.scatter(ra_r,dec_r,color='blue',s=5,label='MW' if b==0 else None)
 
 #DR2 area
-ravals = []
-decvals = []
-for r in dr2_results:
-    ravals.append(r['ra'])
-    decvals.append(r['decl'])
+#ravals = []
+#decvals = []
+#for r in dr2_results:
+#    ravals.append(r['ra'])
+#    decvals.append(r['decl'])
 
-ra_r,dec_r=cc(ravals,decvals)
-plt.scatter(ra_r,dec_r,marker='o',color='blue',alpha=0.2,zorder=-5,edgecolors='none',s=50,label='DR2')
+#ra_r,dec_r=cc(ravals,decvals)
+#plt.scatter(ra_r,dec_r,marker='o',color='blue',alpha=0.2,zorder=-5,edgecolors='none',s=50,label='DR2')
     
 _,r=plot_select(results,lambda r:r['status'] in ['Archived','Complete','Verified'],label='Complete',color='green')
-_,r=plot_select(r,lambda r:r['status'] in ['Proprietary'],label='Proprietary',color='magenta')
+#_,r=plot_select(r,lambda r:r['status'] in ['Proprietary'],label='Proprietary',color='magenta')
 _,r=plot_select(r,lambda r:r['status'] in ['Running'],label='Running',color='cyan')
 _,r=plot_select(r,lambda r:r['status'] in ['Downloaded','Downloading','Unpacking','Averaging','Ready','Queued','Unpacked'],label='In progress',color='yellow')
-_,r=plot_select(r,lambda r:r['status'] in ['Failed','List failed','D/L failed'],label='Failed',color='red')
+_,r=plot_select(r,lambda r:r['status'] in ['Failed','Failed (verified)','List failed','D/L failed'],label='Failed',color='red')
 
-_,r=plot_select(r,lambda r:r['ostatus']=='DI_processed' and r['s']>7,label='Ready',color='black')
+_,r=plot_select(r,lambda r:r['status']=='Not started' and r['s']>0.95*r['required_integration'],label='Ready',color='black')
 
-#_,r=plot_select(r,lambda r:r['location']!="Sara",label='Observed (not Sara)',color='red',alpha=1.0,s=5)
-_,r=plot_select(r,lambda r:True,label='Observed',color='black',alpha=0.5,s=5)
+_,r=plot_select(r,lambda r:r['c']>0,label='Part processed',color='black',alpha=0.5,s=8)
+_,r=plot_select(r,lambda r:True,label='Not processed',color='black',alpha=0.2,s=4)
 
 
 ax=plt.gca()

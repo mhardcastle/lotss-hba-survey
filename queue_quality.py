@@ -24,14 +24,14 @@ if len(queued)>=qlimit:
     sys.exit(0)
         
 with SurveysDB() as sdb:
-    sdb.cur.execute('select * from fields left join quality on quality.id=fields.id where (status="Archived" or status="Verified") and archive_version=4 and quality.catsources is NULL order by priority desc')
+    sdb.cur.execute('select * from fields left join quality on quality.id=fields.id where (status="Archived" or status="Verified") and archive_version>=4 and quality.catsources is NULL order by priority desc')
     results=sdb.cur.fetchall()
 
 qcount=len(queued)
 for r in results:
     
     id=r['id']
-    dir='/data/lofar/DR2/fields/'+id
+    dir='/data/lofar/DR3/fields/'+id
     if not os.path.isfile(dir+'/image_full_ampphase_di_m.NS_shift.app.facetRestored.fits'):
         print(id,'does not have the images!')
         continue
