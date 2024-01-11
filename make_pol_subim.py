@@ -38,12 +38,16 @@ else:
     wd='/data/lofar/DR2/fields/'+field
     if not os.path.isdir(wd):
         print('DR2 directory does not exist')
-    else:
-        print('Extracting LOW total intensity cutout')
-        extract_and_save(wd+'/image_full_low_m.int.restored.fits',ra,dec,imsize,outname=objname+'_I.fits')
-        print('Unpacking the pol cube -- please wait')
-        os.system('funpack -O temp_cube.fits '+wd+'/image_full_low_QU.cube.dirty.corr.fits.fz')
-        print('Extracting QU cube cutout')
-        extract_and_save('temp_cube.fits',ra,dec,imsize,outname=objname+'_QUcube.fits',cubemode=True)
-        os.system('rm temp_cube.fits')
+        wd='/data/lofar/DR3/fields/'+field
+        if not os.path.isdir(wd):
+            print('DR3 directory does not exist either!')
+            raise RuntimeError('Data not found')
+
+    print('Extracting LOW total intensity cutout')
+    extract_and_save(wd+'/image_full_low_m.int.restored.fits',ra,dec,imsize,outname=objname+'_I.fits')
+    print('Unpacking the pol cube -- please wait')
+    os.system('funpack -O temp_cube.fits '+wd+'/image_full_low_QU.cube.dirty.corr.fits.fz')
+    print('Extracting QU cube cutout')
+    extract_and_save('temp_cube.fits',ra,dec,imsize,outname=objname+'_QUcube.fits',cubemode=True)
+    os.system('rm temp_cube.fits')
         

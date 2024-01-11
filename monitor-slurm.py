@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 # Code to run continuously and keep an eye on the state of the queue
 # Download new files if needed
@@ -12,12 +12,12 @@ from surveys_db import SurveysDB
 from db_utils import get_next
 import os
 import threading
-from run_pipeline import do_run_pipeline
+from run_pipeline_slurm import do_run_pipeline
 from rclone_upload import upload_field
 import glob
-import MySQLdb
+import pymysql as ms
 
-queuelimit=10
+queuelimit=2
 cluster=os.environ['DDF_PIPELINE_CLUSTER']
 home=os.environ['HOME']
 download_thread=None
@@ -29,7 +29,7 @@ upload_name=None
 check_dict={}
 check_interval=6000
 maxcount=5
-basedir='/beegfs/car/mjh'
+basedir='/home/azimuth'
 
 while True:
 
@@ -37,7 +37,7 @@ while True:
         with SurveysDB(readonly=True) as sdb:
             sdb.cur.execute('select * from fields where clustername="'+cluster+'" and status!="Not started" order by priority desc, end_date')
             result=sdb.cur.fetchall()
-    except MySQLdb.OperationalError as e:
+    except ms.OperationalError as e:
         print('Database not available! -- sleeping',e)
         sleep(240)
         continue
@@ -109,8 +109,6 @@ while True:
     if 'Complete' in d and upload_thread is None:
         for r in result:
             if r['status']=='Complete':
-                with SurveysDB() as sdb:
-                    sdb.create_quality(r['id']) # should make a blank entry, so if we reprocess, the pipeline will run again
                 upload_name=r['id']
                 kw={'split_uv':True} # changed 24/09/22
                 print('We need to upload a new file (%s)!' % upload_name)

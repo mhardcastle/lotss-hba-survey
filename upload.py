@@ -21,7 +21,7 @@ def myglob(g,workdir):
     return [os.path.basename(file) for file in f]
 
 def images(rootname,workdir):
-    l=[rootname+'.'+f+'.fits' for f in ['app.restored','int.restored','int.model','int.residual']]
+    l=[rootname+'.'+f+'.fits' for f in ['app.restored','int.restored','int.model','int.residual','psf']]
     n=1
     while os.path.isfile(workdir+'/'+rootname+'.mask%02i.fits' % n):
         n+=1
@@ -125,6 +125,7 @@ def do_upload(name,basedir,skipstokes=False):
         f+=myglob('image_full_low_QU.cube.*',workdir)
         f+=myglob('image_full_vlow_QU.cube.*',workdir)
     f+=myglob('*.archive',workdir)
+    f+=myglob('*frequencies.txt',workdir)
 
     do_rsync(name,basedir,f)
     compressed_done=(len(myglob('*.archive',workdir))>0)

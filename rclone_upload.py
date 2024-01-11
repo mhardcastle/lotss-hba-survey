@@ -35,8 +35,10 @@ readme={'README.txt':'This file',
         'crossmatch-2.fits':'Bootstrap catalogue iteration 2',
         'crossmatch-results-1.npy':'Bootstrap results iteration 1',
         'crossmatch-results-2.npy':'Bootstrap results iteration 2',
+        'frequencies.txt':'Frequencies used for the bootstrap',
         'astromap.fits':'Astrometry accuracy map',
         'image_full_ampphase_di_m.NS.app.restored.fits':'Full-resolution final image in apparent flux',
+        'image_full_ampphase_di_m.NS.psf.fits':'Full-resolution final PSF image',
         'image_full_ampphase_di_m.NS.int.restored.fits':'Full-resolution final primary-beam corrected image',
         'image_full_ampphase_di_m.NS_shift.app.facetRestored.fits':'Full-resolution final image in apparent flux with astrometric corrections applied',
         'image_full_ampphase_di_m.NS_shift.int.facetRestored.fits':'Full-resolution final primary-beam corrected image with astrometric corrections applied',
@@ -105,11 +107,11 @@ def dump_headers(workdir,files,verbose=False):
     for fitsfile in files:
         if fitsfile.endswith('.fz') or fitsfile.endswith('.fits'):
             if verbose: print(fitsfile)
-            #try:
-            hdrs = extract_header(workdir+'/'+fitsfile)
-            #except timeout_decorator.timeout_decorator.TimeoutError:
-            #    print('File header %s read timed out! Is it corrupt?' % fitsfile)
-            #    hdrs=[]
+            try:
+                hdrs=extract_header(workdir+'/'+fitsfile)
+            except IOError as e:
+                print('File header %s IO error %s -- skipping' % (fitsfile,e))
+                hdrs=[]
             for ctr, hdr in enumerate(hdrs):
                 hdr.totextfile(workdir+"/fits_headers/"+fitsfile+"."+str(ctr)+".hdr", overwrite=True)
 
@@ -143,10 +145,15 @@ class Tarrer(object):
     def remove_readme(self):
         os.unlink(self.workdir+'/README.txt')
                 
-    def make_tar(self,tarname,files,skip=True,readme=False):
+    def make_tar(self,tarname,files,skip=True,readme=False,ignore_missing=False):
         report('Creating '+tarname)
         workdir=self.workdir
         outfile=tarname+'.tar'
+        if ignore_missing:
+            newfiles=[f for f in files if os.path.isfile(workdir+'/'+f)]
+            if len(newfiles)!=len(files):
+                warn('Skipping %i missing files' % (len(files)-len(newfiles)))
+                files=newfiles
         if readme:
             files.append('README.txt')
             self.make_readme(tarname,files)
@@ -187,9 +194,15 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     with SurveysDB(readonly=True) as sdb:
         idd=sdb.get_field(name)
 
-    other=False
-    if not (idd['lotss_field']>0) or idd['proprietary_date'] is not None:
-        other=True
+    # Choose remote directory
+    if idd['proprietary_date'] is not None:
+        archive='other'
+    elif idd['lotss_field']>0:
+        archive='archive'
+    elif idd['ilotss_field']>0:
+        archive='ILoTSS'
+    else:
+        archive='other'
 
     warn('Current field status is '+idd['status'])
 
@@ -197,6 +210,8 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     fixsymlinks('DDS3_full',verbose=False)
     fixsymlinks('DDS3_full_slow',stype='merged',verbose=False)
     fixsymlinks('DDS2_full',verbose=False)
+    # next line allows image_full_low to be uploaded properly
+    os.system('cp '+workdir+'/image_full_low.psf.fits '+workdir+'/image_full_low_m.psf.fits')
     report('Creating tar files')
     update_status(name,'Creating tars',workdir=workdir)
     m=MyGlob(workdir)
@@ -204,7 +219,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
 
     if split_uv:
         # break the uv tar file into obsids and a misc section
-        t.make_tar('uv_misc',['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
+        t.make_tar('uv_misc',['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'),ignore_missing=True)
         mslist=m.glob('*.archive')
         obsids=set([os.path.basename(ms).split('_')[0] for ms in mslist])
         for obsid in obsids:
@@ -237,16 +252,14 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
                    m.glob('*-fit_state.pickle') +
                    m.glob('*.png') +
                    m.glob('*crossmatch-results*') +
-                   m.glob('*crossmatch-*.fits'),readme=True)
+                   m.glob('*crossmatch-*.fits') +
+                   m.glob('*frequencies.txt'),readme=True)
 
     update_status(name,'Created tar',workdir=workdir)
     report('Uploading')
     rc=RClone('maca_sksp_tape_DDF.conf',debug=True)
     rc.get_remote()
-    if other:
-        remote='other/'+name
-    else:
-        remote='archive/'+name
+    remote=archive+'/'+name
     d=rc.execute_live(['-P','copy',workdir+'/_archive']+[rc.remote+'/'+remote])
     if d['err'] or d['code']!=0:
         update_status(name,'rclone failed',workdir=workdir)
@@ -270,7 +283,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
             with SurveysDB() as sdb:
                 sdb.execute('insert into checksums values ( %s, %s, %s)',(name,tarfile, local_checksum))
 
-    update_status(name,'Verified',workdir=workdir)
+    update_status(name,'Verified',workdir=workdir,av=5)
 
     report('Tidying up')
     for tarfile in t.tars:
