@@ -160,7 +160,7 @@ def collect_solutions( name, survey=None ):
         os.system('tar -xvf uv.tar image_dirin_SSD_m.npy.ClusterCat.npy')
         os.system('tar -xvf uv.tar SOLSDIR')
         os.system('tar -xvf misc.tar logs/*DIS2*log')
-        os.system('tar -xvf XXXXXXX.tar L*frequencies.txt')
+        os.system('tar -xvf misc.tar L*frequencies.txt')
         ## what's needed is actually just:
         ## DDS3_full_slow*.npz 
         ## DDS3_full*smoothed.npz 
