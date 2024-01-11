@@ -18,6 +18,8 @@ import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
 from download_file import download_file ## in ddf-pipeline/utils
 import progress_bar
+from sdr_wrapper import SDR
+from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -92,29 +94,6 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
 ##############################
 ## finding solutions
 
-def get_public_ddf( name ):
-    url = 'https://repository.surfsara.nl/datasets/lotss-dr2/'+name.replace('+','-')+'/files'
-    solfile = os.path.join(name,'uv.tar')
-    dl_files = ['uv.tar','images.tar','misc.tar']
-    cwd = os.getcwd()
-    for dlf in dl_files:
-        download_file( os.path.join(url,dlf), os.path.join(name,dlf), catch_codes=(500,),retry_partial=True,progress_bar=progress_bar,verify=False )
-        os.chdir(os.path.join(cwd,name))
-        os.system('tar xvf {:s} logs'.format(solfile))
-    
-'''
-So the things needed for the subtract are:
-SOLSDIR
-DDS3_full_slow*.npz
-DDS3_full*smoothed.npz
-image_full_ampphase_di_m.NS.mask01.fits
-image_full_ampphase_di_m.NS.DicoModel
-image_dirin_SSD_m.npy.ClusterCat.npy
-and if the bootstrap is applied
-L*frequencies.txt (which can probably be reconstructed if missing)
-*crossmatch-results-2.npy (edited) 
-'''
-
 def collect_solutions( name, survey=None ):
     with SurveysDB(survey=survey) as sdb:
         sdb.execute('select * from observations where field="'+name+'"')
@@ -150,24 +129,38 @@ def collect_solutions( name, survey=None ):
         
         if rclone_works and obsname in remote_obs:
             print('Data available in rclone repository, downloading solutions!')
-            #d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
-            #if d['err'] or d['code']!=0:
-            #    print('Rclone failed to download solutions')
-            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
+            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
             if d['err'] or d['code']!=0:
-                print('Rclone failed to download inspection plots')
-            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'logs.tar')]+[caldir]) 
-            if d['err'] or d['code']!=0:
-                print('Rclone failed to download logs')
-            break
-    
-    ## find the ddf-pipeline solutions -- check private solutions
-    cmd = 'uberftp -ls gsiftp://gridftp.grid.sara.nl:2811/pnfs/grid.sara.nl/data/lofar/user/sksp/archive/SKSP_DDF_PIPELINE/archive/'+name
-    result = os.system(cmd)
-    if result == 0:
-        ddf_exists = True
-    else:
-        ## check the public solutions
+                print('Rclone failed to download solutions')
+            else:
+                success = True
+                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
+                if d['err'] or d['code']!=0:
+                    print('Rclone failed to download inspection plots')
+                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'logs.tar')]+[caldir]) 
+                if d['err'] or d['code']!=0:
+                    print('Rclone failed to download logs')
+
+    if success:
+        ## find the ddf-pipeline solutions
+        do_sdr_and_rclone_download(name,caldir,verbose=False,Mode="Imaging",operations=['download','untar'])
+        do_sdr_and_rclone_download(name,caldir,verbose=False,Mode="Misc",operations=['download','untar']):
+
+
+
+
+'''
+So the things needed for the subtract are:
+SOLSDIR
+DDS3_full_slow*.npz
+DDS3_full*smoothed.npz
+image_full_ampphase_di_m.NS.mask01.fits
+image_full_ampphase_di_m.NS.DicoModel
+image_dirin_SSD_m.npy.ClusterCat.npy
+and if the bootstrap is applied
+L*frequencies.txt (which can probably be reconstructed if missing)
+*crossmatch-results-2.npy (edited) 
+'''
         
 
 
