@@ -37,6 +37,9 @@ export DDF_PIPELINE_CLUSTER=azimuth
 export LINC_DATA_DIR=/home/azimuth/surveys/
 export MACAROON_DIR=/home/azimuth/macaroons/
 export LOFAR_SINGULARITY=/home/azimuth/software/singularity/lofar_sksp_v4.4.0_cascadelake_cascadelake_ddf_mkl_cuda.sif
+
+# If you want to have untar and dysco as a job - eg. for COSMA in Durham
+export UNPACK_AS_JOB=True
 '''
 
 user = os.getenv('USER')
@@ -161,8 +164,6 @@ def collect_solutions( name, survey=None ):
         cwd = os.getcwd()
         os.chdir(soldir)
         os.system('tar -xvf misc.tar *crossmatch-results-2.npy')
-        os.chdir(cwd)
-        ddfpipeline_time = os.path.getmtime(glob.glob(os.path.join(soldir,'*crossmatch-results-2.npy'))[0])
 
         if ddfpipeline_time - linc_time > 0:
             ## linc was run before ddfpipeline -- in this case can start with vlbi pipeline directly
@@ -174,7 +175,7 @@ def collect_solutions( name, survey=None ):
             os.system('tar -xvf uv.tar image_dirin_SSD_m.npy.ClusterCat.npy')
             os.system('tar -xvf uv.tar SOLSDIR')
             os.system('tar -xvf misc.tar logs/*DIS2*log')
-            os.system('tar -xvf XXXXXXX.tar L*frequencies.txt')
+            os.system('tar -xvf misc.tar L*frequencies.txt')
             ## what's needed is actually just:
             ## DDS3_full_slow*.npz 
             ## DDS3_full*smoothed.npz 
@@ -390,11 +391,22 @@ def dysco_compress(caldir,msfile):
         success=False
     return(success)
 
+def dysco_compress_job(caldir):
+    success=True
+    os.system('ls -d {:s}/*.MS > {:s}/myfiles.txt'.format(caldir,caldir))
+    file_number = len(open("{:s}/myfiles.txt".format(caldir), "r").readlines())
+    command = 'sbatch -W --array=1-{:n}%%30 slurm/{:s}_dysco.sh {:s}'.format(file_number,cluster,caldir)
+    if os.system(command):
+        print("Something went wrong with the dysco compression job!")
+        success = False
+    os.system('rm {:s}/myfiles.txt'.format(caldir))
+    return success
+
     
 def do_unpack(field):
     update_status(field,'Unpacking')
     success=True
-    do_dysco=False
+    do_dysco=False # Default should be false
     caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
@@ -402,15 +414,24 @@ def do_unpack(field):
     gb_filesize = os.path.getsize(tarfiles[0])/(1024*1024*1024)
     if gb_filesize > 40.:
         do_dysco = True
-    for trf in tarfiles:
-        os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
-        msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
-        os.system( 'mv {:s} {:s}'.format(msname,caldir))
+    if os.getenv("UNPACK_AS_JOB"):
+        # Logic for Unpacking Jobs - Files should be named {cluster}_untar.sh and {cluster}_dysco.sh
+        for trf in tarfiles:
+            os.system('sbatch -W slurm/{:s}_untar.sh {:s} {:s}'.format(cluster, trf, field))
+            msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
+            os.system( 'mv {:s} {:s}'.format(msname,caldir))
         if do_dysco:
-            dysco_success = dysco_compress(caldir,msname)
-            ## ONLY FOR NOW
-            if dysco_success:
-                os.system('rm {:s}'.format(trf))
+            dysco_success = dysco_compress_job(caldir)
+    else:
+        for trf in tarfiles:
+            os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
+            msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
+            os.system( 'mv {:s} {:s}'.format(msname,caldir))
+            if do_dysco:
+                dysco_success = dysco_compress(caldir,msname)
+                ## ONLY FOR NOW
+                if dysco_success:
+                    os.system('rm {:s}'.format(trf))
                 
     ## check that everything unpacked
     msfiles = glob.glob('{:s}/L*MS'.format(caldir))
@@ -559,7 +580,7 @@ while True:
     else:
         nstaged = 0
     check_stage = (nstage <=2) + (nstaged <= maxstaged)
-    if check_stage == 1:
+    if check_stage  <  2:
         do_stage = False
     else:
         do_stage = True
