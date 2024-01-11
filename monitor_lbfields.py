@@ -360,7 +360,7 @@ def dysco_compress_job(caldir):
 def do_unpack(field):
     update_status(field,'Unpacking')
     success=True
-    do_dysco=True # Default should be false
+    do_dysco=False # Default should be false
     caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
