@@ -25,7 +25,7 @@ unpack_name=None
 #upload_thread=None
 basedir='/beegfs/car/mjh/DS'
 operation='DynSpecMS'
-totallimit=20
+totallimit=30
 
 def do_download(field):
     update_status(field,operation,'Downloading')

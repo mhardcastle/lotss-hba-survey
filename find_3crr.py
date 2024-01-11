@@ -1,3 +1,4 @@
+from __future__ import print_function
 import os
 from find_pos import Finder
 from astropy.coordinates import SkyCoord,get_icrs_coordinates
@@ -15,7 +16,11 @@ def extract_list(t,resolve=False,check_exists=True,use_fields=True,imagesize=0.5
         if check_exists and os.path.isfile(filename):
             continue
         if resolve:
-            c=get_icrs_coordinates(n)
+            try:
+                c=get_icrs_coordinates(n)
+            except:
+                print('Resolve for',n,'failed!')
+                continue
             ra=float(c.ra.degree)
             dec=float(c.dec.degree)
         else:
@@ -23,7 +28,7 @@ def extract_list(t,resolve=False,check_exists=True,use_fields=True,imagesize=0.5
             dec=r['dec']
         bf=f.find(ra,dec)
         if bf is None:
-            print('%s not found' % n)
+            print('%s not found (ra=%f dec=%f)' % (n,ra,dec))
             continue
         field=bf['id']
         success=False
@@ -45,9 +50,20 @@ def extract_list(t,resolve=False,check_exists=True,use_fields=True,imagesize=0.5
                 hdu.writeto(filename,overwrite=True)
                 
         if not success and use_fields:
-            scale=5.9124/bf['nvss_scale']
+            try:
+                scale=5.9124/bf['nvss_scale']
+            except TypeError:
+                print('No scale for field!')
+                scale=1.0
             print('Extracting %s from field %s with scale factor %.3f' % (n,field,scale))
-            extract_and_save('/data/lofar/DR2/fields/'+field+'/image_full_ampphase_di_m.NS_shift.int.facetRestored.fits',ra,dec,imagesize,outname=n+'.fits',scale=scale)
+            wd='/data/lofar/DR2/fields/'+field
+            if not os.path.isdir(wd):
+                wd='/data/lofar/DR3/fields/'+field
+                if not os.path.isdir(wd):
+                    print('Field does not exist!')
+                    continue
+
+            extract_and_save(wd+'/image_full_ampphase_di_m.NS_shift.int.facetRestored.fits',ra,dec,imagesize,outname=n+'.fits',scale=scale)
             
 
 if __name__=='__main__':

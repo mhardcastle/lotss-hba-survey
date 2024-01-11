@@ -8,10 +8,10 @@ from auxcodes import report,warn,die
 from surveys_db import SurveysDB,update_status
 from download import download_dataset
 from download_field import download_field
-from run_job import do_run_job
+from run_job_slurm import do_run_job
 from unpack import unpack
 from make_mslists import make_list,list_db_update
-from make_custom_config import make_custom_config,choose_qsub_file
+from make_custom_config import make_custom_config,choose_batch_file
 from check_structure import do_check_structure
 import numpy as np
 import sys
@@ -19,12 +19,11 @@ import os
 import glob
 from rclone import RClone
 
-def do_run_pipeline(name,basedir,qsubfile=None,do_field=True):
-    '''
-    set do_field False for the now obsolete behaviour of downloading
-    and imaging a particular observation -- this probably doesn't work any more
-    with do_field True the database must be present
-    '''
+def do_run_pipeline(name,basedir,batchfile=None,do_field=True):
+
+    if not do_field:
+        raise RuntimeError('do_run_pipeline with do_field False is not supported')
+    
     workdir=basedir+'/'+name
     try:
         os.mkdir(workdir)
@@ -148,18 +147,18 @@ def do_run_pipeline(name,basedir,qsubfile=None,do_field=True):
     report('Creating custom config file from template')
     make_custom_config(name,workdir,do_field,averaged,**kwargs)
 
-    if qsubfile is None:
-        report('Choosing qsub file')
-        qsubfile=choose_qsub_file(name,workdir,do_field)
+    if batchfile is None:
+        report('Choosing batch file')
+        batchfile=choose_batch_file(name,workdir,do_field)
     
     # now run the job
-    do_run_job(name,basedir=basedir,qsubfile=qsubfile,do_field=do_field,dysco=dysco)
+    do_run_job(name,basedir=basedir,batchfile=batchfile,do_field=do_field,dysco=dysco)
 
 
 if __name__=='__main__':
             
     try:
-        qsubfile=sys.argv[2]
+        batchfile=sys.argv[2]
     except:
-        qsubfile=None
-    do_run_pipeline(sys.argv[1],'/beegfs/car/mjh',qsubfile=qsubfile)
+        batchfile=None
+    do_run_pipeline(sys.argv[1],os.environ['DDF_BASEDIR'],batchfile=batchfile)
