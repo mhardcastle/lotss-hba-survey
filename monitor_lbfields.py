@@ -94,24 +94,12 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
 ##############################
 ## finding and checking solutions
 
-def collect_solutions( name, survey=None ):
-    with SurveysDB(survey=survey) as sdb:
-        sdb.execute('select * from observations where field="'+name+'"')
-        fld = sdb.cur.fetchall()
-    if len(fld) > 1:
-        print('There is more than one observation for this field ... ')
-    else:
-        fld = fld[0]
-        obsid = fld['id']
-        calibrator_id = fld['calibrator_id']
-
+def get_linc( obsid, caldir ):
     ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
     macaroons = ['maca_sksp_tape_spiderlinc.conf','maca_sksp_tape_spiderpref3.conf','maca_sksp_distrib_Pref3.conf']
-    overall_success = True
     rclone_works = True
     obsname = 'L'+str(obsid)
     success = False
-    caldir = os.path.join(os.getenv('LINC_DATA_DIR'),name)
     for macaroon in macaroons:
         macname = os.path.join(os.getenv('MACAROON_DIR'),macaroon)
         try:
@@ -133,64 +121,124 @@ def collect_solutions( name, survey=None ):
             if d['err'] or d['code']!=0:
                 print('Rclone failed to download solutions')
             else:
-                success = True
+                cwd = os.getcwd()
+                os.chdir(caldir)
+                os.system('tar -xvf cal_values.tar')
+                os.chdir(cwd)
                 d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
                 if d['err'] or d['code']!=0:
                     print('Rclone failed to download inspection plots')
                 d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'logs.tar')]+[caldir]) 
                 if d['err'] or d['code']!=0:
                     print('Rclone failed to download logs')
+                ## check that solutions are ok (tim scripts)
+                success = True
+    return(success)
 
-    if success:
-        ## find the ddf-pipeline solutions
+def collect_solutions( name, survey=None ):
+    with SurveysDB(survey=survey) as sdb:
+        sdb.execute('select * from observations where field="'+name+'"')
+        fld = sdb.cur.fetchall()
+    if len(fld) > 1:
+        print('There is more than one observation for this field ... ')
+    else:
+        fld = fld[0]
+        obsid = fld['id']
+        calibrator_id = fld['calibrator_id']
+
+    caldir = os.path.join(os.getenv('LINC_DATA_DIR'),name)
+    ## check if linc/prefactor 3 has been run
+    linc_check = get_linc( obsid, caldir )
+
+    if linc_check: 
+        ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
+        linc_time = os.path.getmtime(os.path.join(caldir,'cal_values/solutions.h5'))
+        ## find the ddf solutions
         soldir = os.path.join(caldir,'ddfsolutions')
         if not os.path.exists(soldir):
             os.mkdir(soldir)
-        do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
         do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
         cwd = os.getcwd()
         os.chdir(soldir)
-        os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.app.restored.fits')
-        os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.mask01.fits')
-        os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.DicoModel')
         os.system('tar -xvf misc.tar *crossmatch-results-2.npy')
-        os.system('tar -xvf uv.tar image_dirin_SSD_m.npy.ClusterCat.npy')
-        os.system('tar -xvf uv.tar SOLSDIR')
-        os.system('tar -xvf misc.tar logs/*DIS2*log')
-        os.system('tar -xvf XXXXXXX.tar L*frequencies.txt')
-        ## what's needed is actually just:
-        ## DDS3_full_slow*.npz 
-        ## DDS3_full*smoothed.npz 
-        ## but SOLSDIR needs to be present with the right directory structure, this is expected for the subtract.
-        ## and the bootstrap if required
+        os.chdir(cwd)
+        ddfpipeline_time = os.path.getmtime(glob.glob(os.path.join(soldir,'*crossmatch-results-2.npy'))[0])
 
-'''
-So the things needed for the subtract are:
-and if the bootstrap is applied
-L*frequencies.txt (which can probably be reconstructed if missing)
+        if ddfpipeline_time - linc_time > 0:
+            ## linc was run before ddfpipeline -- in this case can start with vlbi pipeline directly
+            ## download the rest of the ddfpipeline things
+            do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
+            os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.app.restored.fits')
+            os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.mask01.fits')
+            os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.DicoModel')
+            os.system('tar -xvf uv.tar image_dirin_SSD_m.npy.ClusterCat.npy')
+            os.system('tar -xvf uv.tar SOLSDIR')
+            os.system('tar -xvf misc.tar logs/*DIS2*log')
+            os.system('tar -xvf XXXXXXX.tar L*frequencies.txt')
+            ## what's needed is actually just:
+            ## DDS3_full_slow*.npz 
+            ## DDS3_full*smoothed.npz 
+            ## but SOLSDIR needs to be present with the right directory structure, this is expected for the subtract.
+            ## and the bootstrap if required
+
+        else:
+            ## linc was run after and ddfpipeline ("light" options) need to be run
+
+        ## find the ddf-pipeline solutions
 
 
-DIS2 logs --> look for the input column and if that's scaled data then you NEED the numpy array. for versions that start from data then those values are absorbed into the amplitude solutions and need to re-run
-and if the input col is scaled data then need to check for the numpy array
+    '''
+    So the things needed for the subtract are:
+    and if the bootstrap is applied
+    L*frequencies.txt (which can probably be reconstructed if missing)
 
-scaled data + no numpy array = rerun up to boostrap
-scaled data + numpy array = need to generate data (i.e. scaled with numpy corrections) [there is code]
 
-frequencies missing --> regenerate from small mslist  [there is code]
-'''
+    DIS2 logs --> look for the input column and if that's scaled data then you NEED the numpy array. for versions that start from data then those values are absorbed into the amplitude solutions and need to re-run
+    and if the input col is scaled data then need to check for the numpy array
+
+    scaled data + no numpy array = rerun up to boostrap
+    scaled data + numpy array = need to generate data (i.e. scaled with numpy corrections) [there is code]
+
+    frequencies missing --> regenerate from small mslist  [there is code]
+    '''
        
 
 ## if things need to be re-run, don't overwrite previous solutions
 ## keep list of operations that need to happen - should be in database
 
-cal
+### if everything needs to be done:
 target
 ddfpipeline
 setup
-concat
+concat-flag
+phaseup-concat
 delay
 split
 selfcal
+
+### if ddf pipeline needs to be rerun and linc target is fine:
+setup
+concat-flag
+phaseup-concat
+[dump international stations for ddfpipeline]
+ddfpipeline
+delay
+split
+selfcal
+## [need to check sub-workflow steps between concat/delay]
+
+
+### all solutions are fine
+setup
+concat-flag
+phaseup-concat
+delay
+split
+selfcal
+
+
+
+
 
 
 def check_cal_clock(calh5parm):
