@@ -92,7 +92,7 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
     sdb.close()  
 
 ##############################
-## finding solutions
+## finding and checking solutions
 
 def collect_solutions( name, survey=None ):
     with SurveysDB(survey=survey) as sdb:
@@ -103,7 +103,7 @@ def collect_solutions( name, survey=None ):
     else:
         fld = fld[0]
         obsid = fld['id']
-        calibrator_id = ['calibrator_id']
+        calibrator_id = fld['calibrator_id']
 
     ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
     macaroons = ['maca_sksp_tape_spiderlinc.conf','maca_sksp_tape_spiderpref3.conf','maca_sksp_distrib_Pref3.conf']
@@ -143,25 +143,114 @@ def collect_solutions( name, survey=None ):
 
     if success:
         ## find the ddf-pipeline solutions
-        do_sdr_and_rclone_download(name,caldir,verbose=False,Mode="Imaging",operations=['download','untar'])
-        do_sdr_and_rclone_download(name,caldir,verbose=False,Mode="Misc",operations=['download','untar']):
-
-
-
+        soldir = os.path.join(caldir,'ddfsolutions')
+        if not os.path.exists(soldir):
+            os.mkdir(soldir)
+        do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
+        do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
+        cwd = os.getcwd()
+        os.chdir(soldir)
+        os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.app.restored.fits')
+        os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.mask01.fits')
+        os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.DicoModel')
+        os.system('tar -xvf misc.tar *crossmatch-results-2.npy')
+        os.system('tar -xvf uv.tar image_dirin_SSD_m.npy.ClusterCat.npy')
+        os.system('tar -xvf uv.tar SOLSDIR')
+        os.system('tar -xvf misc.tar logs/*DIS2*log')
+        ## what's needed is actually just:
+        ## DDS3_full_slow*.npz 
+        ## DDS3_full*smoothed.npz 
+        ## but SOLSDIR needs to be present with the right directory structure, this is expected for the subtract.
+        ## and the bootstrap if required
 
 '''
 So the things needed for the subtract are:
-SOLSDIR
-DDS3_full_slow*.npz
-DDS3_full*smoothed.npz
-image_full_ampphase_di_m.NS.mask01.fits
-image_full_ampphase_di_m.NS.DicoModel
-image_dirin_SSD_m.npy.ClusterCat.npy
 and if the bootstrap is applied
 L*frequencies.txt (which can probably be reconstructed if missing)
-*crossmatch-results-2.npy (edited) 
+
+
+DIS2 logs --> look for the input column and if that's scaled data then you NEED the numpy array. for versions that start from data then those values are absorbed into the amplitude solutions and need to re-run
+and if the input col is scaled data then need to check for the numpy array
+
+scaled data + no numpy array = rerun up to boostrap
+scaled data + numpy array = need to generate data (i.e. scaled with numpy corrections) [there is code]
+
+frequencies missing --> regenerate from small mslist  [there is code]
 '''
-        
+       
+
+## if things need to be re-run, don't overwrite previous solutions
+## keep list of operations that need to happen - should be in database
+
+cal
+target
+ddfpipeline
+setup
+concat
+delay
+split
+selfcal
+
+
+def check_cal_clock(calh5parm):
+  data = h5py.File(calh5parm,'r')
+  solset = 'calibrator'
+  soltabs = list(data[solset].keys())
+  print(soltabs)
+  if 'clock' not in soltabs:
+    print('Calibrator is bad')
+    return False
+  if 'bandpass' not in soltabs:
+    print('Calibrator is bad')
+    return False
+  print('Calibrator good - returning')
+  return True
+
+def check_cal_flag(calh5parm):
+  print('Running losoto to check cal flagggin')
+  print('singularity exec -B /scratch/,/home/lotss-tshimwell/,/project/lotss/ /project/lotss/Software/linc/latest-sing/linc_latest.sif losoto -iv %s > %s.info'%(calh5parm,calh5parm))
+  if not os.path.exists('%s.info'%calh5parm):
+    os.system('singularity exec -B /scratch/,/home/lotss-tshimwell/,/project/lotss/ /project/lotss/Software/linc/latest-sing/linc_latest.sif losoto -iv %s > %s.info'%(calh5parm,calh5parm))
+  print('Checking outputfile for flaggging')
+   #os.system('losoto -iv %s > %s.info'%(calh5parm,calh5parm))
+  checkfile = open('%s.info'%calh5parm)
+  flagdict={}
+  for line in checkfile:
+    line = line[:-1]
+    print(line)
+    line = line.split(' ')
+    while '' in line:
+      line.remove('')
+    if len(line) < 3:
+      continue
+    if 'Solution' in line[0] and 'table' in line[1]:
+      flagtype = line[2].replace("'",'').replace("'",'')
+    if 'Flagged' in line[0] and 'data' in line[1]:
+      flagdict[flagtype] = float(line[2].replace('%',''))
+  print('Flag dict',flagdict)
+  for element in flagdict:
+    print(element,flagdict[element],element=='bandpass')
+    if element == 'bandpass':
+      if flagdict[element] > 10.0:
+        print('badbandpass')
+        return('badflag')
+    if element == 'clock':
+      if flagdict[element] > 10.0:
+        print('badclock')
+        return('badflag')
+    if element == 'faraday':
+      if flagdict[element] > 10.0:
+        print('badfaraday')
+        return('badflag')
+    if element == 'polalign':
+      if flagdict[element] > 10.0:
+        print('badpolalign')
+        return('badflag')
+  print(flagdict)
+  return
+
+
+ 
 
 
 
