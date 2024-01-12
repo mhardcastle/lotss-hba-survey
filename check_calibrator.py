@@ -1,4 +1,5 @@
 # Check that a calibrator solution exists for a given observation
+# and do other operations on the LOFAR VLBI calibrators
 
 from rclone import RClone
 from surveys_db import SurveysDB
@@ -22,8 +23,21 @@ def find_calibrators(obsid):
             calibrators.append(r['id'])
     return(set(calibrators))
 
-def download_calibrators(field):
+def download_field_calibrators(field,wd):
+    # download the LOFAR-VLBI calibrator solutions for the field into the specified parent working directory. return dictionary of downloaded cals
+    rd={}
     with SurveysDB(readonly=True) as sdb:
+        sdb.execute('select * from observations where field=%s',(field,))
+        results=sdb.cur.fetchall()
+        for r in results:
+            rd['obs']=[]
+            calibrators=find_calibrators(r['id'])
+            for c in calibrators:
+                if check_calibrator(calid):
+                    dest=wd+'/%i/' % obsid
+                    download_calibrator(calid,dest)
+                    rd['obs'].append(calid)
+    return rd
         
 
 def check_calibrator(calid):
