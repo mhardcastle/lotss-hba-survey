@@ -20,6 +20,7 @@ from download_file import download_file ## in ddf-pipeline/utils
 import progress_bar
 from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
+from losoto.h5parm import h5parm
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -97,6 +98,68 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
 ##############################
 ## finding and checking solutions
 
+def check_cal_clock(calh5parm):
+    data = h5parm(calh5parm,'r')
+    cal = data.getSolset('calibrator')
+    soltabs = list(cal.getSoltabNames())
+    print(soltabs)
+    if 'clock' not in soltabs:
+        print('Calibrator is bad')
+        return False
+    if 'bandpass' not in soltabs:
+        print('Calibrator is bad')
+        return False
+    print('Calibrator good - returning')
+    return True
+
+def check_cal_flag(calh5parm):
+    print('Running losoto to check cal flagging')
+    sing_img = os.getenv('LOFAR_SINGULARITY')
+    flaginfo = calh5parm.replace('.h5','.info')
+    cmd = 'singularity exec -B {:s} {:s} losoto -iv {:s} > {:s}'.format(os.getcwd(),sing_img,calh5parm,flaginfo)
+    os.system(cmd)
+    print('Checking outputfile for flaggging')
+    with open(flaginfo,'r') as f:
+        lines = f.readlines()
+    f.close()
+    flagdict={}
+    for line in lines:
+        line = line[:-1]
+        print(line)
+        line = line.split(' ')
+        while '' in line:
+            line.remove('')
+        if len(line) < 3:
+            continue
+        if 'Solution' in line[0] and 'table' in line[1]:
+            flagtype = line[2].replace("'",'').replace("'",'')
+        if 'Flagged' in line[0] and 'data' in line[1]:
+            flagdict[flagtype] = float(line[2].replace('%',''))
+    print('Flag dict',flagdict)
+    for element in flagdict:
+        print(element,flagdict[element],element=='bandpass')
+        if element == 'bandpass':
+            if flagdict[element] > 10.0:
+                print('badbandpass')
+                return('badflag')
+        if element == 'clock':
+            if flagdict[element] > 10.0:
+                print('badclock')
+                return('badflag')
+        if element == 'faraday':
+            if flagdict[element] > 10.0:
+                print('badfaraday')
+                return('badflag')
+        if element == 'polalign':
+            if flagdict[element] > 10.0:
+                print('badpolalign')
+                return('badflag')
+    ## number of flagged intl stations
+    ## average flagging for intl stations
+
+
+    return
+
 def get_linc( obsid, caldir ):
     ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
     macaroons = ['maca_sksp_tape_spiderlinc.conf','maca_sksp_tape_spiderpref3.conf','maca_sksp_distrib_Pref3.conf']
@@ -135,10 +198,16 @@ def get_linc( obsid, caldir ):
                 if d['err'] or d['code']!=0:
                     print('Rclone failed to download logs')
                 ## check that solutions are ok (tim scripts)
+                sols = glob.glob(os.path.join(caldir,'cal_values/solutions.h5'))[0]
+                success = check_cal_clock(sols)
+
                 success = True
     return(success)
 
 def collect_solutions( name, survey=None ):
+
+    tasklist = []
+
     with SurveysDB(survey=survey) as sdb:
         sdb.execute('select * from observations where field="'+name+'"')
         fld = sdb.cur.fetchall()
@@ -164,11 +233,15 @@ def collect_solutions( name, survey=None ):
         cwd = os.getcwd()
         os.chdir(soldir)
         os.system('tar -xvf misc.tar *crossmatch-results-2.npy')
+        os.chdir(cwd)
+        ddfpipeline_time = os.path.getmtime(glob.glob(os.path.join(soldir,'*crossmatch-results-2.npy'))[0])
 
         if ddfpipeline_time - linc_time > 0:
             ## linc was run before ddfpipeline -- in this case can start with vlbi pipeline directly
             ## download the rest of the ddfpipeline things
             do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
+            cwd = os.getcwd()
+            os.chdir(soldir)
             os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.app.restored.fits')
             os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.mask01.fits')
             os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.DicoModel')
@@ -176,16 +249,52 @@ def collect_solutions( name, survey=None ):
             os.system('tar -xvf uv.tar SOLSDIR')
             os.system('tar -xvf misc.tar logs/*DIS2*log')
             os.system('tar -xvf misc.tar L*frequencies.txt')
+            os.chdir(cwd)
             ## what's needed is actually just:
             ## DDS3_full_slow*.npz 
             ## DDS3_full*smoothed.npz 
             ## but SOLSDIR needs to be present with the right directory structure, this is expected for the subtract.
             ## and the bootstrap if required
 
+            tasklist.append('setup')
+            tasklist.append('concat-flag')
+            tasklist.append('phaseup-concat')
+            tasklist.append('delay')
+            tasklist.append('split')
+            tasklist.append('selfcal')
         else:
             ## linc was run after and ddfpipeline ("light" options) need to be run
-
-        ## find the ddf-pipeline solutions
+            tasklist.append('setup')
+            tasklist.append('concat-flag')
+            tasklist.append('ddflight') ## needs to include initial dumping of intl stations
+            ## apply solutions?
+            tasklist.append('phaseup-concat')
+            tasklist.append('delay')
+            tasklist.append('split')
+            tasklist.append('selfcal')
+    else:
+        ## linc is not good. check for calibrator
+        if calibrator:
+            ## grab calibrator from spider
+            tasklist.append('target')
+            tasklist.append('ddfpipeline')
+            tasklist.append('setup')
+            tasklist.append('concat-flag')
+            tasklist.append('phaseup-concat')
+            tasklist.append('delay')
+            tasklist.append('split')
+            tasklist.append('selfcal')
+        else:
+            ## need to re-run calibrator .... 
+            tasklist.append('calibrator')
+            tasklist.append('target')
+            tasklist.append('ddfpipeline')
+            tasklist.append('setup')
+            tasklist.append('concat-flag')
+            tasklist.append('phaseup-concat')
+            tasklist.append('delay')
+            tasklist.append('split')
+            tasklist.append('selfcal')
 
 
     '''
@@ -204,100 +313,12 @@ def collect_solutions( name, survey=None ):
     '''
        
 
-## if things need to be re-run, don't overwrite previous solutions
-## keep list of operations that need to happen - should be in database
-
-### if everything needs to be done:
-target
-ddfpipeline
-setup
-concat-flag
-phaseup-concat
-delay
-split
-selfcal
-
-### if ddf pipeline needs to be rerun and linc target is fine:
-setup
-concat-flag
-phaseup-concat
-[dump international stations for ddfpipeline]
-ddfpipeline
-delay
-split
-selfcal
-## [need to check sub-workflow steps between concat/delay]
-
-
-### all solutions are fine
-setup
-concat-flag
-phaseup-concat
-delay
-split
-selfcal
 
 
 
 
 
 
-def check_cal_clock(calh5parm):
-  data = h5py.File(calh5parm,'r')
-  solset = 'calibrator'
-  soltabs = list(data[solset].keys())
-  print(soltabs)
-  if 'clock' not in soltabs:
-    print('Calibrator is bad')
-    return False
-  if 'bandpass' not in soltabs:
-    print('Calibrator is bad')
-    return False
-  print('Calibrator good - returning')
-  return True
-
-def check_cal_flag(calh5parm):
-  print('Running losoto to check cal flagggin')
-  print('singularity exec -B /scratch/,/home/lotss-tshimwell/,/project/lotss/ /project/lotss/Software/linc/latest-sing/linc_latest.sif losoto -iv %s > %s.info'%(calh5parm,calh5parm))
-  if not os.path.exists('%s.info'%calh5parm):
-    os.system('singularity exec -B /scratch/,/home/lotss-tshimwell/,/project/lotss/ /project/lotss/Software/linc/latest-sing/linc_latest.sif losoto -iv %s > %s.info'%(calh5parm,calh5parm))
-  print('Checking outputfile for flaggging')
-   #os.system('losoto -iv %s > %s.info'%(calh5parm,calh5parm))
-  checkfile = open('%s.info'%calh5parm)
-  flagdict={}
-  for line in checkfile:
-    line = line[:-1]
-    print(line)
-    line = line.split(' ')
-    while '' in line:
-      line.remove('')
-    if len(line) < 3:
-      continue
-    if 'Solution' in line[0] and 'table' in line[1]:
-      flagtype = line[2].replace("'",'').replace("'",'')
-    if 'Flagged' in line[0] and 'data' in line[1]:
-      flagdict[flagtype] = float(line[2].replace('%',''))
-  print('Flag dict',flagdict)
-  for element in flagdict:
-    print(element,flagdict[element],element=='bandpass')
-    if element == 'bandpass':
-      if flagdict[element] > 10.0:
-        print('badbandpass')
-        return('badflag')
-    if element == 'clock':
-      if flagdict[element] > 10.0:
-        print('badclock')
-        return('badflag')
-    if element == 'faraday':
-      if flagdict[element] > 10.0:
-        print('badfaraday')
-        return('badflag')
-    if element == 'polalign':
-      if flagdict[element] > 10.0:
-        print('badpolalign')
-        return('badflag')
-  print(flagdict)
-  return
 
 
  
