@@ -17,7 +17,7 @@ import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
 from download_file import download_file ## in ddf-pipeline/utils
-import progress_bar
+#import progress_bar
 from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 
