@@ -14,7 +14,7 @@ def find_calibrators(obsid):
 
         if r is None:
             raise RuntimeError('Cannot find obsid %s' % obsid)
-        calibrators.append(r['calibrator_id'])
+        calibrators.append(int(r['calibrator_id']))
 
         # now check dates
         sdb.execute('select * from lb_calibrators where abs(timestampdiff(second,obs_date,%s))<43200',(r['date'],))
@@ -23,7 +23,7 @@ def find_calibrators(obsid):
             calibrators.append(r['id'])
     return(set(calibrators))
 
-def download_field_calibrators(field,wd):
+def download_field_calibrators(field,wd,verbose=False):
     # download the LOFAR-VLBI calibrator solutions for the field into the specified parent working directory. return dictionary of downloaded cals
     rd={}
     with SurveysDB(readonly=True) as sdb:
@@ -31,9 +31,11 @@ def download_field_calibrators(field,wd):
         results=sdb.cur.fetchall()
         for r in results:
             obsid=r['id']
+            if verbose: print('Doing obsid',obsid)
             rd[obsid]=[]
             calibrators=find_calibrators(r['id'])
             for calid in calibrators:
+                if verbose: print('     Checking calibrator',calid)
                 if check_calibrator(calid):
                     dest=wd+'/%i/' % obsid
                     download_calibrator(calid,dest)
