@@ -30,13 +30,14 @@ def download_field_calibrators(field,wd):
         sdb.execute('select * from observations where field=%s',(field,))
         results=sdb.cur.fetchall()
         for r in results:
-            rd['obs']=[]
+            obsid=r['id']
+            rd[obsid]=[]
             calibrators=find_calibrators(r['id'])
-            for c in calibrators:
+            for calid in calibrators:
                 if check_calibrator(calid):
                     dest=wd+'/%i/' % obsid
                     download_calibrator(calid,dest)
-                    rd['obs'].append(calid)
+                    rd[obsid].append(calid)
     return rd
         
 
