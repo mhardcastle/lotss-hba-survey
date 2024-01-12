@@ -1,6 +1,7 @@
 # Check that a calibrator solution exists for a given observation
 # and do other operations on the LOFAR VLBI calibrators
 
+from __future__ import print_function
 from rclone import RClone
 from surveys_db import SurveysDB
 
@@ -20,7 +21,7 @@ def find_calibrators(obsid):
         sdb.execute('select * from lb_calibrators where abs(timestampdiff(second,obs_date,%s))<43200',(r['date'],))
         results=sdb.cur.fetchall()
         for r in results:
-            calibrators.append(r['id'])
+            calibrators.append(int(r['id']))
     return(set(calibrators))
 
 def download_field_calibrators(field,wd,verbose=False):
