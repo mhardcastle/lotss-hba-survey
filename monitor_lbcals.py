@@ -16,6 +16,7 @@ import glob
 import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
+from download_file import download_file
 
 
 #################################
@@ -33,6 +34,9 @@ export MACAROON_DIR=/home/lofarvlbi-lmorabito/macaroons/
 export DDF_PIPELINE_CLUSTER=galahad
 export LINC_DATA_DIR=
 export MACAROON_DIR=
+
+export NO_GRID=True if you don't want to use grid tools
+
 '''
 
 user = os.getenv('USER')
@@ -117,13 +121,23 @@ def do_download( id ):
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
-        os.makedirs(caldir,exist_ok=True)
+        if not os.path.isdir(caldir):
+            os.makedirs(caldir)
         if 'juelich' in surls[0]:
-            logfile = '{:s}_gfal.log'.format(id)
-            for surl in surls:
-                dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
+            print('Juelich download:',surls[0])
+            if 'NO_GRID' in os.environ:
+                prefix="https://lofar-download.fz-juelich.de/webserver-lofar/SRMFifoGet.py?surl="
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    download_file(prefix+surl,dest,retry_partial=True,progress_bar=True)
+                pass
+            else:
+                logfile = '{:s}_gfal.log'.format(id)
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
         elif 'psnc' in surls[0]:
+            print('Poznan download...')
             logfile = '{:s}_wget.log'.format(id)
             with open(os.path.join(caldir,'html.txt'),'w') as f:
                 for surl in surls:
@@ -135,6 +149,7 @@ def do_download( id ):
                 tmp = ff.split('%2F')[-1]
                 os.system('mv {:s} {:s}'.format(ff,os.path.join(caldir,tmp)))
         elif 'sara' in surls[0]:
+            print('SARA download...')
             logfile = ''
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]

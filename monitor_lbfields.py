@@ -260,7 +260,7 @@ def check_cal_clock(calh5parm):
   return True
 
 def check_cal_flag(calh5parm):
-  print('Running losoto to check cal flagggin')
+  print('Running losoto to check cal flagging')
   print('singularity exec -B /scratch/,/home/lotss-tshimwell/,/project/lotss/ /project/lotss/Software/linc/latest-sing/linc_latest.sif losoto -iv %s > %s.info'%(calh5parm,calh5parm))
   if not os.path.exists('%s.info'%calh5parm):
     os.system('singularity exec -B /scratch/,/home/lotss-tshimwell/,/project/lotss/ /project/lotss/Software/linc/latest-sing/linc_latest.sif losoto -iv %s > %s.info'%(calh5parm,calh5parm))
@@ -338,7 +338,7 @@ def do_download( id ):
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
-        os.makedirs(caldir,exist_ok=True)
+        os.makedirs(caldir)
         if 'juelich' in surls[0]:
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
