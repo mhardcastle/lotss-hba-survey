@@ -58,9 +58,12 @@ maxstaged=6
 ## cluster specific queuing limits
 if cluster == 'spider':
     maxqueue = 10
-if cluster == 'cosma':
+elif cluster == 'cosma':
     maxqueue = 5
-
+else:
+    # default!
+    maxqueue = 10
+    
 '''
 updated in MySQL_utils.py:
 update_status
@@ -120,7 +123,7 @@ def do_download( id ):
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
                 os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
-        if 'psnc' in surls[0]:
+        elif 'psnc' in surls[0]:
             logfile = '{:s}_wget.log'.format(id)
             with open(os.path.join(caldir,'html.txt'),'w') as f:
                 for surl in surls:
@@ -131,7 +134,7 @@ def do_download( id ):
             for ff in files:
                 tmp = ff.split('%2F')[-1]
                 os.system('mv {:s} {:s}'.format(ff,os.path.join(caldir,tmp)))
-        if 'sara' in surls[0]:
+        elif 'sara' in surls[0]:
             logfile = ''
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
@@ -145,6 +148,8 @@ def do_download( id ):
             if d['err'] or d['code']!=0:
                 update_status(field,'rclone failed')
                 print('Rclone failed for field {:s}'.format(field))
+        else:
+            raise RuntimeError('Cannot work out what to do with SURL!')
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
         if len(tarfiles) == len(surls):
@@ -337,7 +342,7 @@ while True:
             r = [ item for item in result if item['id'] == field ][0]
             s = r['staging_id']
             stage_status = stager_access.get_status(s)
-            #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
+            #    "new", "scheduled", "in progress", "aborted", "failed", "partial success", "success", "on hold" 
             if stage_status == 'success' or stage_status == 'completed':
                 print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
                 update_status(r['id'],'Staged') ## don't reset the staging id till download happens

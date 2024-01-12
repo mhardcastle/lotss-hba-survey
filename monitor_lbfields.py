@@ -17,7 +17,7 @@ import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
 from download_file import download_file ## in ddf-pipeline/utils
-import progress_bar
+#import progress_bar
 from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 from losoto.h5parm import h5parm
@@ -67,9 +67,12 @@ maxstaged=6
 ## cluster specific queuing limits
 if cluster == 'spider':
     maxqueue = 10
-if cluster == 'cosma':
+elif cluster == 'cosma':
     maxqueue = 3
-
+else:
+    #default
+    maxqueue = 10
+    
 '''
 updated in MySQL_utils.py:
 update_status
@@ -621,7 +624,7 @@ while True:
             r = [ item for item in result if item['id'] == field ][0]
             s = r['staging_id']
             stage_status = stager_access.get_status(s)
-            #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
+            #    "new", "scheduled", "in progress", "aborted", "failed", "partial success", "success", "on hold" 
             if stage_status == 'success' or stage_status == 'completed':
                 print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
                 update_status(r['id'],'Staged') ## don't reset the staging id till download happens
