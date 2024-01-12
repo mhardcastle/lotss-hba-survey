@@ -58,9 +58,12 @@ maxstaged=6
 ## cluster specific queuing limits
 if cluster == 'spider':
     maxqueue = 10
-if cluster == 'cosma':
+elif cluster == 'cosma':
     maxqueue = 5
-
+else:
+    # default!
+    maxqueue = 10
+    
 '''
 updated in MySQL_utils.py:
 update_status
