@@ -66,9 +66,12 @@ maxstaged=6
 ## cluster specific queuing limits
 if cluster == 'spider':
     maxqueue = 10
-if cluster == 'cosma':
+elif cluster == 'cosma':
     maxqueue = 3
-
+else:
+    #default
+    maxqueue = 10
+    
 '''
 updated in MySQL_utils.py:
 update_status
@@ -600,7 +603,7 @@ while True:
             r = [ item for item in result if item['id'] == field ][0]
             s = r['staging_id']
             stage_status = stager_access.get_status(s)
-            #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
+            #    "new", "scheduled", "in progress", "aborted", "failed", "partial success", "success", "on hold" 
             if stage_status == 'success' or stage_status == 'completed':
                 print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
                 update_status(r['id'],'Staged') ## don't reset the staging id till download happens
