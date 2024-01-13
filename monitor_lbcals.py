@@ -131,7 +131,10 @@ def do_download( id ):
                 prefix="https://lofar-download.fz-juelich.de/webserver-lofar/SRMFifoGet.py?surl="
                 for surl in surls:
                     dest = os.path.join(caldir,os.path.basename(surl))
-                    download_file(prefix+surl,dest,retry_partial=True,progress_bar=True)
+                    if not os.path.isfile(dest):
+                        download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,retry_size=1024)
+                    else:
+                        print(dest,'exists already, not downloading')
                 pass
             else:
                 logfile = '{:s}_gfal.log'.format(id)
@@ -205,8 +208,7 @@ def do_unpack(field):
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
-        os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
-        os.system( 'mv {:s} {:s}'.format('_'.join(os.path.basename(trf).split('_')[0:-1]),caldir))
+        os.system( 'cd {:s}; tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(caldir,trf,field) )
     ## check that everything unpacked
     msfiles = glob.glob('{:s}/L*MS'.format(caldir))
     if len(msfiles) == len(tarfiles):
