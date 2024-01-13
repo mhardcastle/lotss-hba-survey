@@ -36,6 +36,7 @@ export LINC_DATA_DIR=
 export MACAROON_DIR=
 
 export NO_GRID=True if you don't want to use grid tools
+export USE_TORQUE=True to use Torque rather than Slurm scripts
 
 '''
 
@@ -126,6 +127,7 @@ def do_download( id ):
         if 'juelich' in surls[0]:
             print('Juelich download:',surls[0])
             if 'NO_GRID' in os.environ:
+                logfile=None
                 prefix="https://lofar-download.fz-juelich.de/webserver-lofar/SRMFifoGet.py?surl="
                 for surl in surls:
                     dest = os.path.join(caldir,os.path.basename(surl))
@@ -150,7 +152,7 @@ def do_download( id ):
                 os.system('mv {:s} {:s}'.format(ff,os.path.join(caldir,tmp)))
         elif 'sara' in surls[0]:
             print('SARA download...')
-            logfile = ''
+            logfile = None
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
             macaroon_dir = os.getenv('MACAROON_DIR')        
@@ -170,7 +172,7 @@ def do_download( id ):
         if len(tarfiles) == len(surls):
             print('Download successful for {:s}'.format(id) )
             update_status(id,'Downloaded',stage_id=0)
-            if os.path.exists(logfile):
+            if logfile and os.path.exists(logfile):
                 os.system('rm {:s}'.format(logfile))
         else:
             ## find what hasn't downloaded
@@ -389,8 +391,10 @@ while True:
                 nq = nq + 1
                 print('Running a new job',field)
                 update_status(field,'Queued')
-                ### will need to change the script
-                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
+                if 'USE_TORQUE' in os.environ:
+                    command="qsub -v OBSID=%s %s/lotss-hba-survey/torque/run_linc_calibrator.qsub" % (field, os.environ['DDF_DIR'] )
+                else:
+                    command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
                 if os.system(command):
                     update_status(field,"Submission failed")
             else:
