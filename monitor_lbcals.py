@@ -209,6 +209,7 @@ def do_unpack(field):
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
         os.system( 'cd {:s}; tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(caldir,trf,field) )
+    os.system('cd {:s}'.format(os.getenv('LINC_DATA_DIR'))
     ## check that everything unpacked
     msfiles = glob.glob('{:s}/L*MS'.format(caldir))
     if len(msfiles) == len(tarfiles):
