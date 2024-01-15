@@ -315,7 +315,6 @@ def collect_solutions( name ):
     ## set the task list in the lb_operations table
     set_task_list(name,tasklist)
 
-
 ##############################
 ## staging
 
@@ -346,7 +345,7 @@ def do_download( id ):
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
-        os.makedirs(caldir,exist_ok=True)
+        os.makedirs(caldir)
         if 'juelich' in surls[0]:
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))

@@ -16,6 +16,7 @@ import glob
 import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
+from download_file import download_file
 
 
 #################################
@@ -33,6 +34,10 @@ export MACAROON_DIR=/home/lofarvlbi-lmorabito/macaroons/
 export DDF_PIPELINE_CLUSTER=galahad
 export LINC_DATA_DIR=
 export MACAROON_DIR=
+
+export NO_GRID=True if you don't want to use grid tools
+export USE_TORQUE=True to use Torque rather than Slurm scripts
+
 '''
 
 user = os.getenv('USER')
@@ -117,13 +122,27 @@ def do_download( id ):
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
         caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
-        os.makedirs(caldir,exist_ok=True)
+        if not os.path.isdir(caldir):
+            os.makedirs(caldir)
         if 'juelich' in surls[0]:
-            logfile = '{:s}_gfal.log'.format(id)
-            for surl in surls:
-                dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
+            print('Juelich download:',surls[0])
+            if 'NO_GRID' in os.environ:
+                logfile=None
+                prefix="https://lofar-download.fz-juelich.de/webserver-lofar/SRMFifoGet.py?surl="
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    if not os.path.isfile(dest):
+                        download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,retry_size=1024)
+                    else:
+                        print(dest,'exists already, not downloading')
+                pass
+            else:
+                logfile = '{:s}_gfal.log'.format(id)
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
         elif 'psnc' in surls[0]:
+            print('Poznan download...')
             logfile = '{:s}_wget.log'.format(id)
             with open(os.path.join(caldir,'html.txt'),'w') as f:
                 for surl in surls:
@@ -135,7 +154,8 @@ def do_download( id ):
                 tmp = ff.split('%2F')[-1]
                 os.system('mv {:s} {:s}'.format(ff,os.path.join(caldir,tmp)))
         elif 'sara' in surls[0]:
-            logfile = ''
+            print('SARA download...')
+            logfile = None
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
             macaroon_dir = os.getenv('MACAROON_DIR')        
@@ -155,7 +175,7 @@ def do_download( id ):
         if len(tarfiles) == len(surls):
             print('Download successful for {:s}'.format(id) )
             update_status(id,'Downloaded',stage_id=0)
-            if os.path.exists(logfile):
+            if logfile and os.path.exists(logfile):
                 os.system('rm {:s}'.format(logfile))
         else:
             ## find what hasn't downloaded
@@ -188,8 +208,7 @@ def do_unpack(field):
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
-        os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
-        os.system( 'mv {:s} {:s}'.format('_'.join(os.path.basename(trf).split('_')[0:-1]),caldir))
+        os.system( 'cd {:s}; tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(caldir,trf,field) )
     ## check that everything unpacked
     msfiles = glob.glob('{:s}/L*MS'.format(caldir))
     if len(msfiles) == len(tarfiles):
@@ -374,8 +393,10 @@ while True:
                 nq = nq + 1
                 print('Running a new job',field)
                 update_status(field,'Queued')
-                ### will need to change the script
-                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
+                if 'USE_TORQUE' in os.environ:
+                    command="qsub -v OBSID=%s %s/lotss-hba-survey/torque/run_linc_calibrator.qsub" % (field, os.environ['DDF_DIR'] )
+                else:
+                    command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
                 if os.system(command):
                     update_status(field,"Submission failed")
             else:
