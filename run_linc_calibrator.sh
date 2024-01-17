@@ -117,13 +117,14 @@ The LINC pipeline will run, using the following settings:
 mkdir -p ${OUTPUT_DIR}/Work
 # Command that will be used to run the CWL workflow
 COMMAND="toil-cwl-runner  \
-  --singularity \
-  --stats
-  --bypass-file-store
-  --clean onSuccess \
-  --cleanWorkDir onSuccess \
+  --restart \
+  --no-container \
+  --stats \
+  --bypass-file-store \
+  --clean never \
+  --cleanWorkDir never \
   --preserve-entire-environment \
-  --maxCores 16 \
+  --maxCores 32 \
   --workDir ${OUTPUT_DIR}/Work \
   --jobStore ${OUTPUT_DIR}/jobStore \
   --outdir ${OUTPUT_DIR} \

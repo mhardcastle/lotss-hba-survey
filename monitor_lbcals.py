@@ -360,12 +360,17 @@ while True:
             ## get the stage id
             r = [ item for item in result if item['id'] == field ][0]
             s = r['staging_id']
-            stage_status = stager_access.get_status(s)
+            try:
+                stage_status = stager_access.get_status(s)
+            except Exception as e:
+                stage_status=None
+                print('Stager API reported exception',e)
+                
             #    "new", "scheduled", "in progress", "aborted", "failed", "partial success", "success", "on hold" 
             if stage_status == 'success' or stage_status == 'completed':
                 print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
                 update_status(r['id'],'Staged') ## don't reset the staging id till download happens
-            else:
+            elif stage_status is not None:
                 print('Staging for {:s} is {:s} (staging id {:s})'.format(field,stage_status,str(s)))
 
     ## this does one download at a time
