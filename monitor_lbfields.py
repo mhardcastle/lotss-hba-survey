@@ -21,6 +21,7 @@ from download_file import download_file ## in ddf-pipeline/utils
 from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 from losoto.h5parm import h5parm
+from tasklist import *
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -207,10 +208,9 @@ def get_linc( obsid, caldir ):
                 success = True
     return(success)
 
-def collect_solutions( name, survey=None ):
-
+def collect_solutions( name ):
+    survey=None
     tasklist = []
-
     with SurveysDB(survey=survey) as sdb:
         sdb.execute('select * from observations where field="'+name+'"')
         fld = sdb.cur.fetchall()
@@ -258,7 +258,20 @@ def collect_solutions( name, survey=None ):
             ## DDS3_full*smoothed.npz 
             ## but SOLSDIR needs to be present with the right directory structure, this is expected for the subtract.
             ## and the bootstrap if required
+            '''
+            So the things needed for the subtract are:
+            and if the bootstrap is applied
+            L*frequencies.txt (which can probably be reconstructed if missing)
 
+
+            DIS2 logs --> look for the input column and if that's scaled data then you NEED the numpy array. for versions that start from data then those values are absorbed into the amplitude solutions and need to re-run
+            and if the input col is scaled data then need to check for the numpy array
+
+            scaled data + no numpy array = rerun up to boostrap
+            scaled data + numpy array = need to generate data (i.e. scaled with numpy corrections) [there is code]
+
+            frequencies missing --> regenerate from small mslist  [there is code]
+            '''
             tasklist.append('setup')
             tasklist.append('concat-flag')
             tasklist.append('phaseup-concat')
@@ -288,7 +301,7 @@ def collect_solutions( name, survey=None ):
             tasklist.append('split')
             tasklist.append('selfcal')
         else:
-            ## need to re-run calibrator .... 
+            ## need to re-run calibrator .... shouldn't ever be in this situation!
             tasklist.append('calibrator')
             tasklist.append('target')
             tasklist.append('ddfpipeline')
@@ -299,22 +312,8 @@ def collect_solutions( name, survey=None ):
             tasklist.append('split')
             tasklist.append('selfcal')
 
-
-    '''
-    So the things needed for the subtract are:
-    and if the bootstrap is applied
-    L*frequencies.txt (which can probably be reconstructed if missing)
-
-
-    DIS2 logs --> look for the input column and if that's scaled data then you NEED the numpy array. for versions that start from data then those values are absorbed into the amplitude solutions and need to re-run
-    and if the input col is scaled data then need to check for the numpy array
-
-    scaled data + no numpy array = rerun up to boostrap
-    scaled data + numpy array = need to generate data (i.e. scaled with numpy corrections) [there is code]
-
-    frequencies missing --> regenerate from small mslist  [there is code]
-    '''
-
+    ## set the task list in the lb_operations table
+    set_task_list(name,tasklist)
 
 ##############################
 ## staging
@@ -639,16 +638,19 @@ while True:
         else:
             nq = 0
         for field in fd['Unpacked']:
-            if nq <= maxqueue:
+            if nq > maxqueue:
+                print( 'Queue is full, {:s} waiting for submission'.format(field) )
+            else: 
                 nq = nq + 1
                 print('Running a new job',field)
+                ## get task to be done
+                next_task = get_task_list(field)[0]
+                print('next task is',next_task)
                 update_status(field,'Queued')
-                ### will need to change the script
-                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
+                command = "sbatch -J {:s} {:s}/slurm/run_{:s}.sh {:s}".format(field, str(basedir).rstrip('/'), next_task, field)
+                ## will need run scripts for each task
                 if os.system(command):
                     update_status(field,"Submission failed")
-            else:
-                print( 'Queue is full, {:s} waiting for submission'.format(field) )
 
     if 'Queued' in d:
         for field in fd['Queued']:
@@ -657,7 +659,12 @@ while True:
             if os.path.isfile(os.path.join(outdir,'finished.txt')):        
                 result = check_field(field)
                 if result:
-                    update_status(field,'Verified')
+                    ## get task that was run from the finished.txt to mark done
+                    mark_done(field,'something')
+                    ## start next step
+                    next_task = get_task_list(field)[0]
+
+                    ## if no more tasks, set to Verified
                 else:
                     update_status(field,'Workflow failed')
 

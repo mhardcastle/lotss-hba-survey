@@ -155,19 +155,24 @@ def do_download( id ):
                 os.system('mv {:s} {:s}'.format(ff,os.path.join(caldir,tmp)))
         elif 'sara' in surls[0]:
             print('SARA download...')
-            logfile = None
+            logfile = '{:s}_rclone.log'
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
             macaroon_dir = os.getenv('MACAROON_DIR')        
             lta_macaroon = glob.glob(os.path.join(macaroon_dir,'*LTA.conf'))[0]
             rc = RClone( lta_macaroon, debug=True )
             rc.get_remote()
-            #d = rc.multicopy(rc.remote+obsid_path,files,caldir)
-            for f in files:
-                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
+            d = rc.multicopy(rc.remote+obsid_path,files,caldir)
+            #for f in files:
+            #    d = rc.execute(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
             if d['err'] or d['code']!=0:
                 update_status(field,'rclone failed')
                 print('Rclone failed for field {:s}'.format(field))
+                with open(logfile,'w') as f:
+                    f.write('Rclone failed for field {:s}'.format(field))
+            else:
+                with open(logfile,'w') as f:
+                    f.write('Rclone finished successfully for field {:s}'.format(field))                
         else:
             raise RuntimeError('Cannot work out what to do with SURL!')
         ## check that everything was downloaded
@@ -209,6 +214,7 @@ def do_unpack(field):
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
         os.system( 'cd {:s}; tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(caldir,trf,field) )
+    os.system('cd {:s}'.format(os.getenv('LINC_DATA_DIR'))
     ## check that everything unpacked
     msfiles = glob.glob('{:s}/L*MS'.format(caldir))
     if len(msfiles) == len(tarfiles):
