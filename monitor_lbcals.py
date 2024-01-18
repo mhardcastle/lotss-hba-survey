@@ -114,7 +114,7 @@ def do_download( id ):
     with SurveysDB(readonly=True) as sdb:
         idd=sdb.db_get('lb_calibrators',id)
         stage_id = idd['staging_id']
-    sdb.close()
+
     ## get the surls from the stager API
     surls = stager_access.get_surls_online(stage_id)
     project = surls[0].split('/')[-3]
@@ -214,7 +214,7 @@ def do_unpack(field):
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
         os.system( 'cd {:s}; tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(caldir,trf,field) )
-    os.system('cd {:s}'.format(os.getenv('LINC_DATA_DIR'))
+
     ## check that everything unpacked
     msfiles = glob.glob('{:s}/L*MS'.format(caldir))
     if len(msfiles) == len(tarfiles):
@@ -250,7 +250,7 @@ def do_verify(field):
         print('Rclone failed for field {:s}'.format(field))
     else:
         print('Tidying uploaded directory for',field)
-        update_status(field,'Complete')
+        update_status(field,'Complete',time='end_date')
         ## delete the directory
         os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
         ## delete the initial data
@@ -366,12 +366,17 @@ while True:
             ## get the stage id
             r = [ item for item in result if item['id'] == field ][0]
             s = r['staging_id']
-            stage_status = stager_access.get_status(s)
+            try:
+                stage_status = stager_access.get_status(s)
+            except Exception as e:
+                stage_status=None
+                print('Stager API reported exception',e)
+                
             #    "new", "scheduled", "in progress", "aborted", "failed", "partial success", "success", "on hold" 
             if stage_status == 'success' or stage_status == 'completed':
                 print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
                 update_status(r['id'],'Staged') ## don't reset the staging id till download happens
-            else:
+            elif stage_status is not None:
                 print('Staging for {:s} is {:s} (staging id {:s})'.format(field,stage_status,str(s)))
 
     ## this does one download at a time
@@ -398,9 +403,10 @@ while True:
             if nq < maxqueue:
                 nq = nq + 1
                 print('Running a new job',field)
-                update_status(field,'Queued')
+                update_status(field,'Queued',time='start_date',workdir=os.path.join(str(os.getenv('LINC_DATA_DIR')),str(field))
+)
                 if 'USE_TORQUE' in os.environ:
-                    command="qsub -v OBSID=%s %s/lotss-hba-survey/torque/run_linc_calibrator.qsub" % (field, os.environ['DDF_DIR'] )
+                    command="qsub -v OBSID=%s -N lbcal-%s %s/lotss-hba-survey/torque/run_linc_calibrator.qsub" % (field, field, os.environ['DDF_DIR'] )
                 else:
                     command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
                 if os.system(command):
@@ -410,7 +416,7 @@ while True:
 
     if 'Queued' in d:
         for field in fd['Queued']:
-            print('Verifying processing for',field)
+            print('Checking processing for',field)
             outdir = os.path.join(procdir,field)
             if os.path.isfile(os.path.join(outdir,'finished.txt')):        
                 result = check_field(field)
