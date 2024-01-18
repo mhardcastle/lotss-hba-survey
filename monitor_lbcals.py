@@ -155,7 +155,7 @@ def do_download( id ):
                 os.system('mv {:s} {:s}'.format(ff,os.path.join(caldir,tmp)))
         elif 'sara' in surls[0]:
             print('SARA download...')
-            logfile = '{:s}_rclone.log'
+            logfile = '{:s}_rclone.log'.format(id)
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
             macaroon_dir = os.getenv('MACAROON_DIR')        
@@ -167,7 +167,7 @@ def do_download( id ):
             #    d = rc.execute(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
             if d['err'] or d['code']!=0:
                 update_status(field,'rclone failed')
-                print('Rclone failed for field {:s}'.format(field))
+                print('Rclone download failed for field {:s}'.format(field))
                 with open(logfile,'w') as f:
                     f.write('Rclone failed for field {:s}'.format(field))
             else:
@@ -241,7 +241,7 @@ def check_field(field):
 def do_verify(field):
     tarfile = glob.glob(field+'*tgz')[0]
     macaroon_dir = os.getenv('MACAROON_DIR')
-    macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi_upload.conf'))[0]
+    macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi.conf'))[0]
     rc = RClone( macaroon, debug=True )
     rc.get_remote()
     d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
