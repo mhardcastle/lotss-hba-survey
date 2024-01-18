@@ -163,16 +163,16 @@ def do_download( id ):
             rc = RClone( lta_macaroon, debug=True )
             rc.get_remote()
             d = rc.multicopy(rc.remote+obsid_path,files,caldir)
-            #for f in files:
-            #    d = rc.execute(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
+            for f in files:
+                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
             if d['err'] or d['code']!=0:
-                update_status(field,'rclone failed')
-                print('Rclone download failed for field {:s}'.format(field))
+                update_status(id,'rclone failed')
+                print('Rclone download failed for field {:s}'.format(id))
                 with open(logfile,'w') as f:
-                    f.write('Rclone failed for field {:s}'.format(field))
+                    f.write('Rclone failed for field {:s}'.format(id))
             else:
                 with open(logfile,'w') as f:
-                    f.write('Rclone finished successfully for field {:s}'.format(field))                
+                    f.write('Rclone finished successfully for field {:s}\n'.format(id))                
         else:
             raise RuntimeError('Cannot work out what to do with SURL!')
         ## check that everything was downloaded
