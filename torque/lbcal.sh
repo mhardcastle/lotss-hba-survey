@@ -11,5 +11,6 @@ export PYTHONPATH=${LINC_INSTALL_DIR}/scripts:$PYTHONPATH
 export PATH=${LBCAL_DIR}/lotss-hba-survey:${LINC_INSTALL_DIR}/scripts:$PATH
 export LINC_DATA_DIR=/beegfs/car/mjh/lb
 
-run_linc_calibrator.sh $1
+$LBCA_DIR/slurm/old_run_linc_calibrator.sh $1
 
+touch ${LINC_DATA_DIR}/$1/finished.txt
