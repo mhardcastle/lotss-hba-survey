@@ -19,7 +19,7 @@ echo ------------------------------------------------------
 
 echo Obsid is $OBSID
 
-/soft/singularity-3.8.4/bin/singularity exec -B/home,/beegfs /beegfs/car/mjh/flocs/flocs-newcwl.sif /home/mjh/pipeline-lbcal/lotss-hba-survey/torque/lbcal.sh $OBSID
+/soft/singularity-3.8.4/bin/singularity exec -B/home,/beegfs /beegfs/car/mjh/flocs/flocs-newcwl.sif /home/mjh/pipeline-lbcal/lotss-hba-survey/torque/lbcal_cwltool.sh $OBSID
 
 
 

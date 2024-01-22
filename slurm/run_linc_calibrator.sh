@@ -50,7 +50,7 @@ singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python /project/lofarvlbi/Softwa
 
 echo LINC starting
 echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${OBSID}.sh
-echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${LINC_DATA_ROOT}/workflows/HBA_calibrator.cwl mslist.json' >> tmprunner_${OBSID}.sh
+echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --leave-tmpdir --log-dir=${LOGSDIR} ${LINC_DATA_ROOT}/workflows/HBA_calibrator.cwl mslist.json' >> tmprunner_${OBSID}.sh
 (time singularity exec -B ${PWD},${BINDPATHS} ${SIMG} bash tmprunner_${OBSID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
 echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt

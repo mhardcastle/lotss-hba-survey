@@ -44,7 +44,7 @@ user = os.getenv('USER')
 if len(user) > 20:
     user = user[0:20]
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
-basedir = os.getenv('LINC_DATA_DIR')
+basedir = str(os.getenv('LINC_DATA_DIR'))
 procdir = os.path.join(basedir,'processing')
 
 
@@ -121,7 +121,7 @@ def do_download( id ):
     obsid = surls[0].split('/')[-2]
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
-        caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
+        caldir = os.path.join(basedir,str(id))
         if not os.path.isdir(caldir):
             os.makedirs(caldir)
         if 'juelich' in surls[0]:
@@ -209,7 +209,7 @@ def do_download( id ):
 def do_unpack(field):
     update_status(field,'Unpacking')
     success=True
-    caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
+    caldir = os.path.join(basedir,field)
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
@@ -228,18 +228,17 @@ def do_unpack(field):
 ## verifying
 
 def check_field(field):
-    procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
     outdir = os.path.join(procdir,field)
     if os.path.isfile(os.path.join(outdir,'cal_solutions.h5')):
-        os.system('tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(field,outdir,outdir,outdir))
-        os.system('rm -rf {:s}/tmp*'.format(outdir))
-        success = True
+        success=not(os.system('cd {:s}; tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(procdir,field,field,field,field)))
+        if success:
+            os.system('rm -rf {:s}/tmp*'.format(outdir))
     else:
         success = False
     return success
 
 def do_verify(field):
-    tarfile = glob.glob(field+'*tgz')[0]
+    tarfile = glob.glob(procdir+'/'+field+'.tgz')[0]
     macaroon_dir = os.getenv('MACAROON_DIR')
     macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi.conf'))[0]
     rc = RClone( macaroon, debug=True )
@@ -256,7 +255,7 @@ def do_verify(field):
         ## delete the initial data
         os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
         ## delete the tarfile
-        os.system( 'rm {:s}.tgz'.format(field))
+        os.system( 'rm '+tarfile )
 
 ''' Logic is as follows:
 
@@ -345,7 +344,7 @@ while True:
     else:
         nstaged = 0
     if nstaged < maxstaged:
-        if nstage <= 2:
+        if nstage <= staginglimit:
             do_stage = True
         else:
             do_stage = False
@@ -403,7 +402,7 @@ while True:
             if nq < maxqueue:
                 nq = nq + 1
                 print('Running a new job',field)
-                update_status(field,'Queued',time='start_date',workdir=os.path.join(str(os.getenv('LINC_DATA_DIR')),str(field))
+                update_status(field,'Queued',time='start_date',workdir=os.path.join(basedir,str(field))
 )
                 if 'USE_TORQUE' in os.environ:
                     command="qsub -v OBSID=%s -N lbcal-%s %s/lotss-hba-survey/torque/run_linc_calibrator.qsub" % (field, field, os.environ['DDF_DIR'] )
