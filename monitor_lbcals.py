@@ -162,7 +162,7 @@ def do_download( id ):
             lta_macaroon = glob.glob(os.path.join(macaroon_dir,'*LTA.conf'))[0]
             rc = RClone( lta_macaroon, debug=True )
             rc.get_remote()
-            d = rc.multicopy(rc.remote+obsid_path,files,caldir)
+            #d = rc.multicopy(rc.remote+obsid_path,files,caldir)
             for f in files:
                 d = rc.execute(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
             if d['err'] or d['code']!=0:
