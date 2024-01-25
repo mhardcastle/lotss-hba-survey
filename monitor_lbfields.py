@@ -20,8 +20,8 @@ from download_file import download_file ## in ddf-pipeline/utils
 #import progress_bar
 from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
-from losoto.h5parm import h5parm
 from tasklist import *
+from check_cal import check_cal_flag, check_cal_clock
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -101,68 +101,6 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
 
 ##############################
 ## finding and checking solutions
-
-def check_cal_clock(calh5parm):
-    data = h5parm(calh5parm,'r')
-    cal = data.getSolset('calibrator')
-    soltabs = list(cal.getSoltabNames())
-    print(soltabs)
-    if 'clock' not in soltabs:
-        print('Calibrator is bad')
-        return False
-    if 'bandpass' not in soltabs:
-        print('Calibrator is bad')
-        return False
-    print('Calibrator good - returning')
-    return True
-
-def check_cal_flag(calh5parm):
-    print('Running losoto to check cal flagging')
-    sing_img = os.getenv('LOFAR_SINGULARITY')
-    flaginfo = calh5parm.replace('.h5','.info')
-    cmd = 'singularity exec -B {:s} {:s} losoto -iv {:s} > {:s}'.format(os.getcwd(),sing_img,calh5parm,flaginfo)
-    os.system(cmd)
-    print('Checking outputfile for flaggging')
-    with open(flaginfo,'r') as f:
-        lines = f.readlines()
-    f.close()
-    flagdict={}
-    for line in lines:
-        line = line[:-1]
-        print(line)
-        line = line.split(' ')
-        while '' in line:
-            line.remove('')
-        if len(line) < 3:
-            continue
-        if 'Solution' in line[0] and 'table' in line[1]:
-            flagtype = line[2].replace("'",'').replace("'",'')
-        if 'Flagged' in line[0] and 'data' in line[1]:
-            flagdict[flagtype] = float(line[2].replace('%',''))
-    print('Flag dict',flagdict)
-    for element in flagdict:
-        print(element,flagdict[element],element=='bandpass')
-        if element == 'bandpass':
-            if flagdict[element] > 10.0:
-                print('badbandpass')
-                return('badflag')
-        if element == 'clock':
-            if flagdict[element] > 10.0:
-                print('badclock')
-                return('badflag')
-        if element == 'faraday':
-            if flagdict[element] > 10.0:
-                print('badfaraday')
-                return('badflag')
-        if element == 'polalign':
-            if flagdict[element] > 10.0:
-                print('badpolalign')
-                return('badflag')
-    ## number of flagged intl stations
-    ## average flagging for intl stations
-
-
-    return
 
 def get_linc( obsid, caldir ):
     ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
