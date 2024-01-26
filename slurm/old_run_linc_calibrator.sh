@@ -1,6 +1,8 @@
 #!/bin/bash -eu
 #
 # Script to run the LINC calibrator pipeline
+# This is the old toil-cwl-runner version modified to make the
+# variables the same as the cwltool one.
 #
 #SBATCH -N 1                  # number of nodes
 #SBATCH -c 16                 # number of cores
@@ -20,18 +22,23 @@ error()
 ## submit the job with this as an argument
 OBSID=${1}
 
-## define directories
-LINC_WORKING_DIR=${LINC_DATA_DIR}/${OBSID}
-INPUT_DIR=${LINC_DATA_DIR}/${OBSID}
-OUTPUT_DIR=${LINC_WORKING_DIR}/${OBSID}
-TEMP_DIR=${LINC_WORKING_DIR}/${OBSID}/tmp
-mkdir -p ${TEMP_DIR}
+## define the data directories
+DATADIR=${LINC_DATA_DIR}/${OBSID}
+PROCDIR=${LINC_DATA_DIR}/processing
+OUTDIR=${PROCDIR}/${OBSID}
+TMPDIR=${PROCDIR}/${OBSID}/tmp/
+LOGSDIR=${OUTDIR}/logs
+mkdir -p ${TMPDIR}
+mkdir -p ${LOGSDIR}
+
+## location of LINC
+LINC_DATA_ROOT=${LINC_INSTALL_DIR}
 
 # Tar-ball that will contain all the log files produced by the pipeline
-LOGFILES=${OUTPUT_DIR}/logfiles.tar.gz
+LOGFILES=${OUTDIR}/logfiles.tar.gz
 
 # Input file
-YAMLFILE=${OUTPUT_DIR}/${OBSID}.yaml
+YAMLFILE=${OUTDIR}/${OBSID}.yaml
 
 # Define workflow
 WORKFLOW=${LINC_INSTALL_DIR}/workflows/HBA_calibrator.cwl
@@ -47,10 +54,10 @@ SKYMODEL_A_TEAM="${SKYMODEL_A_TEAM:-Ateam_LBA_CC.skymodel}"
     || error "Skymodel file '${SKYMODEL_DIR}/${SKYMODEL_A_TEAM}' not found"
 
 # Fetch list of MS files, determine length and index of last element
-declare FILES=($(ls -1d ${INPUT_DIR}/*.MS 2>/dev/null))
+declare FILES=($(ls -1d ${DATADIR}/*.MS 2>/dev/null))
 len=${#FILES[@]}
 last=$(expr ${len} - 1)
-[ ${len} -gt 0 ] || error "Directory '${INPUT_DIR}' contains no MS-files"
+[ ${len} -gt 0 ] || error "Directory '${DATADIR}' contains no MS-files"
 
 # Open output file
 exec 3> ${YAMLFILE}
@@ -100,37 +107,38 @@ $(ulimit -a)
 # Tell user what variables will be used:
 echo -e "
 The LINC pipeline will run, using the following settings:
-  Input directory          : ${INPUT_DIR}
+  Input directory          : ${DATADIR}
   Input specification file : ${YAMLFILE}
   Workflow definition file : ${WORKFLOW}
-  Output directory         : ${OUTPUT_DIR}
-  Temporary directory      : ${TEMP_DIR}
+  Output directory         : ${OUTDIR}
+  Temporary directory      : ${TMPDIR}
   Tar-ball of all log files: ${LOGFILES} 
 "
 
 # Check if directories and files actually exist. If not, bail out.
-[ -d ${INPUT_DIR} ] || error "Directory '${INPUT_DIR}' does not exist"
+[ -d ${DATADIR} ] || error "Directory '${DATADIR}' does not exist"
 [ -f ${WORKFLOW} ] || error "Workflow file '${WORKFLOW}' does not exist"
 [ -f ${YAMLFILE} ] || error "Input specification file '${YAMLFILE}' does not exist"
 
 # Adjust these to your needs
-mkdir -p ${OUTPUT_DIR}/Work
+mkdir -p ${OUTDIR}/Work
 # Command that will be used to run the CWL workflow
 COMMAND="toil-cwl-runner  \
-  --singularity \
-  --stats
-  --bypass-file-store
-  --clean onSuccess \
-  --cleanWorkDir onSuccess \
+  --no-container \
+  --stats \
+  --bypass-file-store \
+  --clean never \
+  --cleanWorkDir never \
   --preserve-entire-environment \
-  --maxCores 16 \
-  --workDir ${OUTPUT_DIR}/Work \
-  --jobStore ${OUTPUT_DIR}/jobStore \
-  --outdir ${OUTPUT_DIR} \
-  --tmpdir-prefix ${TEMP_DIR} \
-  --tmp-outdir-prefix ${TEMP_DIR} \
+  --maxCores 32 \
+  --workDir ${OUTDIR}/Work \
+  --jobStore ${OUTDIR}/jobStore \
+  --outdir ${OUTDIR} \
+  --tmpdir-prefix ${TMPDIR} \
+  --tmp-outdir-prefix ${TMPDIR} \
   ${WORKFLOW} \
-  ${YAMLFILE}"
+  ${YAMLFILE} \
+  2>&1 | tee ${OUTDIR}/job_output.txt"
 
 echo "${COMMAND}"
 
@@ -141,15 +149,21 @@ then
   exit 0
 else
   STATUS=${?}
-  if [ -d ${TEMP_DIR} ]
+  if [ -d ${TMPDIR} ]
   then
-    # Create sorted list of contents of ${TEMP_DIR}
-    find ${TEMP_DIR} | sort > ${TEMP_DIR}/contents.log
+    # Create sorted list of contents of ${TMPDIR}
+    find ${TMPDIR} | sort > ${TMPDIR}/contents.log
     # Save all log files for later inspection.
-    find ${TEMP_DIR} -name "*.log" -print0 | \
+    find ${TMPDIR} -name "*.log" -print0 | \
       tar czf ${LOGFILES} --null -T -
   fi
   echo -e "\n**FAILURE**: Pipeline failed with exit status: ${STATUS}\n"
   exit ${STATUS}
 fi
        
+if grep 'Final process status is success' ${OUTDIR}/job_output.txt
+then 
+	echo 'SUCCESS: Pipeline finished successfully' > ${OUTDIR}/finished.txt
+else
+	echo "**FAILURE**: Pipeline failed with exit status: ${?}" > ${OUTDIR}/finished.txt
+fi

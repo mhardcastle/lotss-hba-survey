@@ -20,8 +20,8 @@ from download_file import download_file ## in ddf-pipeline/utils
 #import progress_bar
 from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
-from losoto.h5parm import h5parm
 from tasklist import *
+from check_cal import check_cal_flag, check_cal_clock
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
