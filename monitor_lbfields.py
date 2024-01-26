@@ -539,7 +539,11 @@ while True:
         ## while staging, collect the solutions
         solutions_thread=threading.Thread(target=collect_solutions, args=(stage_name,))
         ## and download the catalogue
-        
+        with SurveysDB(survey=None) as sdb:
+            idd=sdb.db_get('lb_fields',stage_name)
+        generate_catalogues( float(idd['ra']), float(idd['decl']), targRA = float(idd['ra']), targDEC = float(idd['decl']),
+             im_radius=1.24, bright_limit_Jy=5., lotss_result_file='image_catalogue.csv', delay_cals_file='delay_calibrators.csv', 
+             match_tolerance=5., image_limit_Jy=0.01, vlass=True, html=False, outdir=stage_name)
 
     ## for things that are staging, calculate 
     if 'Staging' in d.keys():
