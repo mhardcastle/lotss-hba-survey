@@ -2,7 +2,7 @@
 #SBATCH -N 1                  # number of nodes
 #SBATCH -c 32                 # number of cores  ### CLUSTER SPECIFIC
 #SBATCH --ntasks=1            # number of tasks
-#SBATCH -t 12:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
+#SBATCH -t 128:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
 #SBATCH -p normal             # partition (queue); job can run up to 3 days  ### CLUSTER SPECIFIC
 #SBATCH --output=/project/lofarvlbi/Share/surveys/logs/R-%x.%j.out  ### CLUSTER SPECIFIC
 
