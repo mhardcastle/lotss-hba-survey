@@ -13,6 +13,7 @@ OBSID=${1}
 ## Cluster specific directories to change
 export INSTALL_DIR=/home/azimuth/software
 export VLBIDIR=${INSTALL_DIR}/VLBI-cwl
+export LINCDIR=${INSTALL_DIR}/LINC
 export FLOCSDIR=${INSTALL_DIR}/flocs
 export LOFARHELPERS=${INSTALL_DIR}/lofar_helpers
 export FACETSELFCAL=${INSTALL_DIR}/lofar_facet_selfcal
@@ -58,7 +59,7 @@ fi
 cd ${OUTDIR}
 
 ## list of measurement sets
-singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py --vlbi --solset ${DATADIR}/cal_values/solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv --configfile ${INSTALL_DIR}/lofar-vlbi/facetselfcal_config.txt --h5merger ${LOFARHELPERS} --linc ${LINC_DATA_ROOT} --selfcal ${FACETSELFCAL} ${DATADIR}/ >> test.log 2>&1
+singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py --vlbi --solset ${DATADIR}/cal_values/solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv --configfile ${INSTALL_DIR}/lofar-vlbi/facetselfcal_config.txt --h5merger ${LOFARHELPERS} --linc ${LINCDIR} --selfcal ${FACETSELFCAL} ${DATADIR}/ >> test.log 2>&1
 
 
 echo LINC starting
