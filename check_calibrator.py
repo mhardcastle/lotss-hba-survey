@@ -102,6 +102,6 @@ if __name__=='__main__':
     #if result:
     #    download_calibrator(calid,'/beegfs/car/mjh/lb')
     #print(find_calibrators(619688))
-    d=download_field_calibrators('P229+65','/beegfs/car/mjh/lb',verbose=True)
-    unpack_calibrator_sols('/beegfs/car/mjh/lb',d,verbose=True)
+    d=download_field_calibrators('P206+37','/beegfs/car/mjh/lb',verbose=True)
+    unpack_calibrator_sols('/beegfs/car/mjh/lb/',d,verbose=True)
     
