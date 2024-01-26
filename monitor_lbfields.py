@@ -158,10 +158,6 @@ def check_cal_flag(calh5parm):
             if flagdict[element] > 10.0:
                 print('badpolalign')
                 return('badflag')
-    ## number of flagged intl stations
-    ## average flagging for intl stations
-
-
     return
 
 def get_linc( obsid, caldir ):
@@ -204,8 +200,6 @@ def get_linc( obsid, caldir ):
                 ## check that solutions are ok (tim scripts)
                 sols = glob.glob(os.path.join(caldir,'cal_values/solutions.h5'))[0]
                 success = check_cal_clock(sols)
-
-                success = True
     return(success)
 
 def collect_solutions( name ):
