@@ -27,7 +27,7 @@ def isint(ant):
 
 def check_int_stations(calh5parm,verbose=False):
     # Check number of int stations and flagging fraction for clock and bandpass
-    if verbose: print('Opening',h5parm)
+    if verbose: print('Opening',calh5parm)
     data=h5parm(calh5parm,'r')
     cal = data.getSolset('calibrator')
     soltabs = list(cal.getSoltabNames())
@@ -40,13 +40,12 @@ def check_int_stations(calh5parm,verbose=False):
     else:
         clock=cal.getSoltab('clock')
         v,a=clock.getValues()
-        count=0
-        for ant in a['ant']:
-            if isint(ant): count+=1
+        good=[ant for ant in a['ant'] if isint(ant)]
+        count=len(good)
         d['n_int']=count
         if count==0:
             d['err']='no_international'
-        elif count<9:
+        elif count<11:
             d['err']='too_few_international'
         else:
             assert(v.shape[1]==len(a['ant']))
@@ -57,12 +56,11 @@ def check_int_stations(calh5parm,verbose=False):
             for i,ant in enumerate(a['ant']):
                 flagf=np.sum(np.isnan(v[:,i]))/nclock
                 if isint(ant):
-                    if verbose: print("%-20s %.2f%%" % (ant,100*flagf))
-                    if flagf>0.8:
+                    if verbose: print("%-12s %7.2f%%" % (ant,100*flagf))
+                    if flagf>0.5:
                         nffc+=1
-            d['fully_flagged_clock']=nffc
-            if nffc/count>0.5:
-                d['err']='fully_flagged_clock'
+                        if ant in good: good.remove(ant)
+            d['flagged_clock']=nffc
 
             bp=cal.getSoltab('bandpass')
             v,a=bp.getValues()
@@ -73,15 +71,14 @@ def check_int_stations(calh5parm,verbose=False):
             for i,ant in enumerate(a['ant']):
                 flagf=np.sum(np.isnan(v[:,:,i,:]))/nbp
                 if isint(ant):
-                    if verbose: print("%-20s %.2f%%" % (ant,100*flagf))
-                    if flagf>0.8:
+                    if verbose: print("%-12s %7.2f%%" % (ant,100*flagf))
+                    if flagf>0.5:
                         nffb+=1
-            d['fully_flagged_bp']=nffb
-            if nffb/count>0.5:
-                if 'err' in d:
-                    d['err']='fully_flagged_clock_bandpass'
-                else:
-                    d['err']='fully_flagged_bandpass'
+                        if ant in good: good.remove(ant)
+            d['flagged_bp']=nffb
+            d['n_good']=len(good)
+            if len(good)<11:
+                d['err']='too_few_good'
     data.close()
     return d
     
