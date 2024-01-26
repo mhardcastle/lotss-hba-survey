@@ -11,11 +11,11 @@ OBSID=${1}
 
 #################################################################################
 ## Cluster specific directories to change
-INSTALL_DIR=/home/azimuth/software
-VLBIDIR=${INSTALL_DIR}/VLBI-cwl
-FLOCSDIR=${INSTALL_DIR}/flocs
-LOFARHELPERS=${INSTALL_DIR}/lofar_helpers
-FACETSELFCAL=${INSTALL_DIR}/lofar_facet_selfcal
+export INSTALL_DIR=/home/azimuth/software
+export VLBIDIR=${INSTALL_DIR}/VLBI-cwl
+export FLOCSDIR=${INSTALL_DIR}/flocs
+export LOFARHELPERS=${INSTALL_DIR}/lofar_helpers
+export FACETSELFCAL=${INSTALL_DIR}/lofar_facet_selfcal
 BINDPATHS=${INSTALL_DIR},${LINC_DATA_DIR}
 
 ## Singularity
@@ -58,13 +58,12 @@ fi
 cd ${OUTDIR}
 
 ## list of measurement sets
-##singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python ${FLOCSDIR}/flocs/runners/create_ms_list.py ${DATADIR}
-singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py --vlbi --solset ${DATADIR}/cal_solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv --configfile ${INSTALL_DIR}/lofar-vlbi/facetselfcal_config.txt --h5merger ${LOFARHELPERS} --selfcal ${FACETSELFCAL} ${INPUT_DIR}/ >> test.log 2>&1
+singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py --vlbi --solset ${DATADIR}/cal_values/solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv --configfile ${INSTALL_DIR}/lofar-vlbi/facetselfcal_config.txt --h5merger ${LOFARHELPERS} --selfcal ${FACETSELFCAL} ${DATADIR}/ >> test.log 2>&1
 
 
 echo LINC starting
 echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${OBSID}.sh
-echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${INSTALL_DIR}/vlbi/workflows/setup.cwl mslist.json' >> tmprunner_${OBSID}.sh
+echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/setup.cwl mslist.json' >> tmprunner_${OBSID}.sh
 (time singularity exec -B ${PWD},${BINDPATHS} ${SIMG} bash tmprunner_${OBSID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
 echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt
