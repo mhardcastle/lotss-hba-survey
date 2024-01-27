@@ -6,6 +6,7 @@ from __future__ import print_function
 from time import sleep
 import datetime
 from surveys_db import SurveysDB, tag_field, get_cluster
+from calibrator_utils import check_int_stations
 
 ## need to update this
 #from run_full_field_reprocessing_pipeline import stage_field
@@ -17,7 +18,6 @@ import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
 from download_file import download_file
-
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -41,6 +41,7 @@ export USE_TORQUE=True to use Torque rather than Slurm scripts
 '''
 
 user = os.getenv('USER')
+home = os.getenv('HOME')
 if len(user) > 20:
     user = user[0:20]
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
@@ -229,7 +230,14 @@ def do_unpack(field):
 
 def check_field(field):
     outdir = os.path.join(procdir,field)
-    if os.path.isfile(os.path.join(outdir,'cal_solutions.h5')):
+    solutions=os.path.join(outdir,'cal_solutions.h5')
+    if os.path.isfile(solutions):
+        with SurveysDB() as sdb:
+            idd=sdb.db_get('lb_calibrators',field)
+            d=check_int_stations(solutions)
+            for k in d:
+                idd[k]=d[k]
+            sdb.db_set('lb_calibrators',idd)
         success=not(os.system('cd {:s}; tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(procdir,field,field,field,field)))
         if success:
             os.system('rm -rf {:s}/tmp*'.format(outdir))
@@ -379,10 +387,9 @@ while True:
                 print('Staging for {:s} is {:s} (staging id {:s})'.format(field,stage_status,str(s)))
 
     ## this does one download at a time
-    if ksum<totallimit and 'Staged' in d and download_thread is None:
+    if ksum<totallimit and 'Staged' in d and download_thread is None and not os.path.isfile(home+'/.nocaldownload'):
         download_name=fd['Staged'][0]
         print('We need to download a new file (%s)!' % download_name)
-        ## probably want to pass the staging id here
         download_thread=threading.Thread(target=do_download, args=(download_name,))
         download_thread.start()
 
@@ -425,7 +432,7 @@ while True:
                     update_status(field,'Workflow failed')
 
     ## this will also need to be changed to use macaroons to copy back to spider
-    if 'Verified' in d and verify_thread is None:
+    if 'Verified' in d and verify_thread is None and not os.path.isfile(home+'/.noverify'):
         verify_name = fd['Verified'][0]
         verify_thread=threading.Thread(target=do_verify, args=(verify_name,))
         verify_thread.start()

@@ -97,7 +97,6 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
         if stage_id is not None:
             idd['staging_id']=stage_id
         sdb.db_set('lb_fields',idd)
-    sdb.close()  
 
 ##############################
 ## finding and checking solutions
@@ -331,7 +330,6 @@ def do_download( id ):
     with SurveysDB(readonly=True) as sdb:
         idd=sdb.db_get('lb_fields',id)
         stage_id = idd['staging_id']
-    sdb.close()
     ## get the surls from the stager API
     surls = stager_access.get_surls_online(stage_id)
     project = surls[0].split('/')[-3]
