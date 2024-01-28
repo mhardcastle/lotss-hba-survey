@@ -23,7 +23,7 @@ mkdir -p ${LOGSDIR}
 ## go to working directory
 cd ${OUTDIR}
 
-python ${FLOCS_DIR}/runners/create_ms_list.py ${DATADIR}
+python ${FLOCS_DIR}/runners/create_ms_list.py --filter_baselines="*&" ${DATADIR}
 
 echo LINC starting
 time cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --leave-tmpdir --log-dir=${LOGSDIR} ${LINC_DATA_ROOT}/workflows/HBA_calibrator.cwl mslist.json 2>&1 | tee ${OUTDIR}/job_output.txt

@@ -18,6 +18,7 @@ import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
 from download_file import download_file
+import numpy as np
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -237,6 +238,8 @@ def check_field(field):
             d=check_int_stations(solutions)
             for k in d:
                 idd[k]=d[k]
+            if 'err' not in d:
+                idd['err']=np.nan # horrible feature of SurveysDB; force NULL to be written
             sdb.db_set('lb_calibrators',idd)
         success=not(os.system('cd {:s}; tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(procdir,field,field,field,field)))
         if success:
