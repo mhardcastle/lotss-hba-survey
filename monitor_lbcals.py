@@ -417,7 +417,7 @@ while True:
                 if 'USE_TORQUE' in os.environ:
                     command="qsub -v OBSID=%s -N lbcal-%s %s/lotss-hba-survey/torque/run_calibrator.qsub" % (field, field, os.environ['DDF_DIR'] )
                 else:
-                    command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
+                    command="sbatch -J %s %s/slurm/run_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
                 if os.system(command):
                     update_status(field,"Submission failed")
             else:
