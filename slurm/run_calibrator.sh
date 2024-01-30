@@ -50,7 +50,7 @@ fi
 cd ${OUTDIR}
 
 ## pipeline input
-singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python ${FLOCSDIR}/runners/create_ms_list.py ${DATADIR}
+singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python ${FLOCSDIR}/runners/create_ms_list.py --filter_baselines="*&" ${DATADIR}
 
 echo LINC starting
 echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${OBSID}.sh
