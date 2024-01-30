@@ -137,7 +137,6 @@ def do_download( id ):
                         download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,retry_size=1024)
                     else:
                         print(dest,'exists already, not downloading')
-                pass
             else:
                 logfile = '{:s}_gfal.log'.format(id)
                 for surl in surls:
@@ -145,16 +144,30 @@ def do_download( id ):
                     os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
         elif 'psnc' in surls[0]:
             print('Poznan download...')
-            logfile = '{:s}_wget.log'.format(id)
-            with open(os.path.join(caldir,'html.txt'),'w') as f:
-                for surl in surls:
-                    f.write('https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl={:s}\n'.format(surl))
-            f.close()
-            os.system('wget -i {:s} --no-check-certificate -P {:s} > {:s} 2>&1'.format(os.path.join(caldir,'html.txt'),caldir,logfile))
-            files = glob.glob(os.path.join(caldir,'SRMF*tar'))
-            for ff in files:
-                tmp = ff.split('%2F')[-1]
-                os.system('mv {:s} {:s}'.format(ff,os.path.join(caldir,tmp)))
+            auth=None
+            # Poznan requires username and password, which are in your .stagingrc
+            # Rudimentary parsing of this needed...
+            if os.path.isfile(home+'/.stagingrc'):
+                user=None
+                password=None
+                lines=[l.rstrip() for l in open(home+'/.stagingrc').readlines()]
+                for l in lines:
+                    if '=' in l:
+                        bits=l.split('=')
+                        if bits[0]=='user': user=bits[1]
+                        if bits[0]=='password': password=bits[1]
+                if user and password:
+                    auth=(user,password)
+                else:
+                    print('*** Warning: failed to parse stagingrc, download will fail ***')
+            logfile=None
+            prefix="https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl="
+            for surl in surls:
+                dest = os.path.join(caldir,os.path.basename(surl))
+                if not os.path.isfile(dest):
+                    download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,retry_size=1024,auth=auth)
+                else:
+                    print(dest,'exists already, not downloading')
         elif 'sara' in surls[0]:
             print('SARA download...')
             logfile = '{:s}_rclone.log'.format(id)
