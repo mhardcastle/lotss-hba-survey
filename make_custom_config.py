@@ -50,7 +50,7 @@ def make_custom_config(name,workdir,do_field,averaged=False,tdir=None):
         no_tgss=False
         lotss_field=True
 
-    if np.abs(idd['gal_b'])<10.0:
+    if idd['field_type']=="Galactic":
         template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018-MW.cfg'
     else:
         if no_wenss:

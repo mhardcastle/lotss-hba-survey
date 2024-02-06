@@ -18,6 +18,7 @@ import glob
 import MySQLdb
 
 queuelimit=10
+runlimit=20
 cluster=os.environ['DDF_PIPELINE_CLUSTER']
 home=os.environ['HOME']
 download_thread=None
@@ -98,7 +99,7 @@ while True:
                 print('Removing',r['id'],'from check_dict')
                 del check_dict[r['id']]
     
-    if ('Queued' not in d or d['Queued']<queuelimit) and not os.path.isfile(home+'/.nodownload') and download_thread is None:
+    if ('Queued' not in d or d['Queued']<queuelimit) and ('Running' not in d or d['Running']<runlimit and not os.path.isfile(home+'/.nodownload') and download_thread is None:
         download_name=get_next()
         if download_name is not None:
             print('We need to download a new file (%s)!' % download_name)
