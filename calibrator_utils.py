@@ -12,6 +12,48 @@ import datetime
 from losoto.h5parm import h5parm
 import numpy as np
 
+def get_linc( obsid, caldir ):
+    ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
+    macaroons = ['maca_sksp_tape_spiderlinc.conf','maca_sksp_tape_spiderpref3.conf','maca_sksp_distrib_Pref3.conf']
+    rclone_works = True
+    obsname = 'L'+str(obsid)
+    success = False
+    for macaroon in macaroons:
+        macname = os.path.join(os.getenv('MACAROON_DIR'),macaroon)
+        try:
+            rc = RClone(macname,debug=True)
+        except RuntimeError as e:
+            print('rclone setup failed, probably RCLONE_CONFIG_DIR not set:',e)
+            rclone_works=False
+                
+        if rclone_works:
+            try:
+                remote_obs = rc.get_dirs()
+            except OSError as e:
+                print('rclone command failed, probably rclone not installed or RCLONE_COMMAND not set:',e)
+                rclone_works=False
+        
+        if rclone_works and obsname in remote_obs:
+            print('Data available in rclone repository, downloading solutions!')
+            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
+            if d['err'] or d['code']!=0:
+                print('Rclone failed to download solutions')
+            else:
+                cwd = os.getcwd()
+                os.chdir(caldir)
+                os.system('tar -xvf cal_values.tar')
+                os.chdir(cwd)
+                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
+                if d['err'] or d['code']!=0:
+                    print('Rclone failed to download inspection plots')
+                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'logs.tar')]+[caldir]) 
+                if d['err'] or d['code']!=0:
+                    print('Rclone failed to download logs')
+                ## check that solutions are ok (tim scripts)
+                sols = glob.glob(os.path.join(caldir,'cal_values/solutions.h5'))[0]
+                success = check_cal_clock(sols)
+    return(success)
+
 def find_calibrators(obsid):
     # Find all the calibrators appropriate for a given obsid by
     # 1. looking at the observations table
