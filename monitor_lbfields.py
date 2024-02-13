@@ -23,6 +23,7 @@ from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 from tasklist import *
 from calibrator_utils import *
 from plot_field import *
+import numpy as np
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -183,10 +184,12 @@ def collect_solutions( name ):
             tasklist.append('split')
             tasklist.append('selfcal')
     else:
+        print('valid LINC solutions not found. Checking lb_calibrators.')
         ## linc is not good
-        found_ids = find_calibrators(obsid)
-        if len(found_ids) > 0:
-            ## grab calibrator from spider
+        result = download_field_calibrators(name,caldir)
+        if len(result[obsid]) > 0:            
+            ## check the solutions
+            ## check_solutions(sols)
             tasklist.append('target')
             ## check if need full ddfpipeline or ddflight? -- talk to tim
             tasklist.append('ddfpipeline')

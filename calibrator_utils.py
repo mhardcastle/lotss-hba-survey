@@ -56,7 +56,7 @@ def get_linc( obsid, caldir ):
                     print('Rclone failed to download logs')
                 ## check that solutions are ok (tim scripts)
                 sols = glob.glob(os.path.join(caldir,'cal_values/solutions.h5'))[0]
-                success = check_cal_clock(sols)
+                success = check_solutions(sols)
     return(success)
 
 def find_calibrators(obsid):
@@ -138,14 +138,15 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
 
 def check_calibrator(calid):
     macaroon_dir = os.getenv('MACAROON_DIR')        
-    maca = glob.glob(os.path.join(macaroon_dir,'*LTA.conf'))[0]
+    maca = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi.conf'))[0]
     rc=RClone(maca)
     files=rc.get_files('disk/surveys/'+str(calid)+'.tgz')
     return len(files)>0
 
 def download_calibrator(calid,dest):
-    rc=RClone('*lofarvlbi.conf')
-    rc.get_remote()
+    macaroon_dir = os.getenv('MACAROON_DIR')        
+    maca = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi.conf'))[0]
+    rc=RClone(maca)
     rc.copy(rc.remote+'disk/surveys/'+str(calid)+'.tgz',dest)
 
 def check_cal_clock(calh5parm,verbose=False):
@@ -270,9 +271,31 @@ def check_cal_flag(calh5parm):
                 return('badflag')
     ## number of flagged intl stations
     ## average flagging for intl stations
+    return(flagdict)
 
+def check_solutions(calh5parm,n_req=9,verbose=False):
+    stations = check_int_stations(calh5parm,n_req=n_req)
+    if stations['n_good'] > n_req:
+        ## good, check flagging level
+        flagdict = check_cal_flag(calh5parm)
+        ## check that clock and bandpass are solutions
+        if 'clock' not in flagdict.keys():
+            if verbose: print('Calibrator is bad')
+            return False
+        if 'bandpass' not in flagdict.keys():
+            if verbose: print('Calibrator is bad')
+            return False
+        if verbose: print('Calibrator good - returning')
+        ## check flagging level
+        for fkey in flagdict.keys():
+            if flagdict[fkey] > 10:
+                print('Excessive flagging detected in {:s}!!'.format(fkey))
+                return False
+    else:
+        if verbose: print('Not enough int stations')
+        return False
+    return True
 
-    return
 
 def update_db_stats(wd):
     # One-off function to take a directory containing *_solutions.h5,
