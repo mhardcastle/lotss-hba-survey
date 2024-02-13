@@ -12,6 +12,11 @@ import datetime
 from losoto.h5parm import h5parm
 import numpy as np
 
+#################################
+'''
+export MACAROON_DIR=/home/azimuth/macaroons/
+'''
+
 def get_linc( obsid, caldir ):
     ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
     macaroons = ['maca_sksp_tape_spiderlinc.conf','maca_sksp_tape_spiderpref3.conf','maca_sksp_distrib_Pref3.conf']
@@ -132,7 +137,8 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
             untar_file(tarfile,wd+'/tmp','cal_solutions.h5',dest+'/%i_solutions.h5' % cal,verbose=verbose)
 
 def check_calibrator(calid):
-    rc=RClone('*lofarvlbi.conf')
+    maca = glob.glob(os.path.join(os.getenv('MACAROON_DIR'),'*lofarvlbi.conf'))[0]
+    rc=RClone(maca)
     files=rc.get_files('disk/surveys/'+str(calid)+'.tgz')
     return len(files)>0
 

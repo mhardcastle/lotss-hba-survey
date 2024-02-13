@@ -21,7 +21,7 @@ from download_file import download_file ## in ddf-pipeline/utils
 from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 from tasklist import *
-from calibrator_utils import check_cal_flag, check_cal_clock, get_linc
+from calibrator_utils import *
 from plot_field import *
 
 #################################
@@ -183,8 +183,9 @@ def collect_solutions( name ):
             tasklist.append('split')
             tasklist.append('selfcal')
     else:
-        ## linc is not good. check for calibrator
-        if calibrator:
+        ## linc is not good
+        found_ids = find_calibrators(obsid)
+        if len(found_ids) > 0:
             ## grab calibrator from spider
             tasklist.append('target')
             ## check if need full ddfpipeline or ddflight? -- talk to tim
