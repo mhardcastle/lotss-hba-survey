@@ -137,7 +137,8 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
             untar_file(tarfile,wd+'/tmp','cal_solutions.h5',dest+'/%i_solutions.h5' % cal,verbose=verbose)
 
 def check_calibrator(calid):
-    maca = glob.glob(os.path.join(os.getenv('MACAROON_DIR'),'*lofarvlbi.conf'))[0]
+    macaroon_dir = os.getenv('MACAROON_DIR')        
+    maca = glob.glob(os.path.join(macaroon_dir,'*LTA.conf'))[0]
     rc=RClone(maca)
     files=rc.get_files('disk/surveys/'+str(calid)+'.tgz')
     return len(files)>0
