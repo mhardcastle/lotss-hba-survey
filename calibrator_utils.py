@@ -277,11 +277,6 @@ def update_db_stats(wd):
     # One-off function to take a directory containing *_solutions.h5,
     # run the quality checker and update the database for all
     # solutions found.
-    
-    from surveys_db import SurveysDB
-    import glob
-    import datetime
-    
     os.chdir(wd)
     g=glob.glob('*_solutions.h5')
     with SurveysDB() as sdb:
