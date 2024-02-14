@@ -35,7 +35,7 @@ mkdir -p ${TMPDIR}
 mkdir -p ${LOGSDIR}
 
 ## location of LINC
-LINC_DATA_ROOT=${LINC_INSTALL_DIR}
+LINC_DATA_ROOT=${LINCDIR}
 
 # Pass along necessary variables to the container.
 CONTAINERSTR=$(singularity --version)
@@ -44,11 +44,15 @@ if [[ "$CONTAINERSTR" == *"apptainer"* ]]; then
     export APPTAINERENV_LOGSDIR=${LOGSDIR}
     export APPTAINERENV_TMPDIR=${TMPDIR}
     export APPTAINERENV_PREPEND_PATH=${LINC_DATA_ROOT}/scripts
+    export APPTAINERENV_PREPEND_PATH=${VLBIDIR}/scripts
+    export APPTAINERENV_PYTHONPATH="$VLBIDIR/scripts:$LINCDIR/scripts:\$PYTHONPATH"
 else
     export SINGULARITYENV_LINC_DATA_ROOT=${LINC_DATA_ROOT}
     export SINGULARITYENV_LOGSDIR=${LOGSDIR}
     export SINGULARITYENV_TMPDIR=${TMPDIR}
     export SINGULARITYENV_PREPEND_PATH=${LINC_DATA_ROOT}/scripts
+    export SINGULARITYENV_PREPEND_PATH=${VLBIDIR}/scripts
+    export SINGULARITYENV_PYTHONPATH="$VLBIDIR/scripts:$LINCDIR/scripts:\$PYTHONPATH"
 fi
 
 ## pipeline input
