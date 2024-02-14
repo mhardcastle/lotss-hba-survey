@@ -6,6 +6,7 @@ from __future__ import print_function
 from time import sleep
 import datetime
 from surveys_db import SurveysDB, tag_field, get_cluster
+from calibrator_utils import check_int_stations
 
 ## need to update this
 #from run_full_field_reprocessing_pipeline import stage_field
@@ -16,7 +17,8 @@ import glob
 import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
-
+from download_file import download_file  ## this is from ddf-pipeline/utils
+import numpy as np
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -33,13 +35,18 @@ export MACAROON_DIR=/home/lofarvlbi-lmorabito/macaroons/
 export DDF_PIPELINE_CLUSTER=galahad
 export LINC_DATA_DIR=
 export MACAROON_DIR=
+
+export NO_GRID=True if you don't want to use grid tools
+export USE_TORQUE=True to use Torque rather than Slurm scripts
+
 '''
 
 user = os.getenv('USER')
+home = os.getenv('HOME')
 if len(user) > 20:
     user = user[0:20]
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
-basedir = os.getenv('LINC_DATA_DIR')
+basedir = str(os.getenv('LINC_DATA_DIR'))
 procdir = os.path.join(basedir,'processing')
 
 
@@ -58,9 +65,12 @@ maxstaged=6
 ## cluster specific queuing limits
 if cluster == 'spider':
     maxqueue = 10
-if cluster == 'cosma':
+elif cluster == 'cosma':
     maxqueue = 5
-
+else:
+    # default!
+    maxqueue = 10
+    
 '''
 updated in MySQL_utils.py:
 update_status
@@ -106,26 +116,62 @@ def do_download( id ):
     with SurveysDB(readonly=True) as sdb:
         idd=sdb.db_get('lb_calibrators',id)
         stage_id = idd['staging_id']
-    sdb.close()
+
     ## get the surls from the stager API
     surls = stager_access.get_surls_online(stage_id)
     project = surls[0].split('/')[-3]
     obsid = surls[0].split('/')[-2]
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
-        caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
-        os.makedirs(caldir,exist_ok=True)
+        caldir = os.path.join(basedir,str(id))
+        if not os.path.isdir(caldir):
+            os.makedirs(caldir)
         if 'juelich' in surls[0]:
+            print('Juelich download:',surls[0])
+            if 'NO_GRID' in os.environ:
+                logfile=None
+                prefix="https://lofar-download.fz-juelich.de/webserver-lofar/SRMFifoGet.py?surl="
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    if not os.path.isfile(dest):
+                        download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,catch_codes=(500,),retry_size=1024)
+                    else:
+                        print(dest,'exists already, not downloading')
+            else:
+                logfile = '{:s}_gfal.log'.format(id)
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
+        elif 'psnc' in surls[0]:
+            print('Poznan download...')
+            auth=None
+            # Poznan requires username and password, which are in your .stagingrc
+            # Rudimentary parsing of this needed...
+            if os.path.isfile(home+'/.stagingrc'):
+                user=None
+                password=None
+                with open(home+'/.stagingrc','r') as f:
+                    lines = f.readlines()
+                for l in lines:
+                    if '=' in l:
+                        bits=l.split('=')
+                        if bits[0]=='user': user=bits[1].rstrip('\n')
+                        if bits[0]=='password': password=bits[1].rstrip('\n')
+                if user and password:
+                    auth=(user,password)
+                else:
+                    print('*** Warning: failed to parse stagingrc, download will fail ***')
+            logfile=None
+            prefix="https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl="
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,id))
-            os.system('rm {:s}_gfal.log'.format(id))
-        if 'psnc' in surls[0]:
-            for surl in surls:
-                dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lta-head.lofar.psnc.pl:8443','gsiftp://gridftp.lofar.psnc.pl:2811'),dest,id))
-            os.system('rm {:s}_gfal.log'.format(id))
-        if 'sara' in surls[0]:
+                if not os.path.isfile(dest):
+                    download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,retry_size=1024,auth=auth)
+                else:
+                    print(dest,'exists already, not downloading')
+        elif 'sara' in surls[0]:
+            print('SARA download...')
+            logfile = '{:s}_rclone.log'.format(id)
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
             macaroon_dir = os.getenv('MACAROON_DIR')        
@@ -136,13 +182,39 @@ def do_download( id ):
             for f in files:
                 d = rc.execute(['-P','copy',rc.remote + os.path.join(obsid_path,f)]+[caldir]) 
             if d['err'] or d['code']!=0:
-                update_status(field,'rclone failed')
-                print('Rclone failed for field {:s}'.format(field))
+                update_status(id,'rclone failed')
+                print('Rclone download failed for field {:s}'.format(id))
+                with open(logfile,'w') as f:
+                    f.write('Rclone failed for field {:s}'.format(id))
+            else:
+                with open(logfile,'w') as f:
+                    f.write('Rclone finished successfully for field {:s}\n'.format(id))                
+        else:
+            raise RuntimeError('Cannot work out what to do with SURL!')
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
         if len(tarfiles) == len(surls):
             print('Download successful for {:s}'.format(id) )
             update_status(id,'Downloaded',stage_id=0)
+            if logfile and os.path.exists(logfile):
+                os.system('rm {:s}'.format(logfile))
+        else:
+            ## find what hasn't downloaded
+            trfs = [ os.path.basename(trf) for trf in tarfiles ]
+            not_downloaded = [ surl for surl in surls if os.path.basename(surl) not in trfs ]
+            os.system('echo Number of files downloaded does not match number staged >> {:s}'.format(logfile))
+            if 'juelich' in not_downloaded[0]:
+                for surl in not_downloaded:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    os.system('gfal-copy {:s} {:s} > {:s} 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,logfile))
+            tarfiles = glob.glob(os.path.join(caldir,'*tar'))
+            if len(tarfiles) == len(surls):
+                print('Download successful for {:s}'.format(id) )
+                update_status(id,'Downloaded',stage_id=0)
+                if os.path.exists(logfile):
+                    os.system('rm {:s}'.format(logfile))
+            else:
+                os.system('echo Attempt to re-download failed >> {:s} 2>&1'.format(logfile))
     else:
         print('SURLs do not appear to be online for {:s} (staging id {:s})'.format(id,str(stage_id)))
         update_status(id,'Download failed')
@@ -153,18 +225,18 @@ def do_download( id ):
 def do_unpack(field):
     update_status(field,'Unpacking')
     success=True
-    caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
+    caldir = os.path.join(basedir,field)
     ## get the tarfiles
     tarfiles = glob.glob(os.path.join(caldir,'*tar'))
     for trf in tarfiles:
-        os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
-        os.system( 'mv {:s} {:s}'.format('_'.join(os.path.basename(trf).split('_')[0:-1]),caldir))
+        os.system( 'cd {:s}; tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(caldir,trf,field) )
+
     ## check that everything unpacked
     msfiles = glob.glob('{:s}/L*MS'.format(caldir))
     if len(msfiles) == len(tarfiles):
         update_status(field,'Unpacked')
         os.system('rm {:s}/*.tar'.format(caldir))
-        os.system('rm {:s}_unpack.log'.format(field))
+        os.system('rm {:s}/*_unpack.log'.format(field))
     else:
         update_status(field,'Unpack failed')
 
@@ -172,20 +244,28 @@ def do_unpack(field):
 ## verifying
 
 def check_field(field):
-    procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
     outdir = os.path.join(procdir,field)
-    if os.path.isfile(os.path.join(outdir,'cal_solutions.h5')):
-        os.system('tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(field,outdir,outdir,outdir))
-        os.system('rm -rf {:s}/tmp*'.format(outdir))
-        success = True
+    solutions=os.path.join(outdir,'cal_solutions.h5')
+    if os.path.isfile(solutions):
+        with SurveysDB() as sdb:
+            idd=sdb.db_get('lb_calibrators',field)
+            d=check_int_stations(solutions)
+            for k in d:
+                idd[k]=d[k]
+            if 'err' not in d:
+                idd['err']=np.nan # horrible feature of SurveysDB; force NULL to be written
+            sdb.db_set('lb_calibrators',idd)
+        success=not(os.system('cd {:s}; tar cvzf {:s}.tgz {:s}/inspection {:s}/*.json {:s}/cal_solutions.h5'.format(procdir,field,field,field,field)))
+        if success:
+            os.system('rm -rf {:s}/tmp*'.format(outdir))
     else:
         success = False
     return success
 
 def do_verify(field):
-    tarfile = glob.glob(field+'*tgz')[0]
+    tarfile = glob.glob(procdir+'/'+field+'.tgz')[0]
     macaroon_dir = os.getenv('MACAROON_DIR')
-    macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi_upload.conf'))[0]
+    macaroon = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi.conf'))[0]
     rc = RClone( macaroon, debug=True )
     rc.get_remote()
     d = rc.execute_live(['-P', 'copy', tarfile]+[rc.remote + '/' + 'disk/surveys/'])
@@ -194,13 +274,13 @@ def do_verify(field):
         print('Rclone failed for field {:s}'.format(field))
     else:
         print('Tidying uploaded directory for',field)
-        update_status(field,'Complete')
+        update_status(field,'Complete',time='end_date')
         ## delete the directory
         os.system( 'rm -r {:s}'.format(os.path.join(procdir,field)))
         ## delete the initial data
         os.system( 'rm -r {:s}'.format(os.path.join(basedir,field)))
         ## delete the tarfile
-        os.system( 'rm {:s}.tgz'.format(field))
+        os.system( 'rm '+tarfile )
 
 ''' Logic is as follows:
 
@@ -289,7 +369,7 @@ while True:
     else:
         nstaged = 0
     if nstaged < maxstaged:
-        if nstage <= 2:
+        if nstage <= staginglimit:
             do_stage = True
         else:
             do_stage = False
@@ -310,19 +390,23 @@ while True:
             ## get the stage id
             r = [ item for item in result if item['id'] == field ][0]
             s = r['staging_id']
-            stage_status = stager_access.get_status(s)
-            #    “new”, “scheduled”, “in progress”, “aborted”, “failed”, “partial success”, “success”, “on hold” 
+            try:
+                stage_status = stager_access.get_status(s)
+            except Exception as e:
+                stage_status=None
+                print('Stager API reported exception',e)
+                
+            #    "new", "scheduled", "in progress", "aborted", "failed", "partial success", "success", "on hold" 
             if stage_status == 'success' or stage_status == 'completed':
                 print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
                 update_status(r['id'],'Staged') ## don't reset the staging id till download happens
-            else:
+            elif stage_status is not None:
                 print('Staging for {:s} is {:s} (staging id {:s})'.format(field,stage_status,str(s)))
 
     ## this does one download at a time
-    if ksum<totallimit and 'Staged' in d and download_thread is None:
+    if ksum<totallimit and 'Staged' in d and download_thread is None and not os.path.isfile(home+'/.nocaldownload'):
         download_name=fd['Staged'][0]
         print('We need to download a new file (%s)!' % download_name)
-        ## probably want to pass the staging id here
         download_thread=threading.Thread(target=do_download, args=(download_name,))
         download_thread.start()
 
@@ -342,9 +426,12 @@ while True:
             if nq < maxqueue:
                 nq = nq + 1
                 print('Running a new job',field)
-                update_status(field,'Queued')
-                ### will need to change the script
-                command="sbatch -J %s %s/slurm/run_linc_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
+                update_status(field,'Queued',time='start_date',workdir=os.path.join(basedir,str(field))
+)
+                if 'USE_TORQUE' in os.environ:
+                    command="qsub -v OBSID=%s -N lbcal-%s %s/lotss-hba-survey/torque/run_calibrator.qsub" % (field, field, os.environ['DDF_DIR'] )
+                else:
+                    command="sbatch -J %s %s/slurm/run_calibrator.sh %s" % (field, str(basedir).rstrip('/'), field)
                 if os.system(command):
                     update_status(field,"Submission failed")
             else:
@@ -352,7 +439,7 @@ while True:
 
     if 'Queued' in d:
         for field in fd['Queued']:
-            print('Verifying processing for',field)
+            print('Checking processing for',field)
             outdir = os.path.join(procdir,field)
             if os.path.isfile(os.path.join(outdir,'finished.txt')):        
                 result = check_field(field)
@@ -362,7 +449,7 @@ while True:
                     update_status(field,'Workflow failed')
 
     ## this will also need to be changed to use macaroons to copy back to spider
-    if 'Verified' in d and verify_thread is None:
+    if 'Verified' in d and verify_thread is None and not os.path.isfile(home+'/.noverify'):
         verify_name = fd['Verified'][0]
         verify_thread=threading.Thread(target=do_verify, args=(verify_name,))
         verify_thread.start()
