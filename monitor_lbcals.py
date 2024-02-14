@@ -17,7 +17,7 @@ import glob
 import requests
 import stager_access
 from rclone import RClone   ## DO NOT pip3 install --user python-rclone -- use https://raw.githubusercontent.com/mhardcastle/ddf-pipeline/master/utils/rclone.py
-from download_file import download_file
+from download_file import download_file  ## this is from ddf-pipeline/utils
 import numpy as np
 
 #################################
@@ -150,12 +150,13 @@ def do_download( id ):
             if os.path.isfile(home+'/.stagingrc'):
                 user=None
                 password=None
-                lines=[l.rstrip() for l in open(home+'/.stagingrc').readlines()]
+                with open(home+'/.stagingrc','r') as f:
+                    lines = f.readlines()
                 for l in lines:
                     if '=' in l:
                         bits=l.split('=')
-                        if bits[0]=='user': user=bits[1]
-                        if bits[0]=='password': password=bits[1]
+                        if bits[0]=='user': user=bits[1].rstrip('\n')
+                        if bits[0]=='password': password=bits[1].rstrip('\n')
                 if user and password:
                     auth=(user,password)
                 else:
