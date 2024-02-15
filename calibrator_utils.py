@@ -131,12 +131,12 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
     for obsid in rd:
         if verbose: print('Doing obsid',obsid)
         for cal in rd[obsid]:
-            dest=wd+'/%i/' % obsid
-            tarfile=dest+'%i.tgz' % cal
+            dest=os.path.join(wd,str(obsid))
+            tarfile=os.path.join(dest, '%i.tgz' % cal )
             if not os.path.isfile(tarfile):
                 raise RuntimeError('Cannot find the calibrator tar file!')
-            untar_file(tarfile,wd+'/tmp','cal_solutions.h5',dest+'/%i_solutions.h5' % cal,verbose=verbose)
-            sollist.append(dest+'/%i_solutions.h5' % cal)
+            untar_file(tarfile,wd+'/tmp','cal_solutions.h5',os.path.join(dest,'%i_solutions.h5' % cal),verbose=verbose)
+            sollist.append(os.path.join(dest,'%i_solutions.h5' % cal))
     return(sollist)
 
 def check_calibrator(calid):
@@ -235,8 +235,9 @@ def check_cal_flag(calh5parm):
     print('Running losoto to check cal flagging')
     sing_img = os.getenv('LOFAR_SINGULARITY')
     flaginfo = calh5parm.replace('.h5','.info')
-    cmd = 'singularity exec -B {:s} {:s} losoto -iv {:s} > {:s}'.format(os.getcwd(),sing_img,calh5parm,flaginfo)
-    os.system(cmd)
+    if not os.path.isfile(flaginfo):
+        cmd = 'singularity exec -B {:s} {:s} losoto -iv {:s} > {:s}'.format(os.getcwd(),sing_img,calh5parm,flaginfo)
+        os.system(cmd)
     print('Checking outputfile for flaggging')
     with open(flaginfo,'r') as f:
         lines = f.readlines()
@@ -299,6 +300,32 @@ def check_solutions(calh5parm,n_req=9,verbose=False):
         if verbose: print('Not enough int stations')
         return False
     return True
+
+def compare_solutions(sollist):
+    stn_compare = []
+    for solfile in sollist:
+        stations = check_int_stations(solfile)
+        stn_compare.append(stations['n_good'])
+    max_stns = np.where(stn_compare == np.max(stn_compare))[0]
+    if len(max_stns) == 1:
+        best_sols = np.asarray(sollist)[max_stns][0]
+    else:
+        fr = []
+        bp = []
+        for solfile in solutions:
+            flaginfo = check_cal_flag(solfile)
+            fr.append(flaginfo['faraday'])
+            bp.append(flaginfo['bandpass'])
+        low_fr = np.where(fr == np.min(fr))[0]
+        if len(low_fr) == 1:
+            best_sols = np.asarray(sollist)[low_fr][0]
+        else:
+            low_bp = np.where(bp == np.min(bp))[0]
+            if len(low_bp) == 1:
+                best_sols = np.asarray(sollist)[low_bp][0]
+            else:
+                best_sols = sollist[0]
+    return([best_sols])
 
 
 def update_db_stats(wd):

@@ -187,7 +187,10 @@ def collect_solutions( name ):
         print('valid LINC solutions not found. Checking lb_calibrators.')
         ## linc is not good
         result = download_field_calibrators(name,caldir)
-        if len(result[obsid]) > 0:            
+        solutions = unpack_calibrator_sols(caldir,result)
+        if len(solutions) >= 1:
+            best_sols = compare_solutions(solutions)
+            solutions = best_sols
             ## check the solutions
             ## check_solutions(sols)
             tasklist.append('target')
@@ -210,7 +213,6 @@ def collect_solutions( name ):
             tasklist.append('delay')
             tasklist.append('split')
             tasklist.append('selfcal')
-
     ## set the task list in the lb_operations table
     set_task_list(name,tasklist)
 
