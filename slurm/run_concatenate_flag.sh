@@ -55,20 +55,18 @@ else
     export SINGULARITYENV_PYTHONPATH="$VLBIDIR/scripts:$LINCDIR/scripts:\$PYTHONPATH"
 fi
 
-## pipeline input
-## catalogue - James script
 
 
 ## go to working directory
 cd ${OUTDIR}
 
-## list of measurement sets
-singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI setup  --solset ${DATADIR}/cal_values/solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv  --h5merger ${LOFARHELPERS} --linc ${LINCDIR} --selfcal ${FACETSELFCAL} ${DATADIR}/ >> test.log 2>&1
+## list of measurement sets - THIS WILL NEED TO BE CHECKED
+singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag  --delay_calibrator ${DATADIR}/delay_calibrators.csv --ddf_solset ${DATADIR}/ddfsolutions/<insert_path_here>  --linc ${LINCDIR} ${DATADIR}/ >> test.log 2>&1
 
 
 echo LINC starting
 echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${OBSID}.sh
-echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/setup.cwl mslist.json' >> tmprunner_${OBSID}.sh
+echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/concatenate-flag.cwl mslist_VLBI_concatenate-flag.json' >> tmprunner_${OBSID}.sh
 (time singularity exec -B ${PWD},${BINDPATHS} ${SIMG} bash tmprunner_${OBSID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
 echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt
