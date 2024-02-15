@@ -94,7 +94,7 @@ def download_field_calibrators(field,wd,verbose=False):
         for calid in calibrators:
             if verbose: print('     Checking calibrator',calid)
             if check_calibrator(calid):
-                dest=os.path.join(wd,str(calid)) ## why use the obsid of the field? use calid
+                dest=os.path.join(wd,str(obsid)) 
                 download_calibrator(calid,dest)
                 rd[obsid].append(calid)
             elif verbose: print('     No processed calibrator found!')
