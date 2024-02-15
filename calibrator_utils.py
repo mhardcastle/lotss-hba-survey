@@ -84,20 +84,20 @@ def download_field_calibrators(field,wd,verbose=False):
     with SurveysDB(readonly=True) as sdb:
         sdb.execute('select * from observations where field=%s',(field,))
         results=sdb.cur.fetchall()
-        if not results:
-            raise RuntimeError('No observations found for field '+field)
-        for r in results:
-            obsid=r['id']
-            if verbose: print('Doing obsid',obsid)
-            rd[obsid]=[]
-            calibrators=find_calibrators(r['id'])
-            for calid in calibrators:
-                if verbose: print('     Checking calibrator',calid)
-                if check_calibrator(calid):
-                    dest=wd+'/%i/' % obsid
-                    download_calibrator(calid,dest)
-                    rd[obsid].append(calid)
-                elif verbose: print('     No processed calibrator found!')
+    if not results:
+        raise RuntimeError('No observations found for field '+field)
+    for r in results:
+        obsid=r['id']
+        if verbose: print('Doing obsid',obsid)
+        rd[obsid]=[]
+        calibrators=find_calibrators(str(r['id']))
+        for calid in calibrators:
+            if verbose: print('     Checking calibrator',calid)
+            if check_calibrator(calid):
+                dest=os.path.join(wd,str(obsid)) 
+                download_calibrator(calid,dest)
+                rd[obsid].append(calid)
+            elif verbose: print('     No processed calibrator found!')
     return rd
 
 def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
@@ -147,6 +147,7 @@ def download_calibrator(calid,dest):
     macaroon_dir = os.getenv('MACAROON_DIR')        
     maca = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi.conf'))[0]
     rc=RClone(maca)
+    rc.get_remote()
     rc.copy(rc.remote+'disk/surveys/'+str(calid)+'.tgz',dest)
 
 def check_cal_clock(calh5parm,verbose=False):
