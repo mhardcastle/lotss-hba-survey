@@ -127,6 +127,7 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
     # field. rd is the dictionary returned by
     # download_field_calibrators, i.e. a list of calibrator files for
     # each obsid
+    sollist = []
     for obsid in rd:
         if verbose: print('Doing obsid',obsid)
         for cal in rd[obsid]:
@@ -135,6 +136,8 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
             if not os.path.isfile(tarfile):
                 raise RuntimeError('Cannot find the calibrator tar file!')
             untar_file(tarfile,wd+'/tmp','cal_solutions.h5',dest+'/%i_solutions.h5' % cal,verbose=verbose)
+            sollist.append(dest+'/%i_solutions.h5' % cal)
+    return(sollist)
 
 def check_calibrator(calid):
     macaroon_dir = os.getenv('MACAROON_DIR')        
