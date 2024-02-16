@@ -117,12 +117,20 @@ def collect_solutions( name ):
         calibrator_id = fld['calibrator_id']
 
     caldir = os.path.join(os.getenv('LINC_DATA_DIR'),name)
+    obsdirs = glob.glob(os.path.join(caldir,'*'))
+    obsdir = [ val for val in obsdirs if 'csv' not in val ]
+    if len(obsdir) > 1:
+        ## there are multiple observations for this field, this isn't handled yet
+        pass
+    else:
+        obsdir = obsdir[0]
+
     ## check if linc/prefactor 3 has been run
-    linc_check = get_linc( obsid, caldir )
+    linc_check = get_linc( obsid, obsdir )
 
     if linc_check: 
         ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
-        linc_time = os.path.getmtime(os.path.join(caldir,'cal_values/solutions.h5'))
+        linc_time = os.path.getmtime(os.path.join(obsdir,'cal_values/solutions.h5'))
         ## find the ddf solutions
         soldir = os.path.join(caldir,'ddfsolutions')
         if not os.path.exists(soldir):
@@ -190,7 +198,13 @@ def collect_solutions( name ):
         solutions = unpack_calibrator_sols(caldir,result)
         if len(solutions) >= 1:
             best_sols = compare_solutions(solutions)
+            os.system('mv {:s} LINC-cal_solutions.h5'.format(best_sols))
+            for sol in solutions:
+                os.system('rm {:s}'.format(sol))
+            os.system('rm *-axes_values.txt *solutions.info *.tgz')
             solutions = best_sols
+            ## move the solutions to the obsid directory and put them in cal_values .... 
+            
             ## check the solutions
             ## check_solutions(sols)
             tasklist.append('target')
