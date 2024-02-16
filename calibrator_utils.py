@@ -312,7 +312,7 @@ def compare_solutions(sollist):
     else:
         fr = []
         bp = []
-        for solfile in solutions:
+        for solfile in sollist:
             flaginfo = check_cal_flag(solfile)
             fr.append(flaginfo['faraday'])
             bp.append(flaginfo['bandpass'])
