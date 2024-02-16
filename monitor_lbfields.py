@@ -239,6 +239,10 @@ def stage_cal( id, survey=None ):
     response = requests.get(srmfilename)
     data = response.text
     uris = data.rstrip('\n').split('\n')
+    ## get obsid and create a directory
+    obsid = uris[0].split('/')[-2]
+    tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
+    caldir = os.path.join(tmp,obsid)    
     stage_id = stager_access.stage(uris)
     update_status(id, 'Staging', stage_id=stage_id )
 
@@ -259,7 +263,7 @@ def do_download( id ):
     if len(surls) > 0:
         tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
         caldir = os.path.join(tmp,obsid)
-        os.makedirs(caldir)
+        ## os.makedirs(caldir)  # now done in stage_cal
         if 'juelich' in surls[0]:
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
