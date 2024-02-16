@@ -222,6 +222,7 @@ def collect_solutions( name ):
 def stage_cal( id, survey=None ):
     with SurveysDB(survey=survey) as sdb:
         idd = sdb.db_get('lb_fields',id)
+    ## currently srmfile is 'multi' if the field has more than one observation, so this staging will fail if that is the case
     srmfilename = idd['srmfile']
     response = requests.get(srmfilename)
     data = response.text
@@ -244,7 +245,8 @@ def do_download( id ):
     obsid = surls[0].split('/')[-2]
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
-        caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
+        tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
+        caldir = os.path.join(tmp,obsid)
         os.makedirs(caldir)
         if 'juelich' in surls[0]:
             for surl in surls:
@@ -318,8 +320,15 @@ def do_unpack(field):
     success=True
     do_dysco=False # Default should be false
     caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
+    obsdirs = glob.glob(os.path.join(caldir,'*'))
+    obsdir = [ val for val in obsdirs if 'csv' not in val ]
+    if len(obsdir) > 1:
+        ## there are multiple observations for this field, this isn't handled yet
+        pass
+    else:
+        obsdir = obsdir[0]
     ## get the tarfiles
-    tarfiles = glob.glob(os.path.join(caldir,'*tar'))
+    tarfiles = glob.glob(os.path.join(obsdir,'*tar'))
     ## check if needs dysco compression
     gb_filesize = os.path.getsize(tarfiles[0])/(1024*1024*1024)
     if gb_filesize > 40.:
@@ -329,25 +338,25 @@ def do_unpack(field):
         for trf in tarfiles:
             os.system('sbatch -W slurm/{:s}_untar.sh {:s} {:s}'.format(cluster, trf, field))
             msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
-            os.system( 'mv {:s} {:s}'.format(msname,caldir))
+            os.system( 'mv {:s} {:s}'.format(msname,obsdir))
         if do_dysco:
-            dysco_success = dysco_compress_job(caldir)
+            dysco_success = dysco_compress_job(obsdir)
     else:
         for trf in tarfiles:
             os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
             msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
-            os.system( 'mv {:s} {:s}'.format(msname,caldir))
+            os.system( 'mv {:s} {:s}'.format(msname,obsdir))
             if do_dysco:
-                dysco_success = dysco_compress(caldir,msname)
+                dysco_success = dysco_compress(obsdir,msname)
                 ## ONLY FOR NOW
                 if dysco_success:
                     os.system('rm {:s}'.format(trf))
                 
     ## check that everything unpacked
-    msfiles = glob.glob('{:s}/L*MS'.format(caldir))
+    msfiles = glob.glob('{:s}/L*MS'.format(obsdir))
     if len(msfiles) == len(tarfiles):
         update_status(field,'Unpacked')
-        os.system('rm {:s}/*.tar'.format(caldir))
+        os.system('rm {:s}/*.tar'.format(obsdir))
         os.system('rm {:s}_unpack.log'.format(field))
     else:
         update_status(field,'Unpack failed')

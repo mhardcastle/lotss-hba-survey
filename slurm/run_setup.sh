@@ -63,7 +63,7 @@ fi
 cd ${OUTDIR}
 
 ## list of measurement sets
-singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI setup  --solset ${DATADIR}/cal_values/solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv  --h5merger ${LOFARHELPERS} --linc ${LINCDIR} --selfcal ${FACETSELFCAL} ${DATADIR}/ >> test.log 2>&1
+singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI setup --solset ${DATADIR}/cal_values/solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv  --h5merger ${LOFARHELPERS} --linc ${LINCDIR} --selfcal ${FACETSELFCAL} ${DATADIR}/ >> test.log 2>&1
 
 
 echo LINC starting
