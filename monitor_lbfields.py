@@ -197,14 +197,12 @@ def collect_solutions( name ):
         result = download_field_calibrators(name,caldir)
         solutions = unpack_calibrator_sols(caldir,result)
         if len(solutions) >= 1:
+            print('More than one calibrator found, comparing solutions ...')
             best_sols = compare_solutions(solutions)
-            os.system('mv {:s} LINC-cal_solutions.h5'.format(best_sols))
+            print('Best solutions are {:s}, cleaning up others.'.format(best_sols[0]))
+            os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
             for sol in solutions:
-                os.system('rm {:s}'.format(sol))
-            os.system('rm *-axes_values.txt *solutions.info *.tgz')
-            solutions = best_sols
-            ## move the solutions to the obsid directory and put them in cal_values .... 
-            
+                os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
             ## check the solutions
             ## check_solutions(sols)
             tasklist.append('target')
