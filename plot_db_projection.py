@@ -91,7 +91,7 @@ _,r=plot_select(results,lambda r:r['status'] in ['Archived','Complete','Verified
 #_,r=plot_select(r,lambda r:r['status'] in ['Proprietary'],label='Proprietary',color='magenta')
 _,r=plot_select(r,lambda r:r['status'] in ['Running'],label='Running',color='cyan')
 _,r=plot_select(r,lambda r:r['status'] in ['Downloaded','Downloading','Unpacking','Averaging','Ready','Queued','Unpacked'],label='In progress',color='yellow')
-_,r=plot_select(r,lambda r:r['status'] in ['Failed','Failed (verified)','List failed','D/L failed'],label='Failed',color='red')
+_,r=plot_select(r,lambda r:r['status'] in ['Failed','Failed (verified)','Failed (running)','List failed','D/L failed'],label='Failed',color='red')
 
 _,r=plot_select(r,lambda r:r['status']=='Not started' and r['s']>0.95*r['required_integration'],label='Ready',color='black')
 
