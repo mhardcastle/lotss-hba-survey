@@ -21,8 +21,9 @@ from download_file import download_file ## in ddf-pipeline/utils
 from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 from tasklist import *
-from check_cal import check_cal_flag, check_cal_clock
+from calibrator_utils import *
 from plot_field import *
+import numpy as np
 
 #################################
 ## CLUSTER SPECIFICS - use environment variables
@@ -100,49 +101,7 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
         sdb.db_set('lb_fields',idd)
 
 ##############################
-## finding and checking solutions
-
-def get_linc( obsid, caldir ):
-    ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
-    macaroons = ['maca_sksp_tape_spiderlinc.conf','maca_sksp_tape_spiderpref3.conf','maca_sksp_distrib_Pref3.conf']
-    rclone_works = True
-    obsname = 'L'+str(obsid)
-    success = False
-    for macaroon in macaroons:
-        macname = os.path.join(os.getenv('MACAROON_DIR'),macaroon)
-        try:
-            rc = RClone(macname,debug=True)
-        except RuntimeError as e:
-            print('rclone setup failed, probably RCLONE_CONFIG_DIR not set:',e)
-            rclone_works=False
-                
-        if rclone_works:
-            try:
-                remote_obs = rc.get_dirs()
-            except OSError as e:
-                print('rclone command failed, probably rclone not installed or RCLONE_COMMAND not set:',e)
-                rclone_works=False
-        
-        if rclone_works and obsname in remote_obs:
-            print('Data available in rclone repository, downloading solutions!')
-            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
-            if d['err'] or d['code']!=0:
-                print('Rclone failed to download solutions')
-            else:
-                cwd = os.getcwd()
-                os.chdir(caldir)
-                os.system('tar -xvf cal_values.tar')
-                os.chdir(cwd)
-                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
-                if d['err'] or d['code']!=0:
-                    print('Rclone failed to download inspection plots')
-                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'logs.tar')]+[caldir]) 
-                if d['err'] or d['code']!=0:
-                    print('Rclone failed to download logs')
-                ## check that solutions are ok (tim scripts)
-                sols = glob.glob(os.path.join(caldir,'cal_values/solutions.h5'))[0]
-                success = check_cal_clock(sols)
-    return(success)
+## finding and checking solutions 
 
 def collect_solutions( name ):
     survey=None
@@ -158,12 +117,20 @@ def collect_solutions( name ):
         calibrator_id = fld['calibrator_id']
 
     caldir = os.path.join(os.getenv('LINC_DATA_DIR'),name)
+    obsdirs = glob.glob(os.path.join(caldir,'*'))
+    obsdir = [ val for val in obsdirs if 'csv' not in val ]
+    if len(obsdir) > 1:
+        ## there are multiple observations for this field, this isn't handled yet
+        pass
+    else:
+        obsdir = obsdir[0]
+
     ## check if linc/prefactor 3 has been run
-    linc_check = get_linc( obsid, caldir )
+    linc_check = get_linc( obsid, obsdir )
 
     if linc_check: 
         ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
-        linc_time = os.path.getmtime(os.path.join(caldir,'cal_values/solutions.h5'))
+        linc_time = os.path.getmtime(os.path.join(obsdir,'cal_values/solutions.h5'))
         ## find the ddf solutions
         soldir = os.path.join(caldir,'ddfsolutions')
         if not os.path.exists(soldir):
@@ -225,10 +192,21 @@ def collect_solutions( name ):
             tasklist.append('split')
             tasklist.append('selfcal')
     else:
-        ## linc is not good. check for calibrator
-        if calibrator:
-            ## grab calibrator from spider
+        print('valid LINC solutions not found. Checking lb_calibrators.')
+        ## linc is not good
+        result = download_field_calibrators(name,caldir)
+        solutions = unpack_calibrator_sols(caldir,result)
+        if len(solutions) >= 1:
+            print('More than one calibrator found, comparing solutions ...')
+            best_sols = compare_solutions(solutions)
+            print('Best solutions are {:s}, cleaning up others.'.format(best_sols[0]))
+            os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
+            for sol in solutions:
+                os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
+            ## check the solutions
+            ## check_solutions(sols)
             tasklist.append('target')
+            ## check if need full ddfpipeline or ddflight? -- talk to tim
             tasklist.append('ddfpipeline')
             tasklist.append('setup')
             tasklist.append('concat-flag')
@@ -247,7 +225,6 @@ def collect_solutions( name ):
             tasklist.append('delay')
             tasklist.append('split')
             tasklist.append('selfcal')
-
     ## set the task list in the lb_operations table
     set_task_list(name,tasklist)
 
@@ -257,10 +234,15 @@ def collect_solutions( name ):
 def stage_cal( id, survey=None ):
     with SurveysDB(survey=survey) as sdb:
         idd = sdb.db_get('lb_fields',id)
+    ## currently srmfile is 'multi' if the field has more than one observation, so this staging will fail if that is the case
     srmfilename = idd['srmfile']
     response = requests.get(srmfilename)
     data = response.text
     uris = data.rstrip('\n').split('\n')
+    ## get obsid and create a directory
+    obsid = uris[0].split('/')[-2]
+    tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
+    caldir = os.path.join(tmp,obsid)    
     stage_id = stager_access.stage(uris)
     update_status(id, 'Staging', stage_id=stage_id )
 
@@ -279,8 +261,9 @@ def do_download( id ):
     obsid = surls[0].split('/')[-2]
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
-        caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
-        os.makedirs(caldir)
+        tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
+        caldir = os.path.join(tmp,obsid)
+        ## os.makedirs(caldir)  # now done in stage_cal
         if 'juelich' in surls[0]:
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
@@ -353,8 +336,15 @@ def do_unpack(field):
     success=True
     do_dysco=False # Default should be false
     caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
+    obsdirs = glob.glob(os.path.join(caldir,'*'))
+    obsdir = [ val for val in obsdirs if 'csv' not in val ]
+    if len(obsdir) > 1:
+        ## there are multiple observations for this field, this isn't handled yet
+        pass
+    else:
+        obsdir = obsdir[0]
     ## get the tarfiles
-    tarfiles = glob.glob(os.path.join(caldir,'*tar'))
+    tarfiles = glob.glob(os.path.join(obsdir,'*tar'))
     ## check if needs dysco compression
     gb_filesize = os.path.getsize(tarfiles[0])/(1024*1024*1024)
     if gb_filesize > 40.:
@@ -364,25 +354,25 @@ def do_unpack(field):
         for trf in tarfiles:
             os.system('sbatch -W slurm/{:s}_untar.sh {:s} {:s}'.format(cluster, trf, field))
             msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
-            os.system( 'mv {:s} {:s}'.format(msname,caldir))
+            os.system( 'mv {:s} {:s}'.format(msname,obsdir))
         if do_dysco:
-            dysco_success = dysco_compress_job(caldir)
+            dysco_success = dysco_compress_job(obsdir)
     else:
         for trf in tarfiles:
             os.system( 'tar -xvf {:s} >> {:s}_unpack.log 2>&1'.format(trf,field) )
             msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
-            os.system( 'mv {:s} {:s}'.format(msname,caldir))
+            os.system( 'mv {:s} {:s}'.format(msname,obsdir))
             if do_dysco:
-                dysco_success = dysco_compress(caldir,msname)
+                dysco_success = dysco_compress(obsdir,msname)
                 ## ONLY FOR NOW
                 if dysco_success:
                     os.system('rm {:s}'.format(trf))
                 
     ## check that everything unpacked
-    msfiles = glob.glob('{:s}/L*MS'.format(caldir))
+    msfiles = glob.glob('{:s}/L*MS'.format(obsdir))
     if len(msfiles) == len(tarfiles):
         update_status(field,'Unpacked')
-        os.system('rm {:s}/*.tar'.format(caldir))
+        os.system('rm {:s}/*.tar'.format(obsdir))
         os.system('rm {:s}_unpack.log'.format(field))
     else:
         update_status(field,'Unpack failed')

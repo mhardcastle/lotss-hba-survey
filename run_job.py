@@ -25,12 +25,14 @@ def do_run_job(name,basedir,qsubfile=None,do_field=True,prefix='ddfp',dysco=Fals
 
 def rerun_select():
     with SurveysDB() as sdb:
-        sdb.cur.execute('select * from fields where clustername="Herts" and status="Archived" and priority<10 and archive_version<3 order by priority desc')
+        #sdb.cur.execute('select * from fields where clustername="Herts" and status="Archived" and priority<10 and archive_version<3 order by priority desc')
+        sdb.cur.execute('select * from fields where clustername="Herts" and status="Stopped" order by priority desc')
         results=sdb.cur.fetchall()
     for r in results:
         name=r['id']
         print('Submitting job for',name)
-        do_run_job(name,'/beegfs/car/mjh',qsubfile='/home/mjh/pipeline-master/lotss-hba-pipeline/torque/rerun.qsub',prefix='ddfpr')
+        #do_run_job(name,'/beegfs/car/mjh',qsubfile='/home/mjh/pipeline-master/lotss-hba-pipeline/torque/rerun.qsub',prefix='ddfpr')
+        do_run_job(name,'/beegfs/car/mjh')
         
 if __name__=='__main__':
     name=sys.argv[1]

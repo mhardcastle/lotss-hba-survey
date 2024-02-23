@@ -108,8 +108,8 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
     mos_args=dotdict({'save':False, 'load':False,'exact':False,'use_shifted':True,'find_noise':True,'beamcut':beamcut,'header':header,'directories':mosaicdirs,'scale':scales,'do_lowres':do_low})
     print(mos_args)
     make_mosaic(mos_args)
-    os.system('mv mosaic.fits %s-mosaic.fits' % objname)
-    os.system('mv mosaic-weights.fits %s-mosaic-weights.fits' % objname)
+    os.rename('mosaic.fits',objname+'-mosaic.fits')
+    os.rename('mosaic-weights.fits',objname+'-mosaic-weights.fits')
     return True
     
 if __name__=='__main__':

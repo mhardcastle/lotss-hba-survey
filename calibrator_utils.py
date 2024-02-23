@@ -12,6 +12,53 @@ import datetime
 from losoto.h5parm import h5parm
 import numpy as np
 
+#################################
+'''
+export MACAROON_DIR=/home/azimuth/macaroons/
+'''
+
+def get_linc( obsid, caldir ):
+    ## find the target solutions -- based on https://github.com/mhardcastle/ddf-pipeline/blob/master/scripts/download_field.py
+    macaroons = ['maca_sksp_tape_spiderlinc.conf','maca_sksp_tape_spiderpref3.conf','maca_sksp_distrib_Pref3.conf']
+    rclone_works = True
+    obsname = 'L'+str(obsid)
+    success = False
+    for macaroon in macaroons:
+        macname = os.path.join(os.getenv('MACAROON_DIR'),macaroon)
+        try:
+            rc = RClone(macname,debug=True)
+        except RuntimeError as e:
+            print('rclone setup failed, probably RCLONE_CONFIG_DIR not set:',e)
+            rclone_works=False
+                
+        if rclone_works:
+            try:
+                remote_obs = rc.get_dirs()
+            except OSError as e:
+                print('rclone command failed, probably rclone not installed or RCLONE_COMMAND not set:',e)
+                rclone_works=False
+        
+        if rclone_works and obsname in remote_obs:
+            print('Data available in rclone repository, downloading solutions!')
+            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
+            if d['err'] or d['code']!=0:
+                print('Rclone failed to download solutions')
+            else:
+                cwd = os.getcwd()
+                os.chdir(caldir)
+                os.system('tar -xvf cal_values.tar')
+                os.chdir(cwd)
+                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
+                if d['err'] or d['code']!=0:
+                    print('Rclone failed to download inspection plots')
+                d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'logs.tar')]+[caldir]) 
+                if d['err'] or d['code']!=0:
+                    print('Rclone failed to download logs')
+                ## check that solutions are ok (tim scripts)
+                sols = glob.glob(os.path.join(caldir,'cal_values/solutions.h5'))[0]
+                success = check_solutions(sols)
+    return(success)
+
 def find_calibrators(obsid):
     # Find all the calibrators appropriate for a given obsid by
     # 1. looking at the observations table
@@ -37,20 +84,20 @@ def download_field_calibrators(field,wd,verbose=False):
     with SurveysDB(readonly=True) as sdb:
         sdb.execute('select * from observations where field=%s',(field,))
         results=sdb.cur.fetchall()
-        if not results:
-            raise RuntimeError('No observations found for field '+field)
-        for r in results:
-            obsid=r['id']
-            if verbose: print('Doing obsid',obsid)
-            rd[obsid]=[]
-            calibrators=find_calibrators(r['id'])
-            for calid in calibrators:
-                if verbose: print('     Checking calibrator',calid)
-                if check_calibrator(calid):
-                    dest=wd+'/%i/' % obsid
-                    download_calibrator(calid,dest)
-                    rd[obsid].append(calid)
-                elif verbose: print('     No processed calibrator found!')
+    if not results:
+        raise RuntimeError('No observations found for field '+field)
+    for r in results:
+        obsid=r['id']
+        if verbose: print('Doing obsid',obsid)
+        rd[obsid]=[]
+        calibrators=find_calibrators(str(r['id']))
+        for calid in calibrators:
+            if verbose: print('     Checking calibrator',calid)
+            if check_calibrator(calid):
+                dest=os.path.join(wd,str(obsid)) 
+                download_calibrator(calid,dest)
+                rd[obsid].append(calid)
+            elif verbose: print('     No processed calibrator found!')
     return rd
 
 def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
@@ -80,22 +127,29 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
     # field. rd is the dictionary returned by
     # download_field_calibrators, i.e. a list of calibrator files for
     # each obsid
+    sollist = []
     for obsid in rd:
         if verbose: print('Doing obsid',obsid)
         for cal in rd[obsid]:
-            dest=wd+'/%i/' % obsid
-            tarfile=dest+'%i.tgz' % cal
+            dest=os.path.join(wd,str(obsid))
+            tarfile=os.path.join(dest, '%i.tgz' % cal )
             if not os.path.isfile(tarfile):
                 raise RuntimeError('Cannot find the calibrator tar file!')
-            untar_file(tarfile,wd+'/tmp','cal_solutions.h5',dest+'/%i_solutions.h5' % cal,verbose=verbose)
+            untar_file(tarfile,wd+'/tmp','cal_solutions.h5',os.path.join(dest,'%i_solutions.h5' % cal),verbose=verbose)
+            sollist.append(os.path.join(dest,'%i_solutions.h5' % cal))
+    return(sollist)
 
 def check_calibrator(calid):
-    rc=RClone('*lofarvlbi.conf')
+    macaroon_dir = os.getenv('MACAROON_DIR')        
+    maca = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi.conf'))[0]
+    rc=RClone(maca)
     files=rc.get_files('disk/surveys/'+str(calid)+'.tgz')
     return len(files)>0
 
 def download_calibrator(calid,dest):
-    rc=RClone('*lofarvlbi.conf')
+    macaroon_dir = os.getenv('MACAROON_DIR')        
+    maca = glob.glob(os.path.join(macaroon_dir,'*lofarvlbi.conf'))[0]
+    rc=RClone(maca)
     rc.get_remote()
     rc.copy(rc.remote+'disk/surveys/'+str(calid)+'.tgz',dest)
 
@@ -181,8 +235,9 @@ def check_cal_flag(calh5parm):
     print('Running losoto to check cal flagging')
     sing_img = os.getenv('LOFAR_SINGULARITY')
     flaginfo = calh5parm.replace('.h5','.info')
-    cmd = 'singularity exec -B {:s} {:s} losoto -iv {:s} > {:s}'.format(os.getcwd(),sing_img,calh5parm,flaginfo)
-    os.system(cmd)
+    if not os.path.isfile(flaginfo):
+        cmd = 'singularity exec -B {:s} {:s} losoto -iv {:s} > {:s}'.format(os.getcwd(),sing_img,calh5parm,flaginfo)
+        os.system(cmd)
     print('Checking outputfile for flaggging')
     with open(flaginfo,'r') as f:
         lines = f.readlines()
@@ -221,19 +276,62 @@ def check_cal_flag(calh5parm):
                 return('badflag')
     ## number of flagged intl stations
     ## average flagging for intl stations
+    return(flagdict)
 
+def check_solutions(calh5parm,n_req=9,verbose=False):
+    stations = check_int_stations(calh5parm,n_req=n_req)
+    if stations['n_good'] > n_req:
+        ## good, check flagging level
+        flagdict = check_cal_flag(calh5parm)
+        ## check that clock and bandpass are solutions
+        if 'clock' not in flagdict.keys():
+            if verbose: print('Calibrator is bad')
+            return False
+        if 'bandpass' not in flagdict.keys():
+            if verbose: print('Calibrator is bad')
+            return False
+        if verbose: print('Calibrator good - returning')
+        ## check flagging level
+        for fkey in flagdict.keys():
+            if flagdict[fkey] > 10:
+                print('Excessive flagging detected in {:s}!!'.format(fkey))
+                return False
+    else:
+        if verbose: print('Not enough int stations')
+        return False
+    return True
 
-    return
+def compare_solutions(sollist):
+    stn_compare = []
+    for solfile in sollist:
+        stations = check_int_stations(solfile)
+        stn_compare.append(stations['n_good'])
+    max_stns = np.where(stn_compare == np.max(stn_compare))[0]
+    if len(max_stns) == 1:
+        best_sols = np.asarray(sollist)[max_stns][0]
+    else:
+        fr = []
+        bp = []
+        for solfile in sollist:
+            flaginfo = check_cal_flag(solfile)
+            fr.append(flaginfo['faraday'])
+            bp.append(flaginfo['bandpass'])
+        low_fr = np.where(fr == np.min(fr))[0]
+        if len(low_fr) == 1:
+            best_sols = np.asarray(sollist)[low_fr][0]
+        else:
+            low_bp = np.where(bp == np.min(bp))[0]
+            if len(low_bp) == 1:
+                best_sols = np.asarray(sollist)[low_bp][0]
+            else:
+                best_sols = sollist[0]
+    return([best_sols])
+
 
 def update_db_stats(wd):
     # One-off function to take a directory containing *_solutions.h5,
     # run the quality checker and update the database for all
     # solutions found.
-    
-    from surveys_db import SurveysDB
-    import glob
-    import datetime
-    
     os.chdir(wd)
     g=glob.glob('*_solutions.h5')
     with SurveysDB() as sdb:

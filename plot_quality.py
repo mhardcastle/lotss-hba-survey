@@ -6,7 +6,7 @@ import numpy as np
 # pack up the quality results into an astropy table for ease of plotting columns
 
 with SurveysDB() as sdb:
-    sdb.cur.execute('select fields.id,fields.ra,fields.decl,quality.*,avg(observations.elevation_mean) as elevation_mean,avg(integration) as integration from quality left join fields on fields.id=quality.id left join observations on observations.field=quality.id where fields.status="Verified" group by fields.id order by fields.id')
+    sdb.cur.execute('select fields.id,fields.ra,fields.decl,quality.*,avg(observations.elevation_mean) as elevation_mean,avg(integration) as avg_integration,sum(integration) as tot_integration from quality left join fields on fields.id=quality.id left join observations on observations.field=quality.id where fields.status="Verified" group by fields.id order by fields.id')
     results=sdb.cur.fetchall()
 
 td={}
@@ -59,6 +59,8 @@ plt.plot([0,1.8],[0,1.8],color='orange')
 print np.mean(t['nvss_scale']/4.91),np.mean(t['scale'])
 '''
 rms=t['rms']/(t['nvss_scale']/5.91)
+# scale to 8h
+rms*=np.sqrt(t['tot_integration']/8)
 for i in range(2):
     plt.subplot(1,2,i+1)
     if i==0:
@@ -69,21 +71,21 @@ for i in range(2):
         label='Declination'
     label+=' (degrees)'
 
-    filter=t['integration']<5
+    filter=t['avg_integration']<5
     plt.scatter(t[val][filter],rms[filter], alpha=0.5,color='green',label='4h')
-    filter=t['integration']<5
+    filter=t['avg_integration']<5
     plt.scatter(t[val][~filter],rms[~filter], alpha=0.5,color='blue',label='8h')
     if i==0:
         angle=np.linspace(20,80,200)
-        plt.plot(angle,80.0/np.sin(angle*np.pi/180)**2.0,color='orange')
+        plt.plot(angle,88.0/np.sin(angle*np.pi/180)**2.0,color='orange')
     else:
         angle=np.linspace(0,90,200)
-        plt.plot(angle,80.0/np.cos((angle-53)*np.pi/180)**2.0,color='orange')
+        plt.plot(angle,88.0/np.cos((angle-53)*np.pi/180)**2.0,color='orange')
         
     for i in range(17):
         angle=i*5+2.5
         select=((t[val]>=(angle-2.5)) & (t[val]<=(angle+2.5)))
-        mean=np.median(rms[select])
+        mean=np.nanmedian(rms[select])
         plt.scatter(angle,mean,color='red',marker='s')
     plt.legend()
     plt.ylim(0,400)
