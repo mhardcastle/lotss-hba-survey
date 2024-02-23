@@ -235,7 +235,7 @@ def do_unpack(field):
     if len(msfiles) == len(tarfiles):
         update_status(field,'Unpacked')
         os.system('rm {:s}/*.tar'.format(caldir))
-        os.system('rm {:s}_unpack.log'.format(field))
+        os.system('rm {:s}/{:s}_unpack.log'.format(caldir,field))
     else:
         update_status(field,'Unpack failed')
 
