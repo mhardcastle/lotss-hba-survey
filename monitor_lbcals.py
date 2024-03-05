@@ -104,8 +104,11 @@ def stage_cal( id, srmpath='https://public.spider.surfsara.nl/project/lofarvlbi/
     response = requests.get(os.path.join(srmpath,srmfilename))
     data = response.text
     uris = data.rstrip('\n').split('\n')
-    stage_id = stager_access.stage(uris)
-    update_status(id, 'Staging', stage_id=stage_id )
+    if 'psnc' in uris[0]:
+        update_status(id,'Poznan')
+    else:
+        stage_id = stager_access.stage(uris)
+        update_status(id, 'Staging', stage_id=stage_id )
 
 ##############################
 ## downloading
