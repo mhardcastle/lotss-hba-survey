@@ -22,7 +22,7 @@ from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 from tasklist import *
 from calibrator_utils import *
-from plot_field import *
+#from plot_field import *
 import numpy as np
 
 #################################
@@ -87,11 +87,10 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
     # adapted from surveys_db
     # utility function to just update the status of a field
     # name can be None (work it out from cwd), or string (field name)
-    id=name 
     with SurveysDB(survey=survey) as sdb:
-        idd=sdb.db_get('lb_fields',id)
+        idd=sdb.db_get('lb_fields',name)
         if idd is None:
-          raise RuntimeError('Unable to find database entry for field "%s".' % id)
+          raise RuntimeError('Unable to find database entry for field "%s".' % name)
         idd['status']=status
         tag_field(sdb,idd,workdir=workdir)
         if time is not None and idd[time] is None:
@@ -101,32 +100,32 @@ def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,surve
         sdb.db_set('lb_fields',idd)
 
 ##############################
-## finding and checking solutions 
+## do things by obsid
 
-def collect_solutions( name ):
-    survey=None
-    tasklist = []
+def get_obsids( name, survey=None ):
     with SurveysDB(survey=survey) as sdb:
         sdb.execute('select * from observations where field="'+name+'"')
         fld = sdb.cur.fetchall()
-    if len(fld) > 1:
-        print('There is more than one observation for this field ... ')
-    else:
-        fld = fld[0]
-        obsid = fld['id']
-        calibrator_id = fld['calibrator_id']
+    obsids = [ val['id'] for val in fld ]
+    return(obsids)
 
-    caldir = os.path.join(os.getenv('LINC_DATA_DIR'),name)
-    obsdirs = glob.glob(os.path.join(caldir,'*'))
-    obsdir = [ val for val in obsdirs if 'csv' not in val ]
-    if len(obsdir) > 1:
-        ## there are multiple observations for this field, this isn't handled yet
-        pass
-    else:
-        obsdir = obsdir[0]
+##############################
+## finding and checking solutions 
+
+def collect_solutions( caldir ):
+    survey=None
+    obsid = os.path.basename(caldir)
+    namedir = os.path.dirname(caldir)
+    name = os.path.basename(namedir)
+    tasklist = []
+
+    with SurveysDB(survey=survey) as sdb:
+        sdb.execute('select * from observations where id="'+obsid+'"')
+        fld = sdb.cur.fetchall()
+    calibrator_id = fld[0]['calibrator_id']
 
     ## check if linc/prefactor 3 has been run
-    linc_check = get_linc( obsid, obsdir )
+    linc_check = get_linc( obsid, caldir )
 
     if linc_check: 
         ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
@@ -197,14 +196,14 @@ def collect_solutions( name ):
         result = download_field_calibrators(name,caldir)
         solutions = unpack_calibrator_sols(caldir,result)
         if len(solutions) >= 1:
-            print('More than one calibrator found, comparing solutions ...')
+            print('One or more calibrator found, comparing solutions ...')
             best_sols = compare_solutions(solutions)
             print('Best solutions are {:s}, cleaning up others.'.format(best_sols[0]))
             os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
             ## check the solutions
-            ## check_solutions(sols)
+            check_solutions(os.path.join(caldir,'LINC-cal_solutions.h5'))
             tasklist.append('target')
             ## check if need full ddfpipeline or ddflight? -- talk to tim
             tasklist.append('ddfpipeline')
@@ -231,29 +230,34 @@ def collect_solutions( name ):
 ##############################
 ## staging
 
-def stage_cal( id, survey=None ):
+def stage_field( name, survey=None ):
     with SurveysDB(survey=survey) as sdb:
-        idd = sdb.db_get('lb_fields',id)
+        idd = sdb.db_get('lb_fields',name)
     ## currently srmfile is 'multi' if the field has more than one observation, so this staging will fail if that is the case
     srmfilename = idd['srmfile']
+    if srmfilename == 'multi':
+        obsids = get_obsids(name)
+        ## NEED TO UPDATE -- check the task list
     response = requests.get(srmfilename)
     data = response.text
     uris = data.rstrip('\n').split('\n')
     ## get obsid and create a directory
     obsid = uris[0].split('/')[-2]
-    tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
-    caldir = os.path.join(tmp,obsid)    
+    tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(name))
+    caldir = os.path.join(tmp,obsid)   
+    os.makedirs(caldir) 
     stage_id = stager_access.stage(uris)
-    update_status(id, 'Staging', stage_id=stage_id )
+    update_status(name, 'Staging', stage_id=stage_id )
+    return(caldir)
 
 ##############################
 ## downloading
 
-def do_download( id ):
-    update_status(id,'Downloading')
+def do_download( name ):
+    update_status(name,'Downloading')
     ## get the staging id from the surveys database
     with SurveysDB(readonly=True) as sdb:
-        idd=sdb.db_get('lb_fields',id)
+        idd=sdb.db_get('lb_fields',name)
         stage_id = idd['staging_id']
     ## get the surls from the stager API
     surls = stager_access.get_surls_online(stage_id)
@@ -261,19 +265,19 @@ def do_download( id ):
     obsid = surls[0].split('/')[-2]
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
-        tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(id))
+        tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(name))
         caldir = os.path.join(tmp,obsid)
-        ## os.makedirs(caldir)  # now done in stage_cal
+        ## os.makedirs(caldir)  # now done in stage_field
         if 'juelich' in surls[0]:
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,id))
-            os.system('rm {:s}_gfal.log'.format(id))
+                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,name))
+            os.system('rm {:s}_gfal.log'.format(name))
         if 'psnc' in surls[0]:
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lta-head.lofar.psnc.pl:8443','gsiftp://gridftp.lofar.psnc.pl:2811'),dest,id))
-            os.system('rm {:s}_gfal.log'.format(id))
+                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lta-head.lofar.psnc.pl:8443','gsiftp://gridftp.lofar.psnc.pl:2811'),dest,name))
+            os.system('rm {:s}_gfal.log'.format(name))
         if 'sara' in surls[0]:
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
@@ -290,11 +294,11 @@ def do_download( id ):
         ## check that everything was downloaded
         tarfiles = glob.glob(os.path.join(caldir,'*tar'))
         if len(tarfiles) == len(surls):
-            print('Download successful for {:s}'.format(id) )
+            print('Download successful for {:s}'.format(name) )
             update_status(id,'Downloaded',stage_id=0)
     else:
-        print('SURLs do not appear to be online for {:s} (staging id {:s})'.format(id,str(stage_id)))
-        update_status(id,'Download failed')
+        print('SURLs do not appear to be online for {:s} (staging id {:s})'.format(name,str(stage_id)))
+        update_status(name,'Download failed')
 
 ##############################
 ## unpacking
@@ -523,15 +527,15 @@ while True:
     if do_stage and nextfield is not None:
         stage_name=nextfield
         print('We need to stage a new field (%s)' % stage_name)
-        stage_cal(stage_name)
+        caldir = stage_field(stage_name)
         ## while staging, collect the solutions
-        solutions_thread=threading.Thread(target=collect_solutions, args=(stage_name,))
+        solutions_thread=threading.Thread(target=collect_solutions, args=(caldir,))
         ## and download the catalogue
         with SurveysDB(survey=None) as sdb:
             idd=sdb.db_get('lb_fields',stage_name)
         generate_catalogues( float(idd['ra']), float(idd['decl']), targRA = float(idd['ra']), targDEC = float(idd['decl']),
              im_radius=1.24, bright_limit_Jy=5., lotss_result_file='image_catalogue.csv', delay_cals_file='delay_calibrators.csv', 
-             match_tolerance=5., image_limit_Jy=0.01, vlass=True, html=False, outdir=stage_name)
+             match_tolerance=5., image_limit_Jy=0.01, vlass=True, html=False, outdir=os.path.dirname(caldir) )
 
     ## for things that are staging, calculate 
     if 'Staging' in d.keys():

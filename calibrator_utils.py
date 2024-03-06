@@ -40,6 +40,11 @@ def get_linc( obsid, caldir ):
         
         if rclone_works and obsname in remote_obs:
             print('Data available in rclone repository, downloading solutions!')
+    
+            ## try a couple different cal solutions names .... 
+            ## cal_values.tar  cal_solutions.h5.tar ... what else?
+            ## NEED TO DO A MORE COMPLETE SEARCH
+
             d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
             if d['err'] or d['code']!=0:
                 print('Rclone failed to download solutions')
@@ -94,8 +99,7 @@ def download_field_calibrators(field,wd,verbose=False):
         for calid in calibrators:
             if verbose: print('     Checking calibrator',calid)
             if check_calibrator(calid):
-                dest=os.path.join(wd,str(obsid)) 
-                download_calibrator(calid,dest)
+                download_calibrator(calid,wd)
                 rd[obsid].append(calid)
             elif verbose: print('     No processed calibrator found!')
     return rd
@@ -131,12 +135,11 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
     for obsid in rd:
         if verbose: print('Doing obsid',obsid)
         for cal in rd[obsid]:
-            dest=os.path.join(wd,str(obsid))
-            tarfile=os.path.join(dest, '%i.tgz' % cal )
+            tarfile=os.path.join(wd, '%i.tgz' % cal )
             if not os.path.isfile(tarfile):
                 raise RuntimeError('Cannot find the calibrator tar file!')
-            untar_file(tarfile,wd+'/tmp','cal_solutions.h5',os.path.join(dest,'%i_solutions.h5' % cal),verbose=verbose)
-            sollist.append(os.path.join(dest,'%i_solutions.h5' % cal))
+            untar_file(tarfile,wd+'/tmp','cal_solutions.h5',os.path.join(wd,'%i_solutions.h5' % cal),verbose=verbose)
+            sollist.append(os.path.join(wd,'%i_solutions.h5' % cal))
     return(sollist)
 
 def check_calibrator(calid):
