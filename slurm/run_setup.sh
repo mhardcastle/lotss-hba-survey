@@ -7,6 +7,7 @@
 #SBATCH --output=/project/lofarvlbi/Share/surveys/logs/R-%x.%j.out  ### CLUSTER SPECIFIC
 
 ## submit the job with OBSID as an argument
+## the format is actually name/obsid e.g. P210+37/662482
 OBSID=${1}
 
 #################################################################################

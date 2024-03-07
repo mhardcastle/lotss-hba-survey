@@ -44,11 +44,13 @@ def get_linc( obsid, caldir ):
             ## try a couple different cal solutions names .... 
             ## cal_values.tar  cal_solutions.h5.tar ... what else?
             ## NEED TO DO A MORE COMPLETE SEARCH
+            tarfile = 'cal_values.tar'
 
-            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'cal_values.tar')]+[caldir]) 
+            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,tarfile)]+[caldir]) 
             if d['err'] or d['code']!=0:
                 print('Rclone failed to download solutions')
             else:
+                untar_file(os.path.join(caldir,tarfile),caldir+'/tmp','*h5',os.path.join(caldir,'LINC-target_solutions.h5'),verbose=False)
                 cwd = os.getcwd()
                 os.chdir(caldir)
                 os.system('tar -xvf cal_values.tar')
@@ -306,11 +308,14 @@ def check_solutions(calh5parm,n_req=9,verbose=False):
 
 def compare_solutions(sollist):
     stn_compare = []
+    sols_good = []
     for solfile in sollist:
         stations = check_int_stations(solfile)
         stn_compare.append(stations['n_good'])
+        solcheck = check_solutions(solfile)
+        sols_good.append(solcheck)
     max_stns = np.where(stn_compare == np.max(stn_compare))[0]
-    if len(max_stns) == 1:
+    if len(max_stns) == 1 and np.asarray(sols_good)[max_stns]:
         best_sols = np.asarray(sollist)[max_stns][0]
     else:
         fr = []
@@ -320,7 +325,7 @@ def compare_solutions(sollist):
             fr.append(flaginfo['faraday'])
             bp.append(flaginfo['bandpass'])
         low_fr = np.where(fr == np.min(fr))[0]
-        if len(low_fr) == 1:
+        if len(low_fr) == 1 and np.asarray(sols_good)[low_fr]:
             best_sols = np.asarray(sollist)[low_fr][0]
         else:
             low_bp = np.where(bp == np.min(bp))[0]

@@ -22,7 +22,7 @@ from sdr_wrapper import SDR
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 from tasklist import *
 from calibrator_utils import *
-#from plot_field import *
+from plot_field import *
 import numpy as np
 
 #################################
@@ -108,6 +108,19 @@ def get_obsids( name, survey=None ):
         fld = sdb.cur.fetchall()
     obsids = [ val['id'] for val in fld ]
     return(obsids)
+
+def get_local_obsid( name ):
+    basedir = os.getenv('LINC_DATA_DIR')
+    fielddir = os.path.join(basedir, name)
+    fieldfiles = glob.glob(os.path.join(fielddir,'*'))
+    fielddirs = []
+    for ff in fieldfiles:
+        tmp = os.path.splitext(ff)
+        if tmp[1] == '':
+            tmp2 = os.path.basename(tmp[0])
+            if tmp2.isdigit():
+                fielddirs.append(tmp2)
+    return(fielddirs)
 
 ##############################
 ## finding and checking solutions 
@@ -202,8 +215,6 @@ def collect_solutions( caldir ):
             os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
-            ## check the solutions
-            check_solutions(os.path.join(caldir,'LINC-cal_solutions.h5'))
             tasklist.append('target')
             ## check if need full ddfpipeline or ddflight? -- talk to tim
             tasklist.append('ddfpipeline')
@@ -225,7 +236,7 @@ def collect_solutions( caldir ):
             tasklist.append('split')
             tasklist.append('selfcal')
     ## set the task list in the lb_operations table
-    set_task_list(name,tasklist)
+    set_task_list(obsid,tasklist)
 
 ##############################
 ## staging
@@ -238,7 +249,14 @@ def stage_field( name, survey=None ):
     if srmfilename == 'multi':
         obsids = get_obsids(name)
         ## NEED TO UPDATE -- check the task list
-    response = requests.get(srmfilename)
+    response = requests.get(srmfilename) -- we set up the tasklist to be based on the field name (e.g. P206+37) but I think after reflection and discussions with Tim, this should maybe be done by observation ID for fields with multiple observations?  I think the only step where multiple observations are combined (at least in our tasklist) would be the ddf-pipeline, which we could write a script around to check that the task for all obsids for a field are at the 'ddf-pipeline' as next task before starting.
+￼
+￼
+￼
+￼
+￼
+￼
+
     data = response.text
     uris = data.rstrip('\n').split('\n')
     ## get obsid and create a directory
@@ -457,7 +475,7 @@ while True:
     fd={}  ## dictionary of fields of a given status type
     for r in result:
         status=r['status']
-        if status in d:
+        if status in d:662482
             d[status]=d[status]+1
             fd[status].append(r['id'])
         else:
@@ -578,18 +596,21 @@ while True:
             else: 
                 nq = nq + 1
                 print('Running a new job',field)
-                ## get task to be done
-                next_task = get_task_list(field)[0]
-                print('next task is',next_task)
-                update_status(field,'Queued')
-                command = "sbatch -J {:s} {:s}/slurm/run_{:s}.sh {:s}".format(field, str(basedir).rstrip('/'), next_task, field)
-                ## will need run scripts for each task
-                if os.system(command):
-                    update_status(field,"Submission failed")
+                field_obsids = get_local_obsid(field)
+                for obsid in field_obsids:
+                    next_task = get_task_list(obsid)[0]
+                    print('next task is',next_task)
+                    update_status(field,'Queued')
+                    fieldobsid = '{:s}/{:s}'.format(field,obsid)
+                    command = "sbatch -J {:s} {:s}/slurm/run_{:s}.sh {:s}".format(field, str(basedir).rstrip('/'), next_task, fieldobsid)
+                    ## will need run scripts for each task
+                    if os.system(command):
+                        update_status(field,"Submission failed")
 
     if 'Queued' in d:
         for field in fd['Queued']:
             print('Verifying processing for',field)
+            
             outdir = os.path.join(procdir,field)
             if os.path.isfile(os.path.join(outdir,'finished.txt')):        
                 result = check_field(field)
@@ -597,7 +618,7 @@ while True:
                     ## get task that was run from the finished.txt to mark done
                     mark_done(field,'something')
                     ## start next step
-                    next_task = get_task_list(field)[0]
+                    next_task = get_task_list(field)[0]  ## -- NOW BASED ON OBSID
 
                     ## if no more tasks, set to Verified
                 else:
