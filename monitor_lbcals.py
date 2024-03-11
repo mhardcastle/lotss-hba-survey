@@ -104,8 +104,12 @@ def stage_cal( id, srmpath='https://public.spider.surfsara.nl/project/lofarvlbi/
     response = requests.get(os.path.join(srmpath,srmfilename))
     data = response.text
     uris = data.rstrip('\n').split('\n')
-    stage_id = stager_access.stage(uris)
-    update_status(id, 'Staging', stage_id=stage_id )
+    if len(uris)==1 and uris[0]=='':
+        print("Error, srmlist is empty!")
+        update_status(id, 'SRMfile missing' )
+    else:
+        stage_id = stager_access.stage(uris)
+        update_status(id, 'Staging', stage_id=stage_id )
 
 ##############################
 ## downloading
@@ -370,7 +374,7 @@ while True:
         nstaged = 0
     if nstaged < maxstaged:
         if nstage <= staginglimit:
-            do_stage = True
+            do_stage = not os.path.isfile(home+'/.nostage')
         else:
             do_stage = False
     else:
