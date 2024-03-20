@@ -8,6 +8,7 @@ from surveys_db import SurveysDB
 import os
 import subprocess
 import glob
+import fnmatch
 import datetime
 from losoto.h5parm import h5parm
 import numpy as np
@@ -113,8 +114,9 @@ def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
     proc=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     (out, err) = proc.communicate()
     files=splitlines(out)
+    if ''
     for f in files:
-        if os.path.basename(f)==searchfile:
+        if fnmatch.fnmatch(os.path.basename(f),searchfile):
             fullpath=f
             break
     else:
