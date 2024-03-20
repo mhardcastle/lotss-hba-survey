@@ -52,10 +52,6 @@ def get_linc( obsid, caldir ):
                 print('Rclone failed to download solutions')
             else:
                 untar_file(os.path.join(caldir,tarfile),caldir+'/tmp','*h5',os.path.join(caldir,'LINC-target_solutions.h5'),verbose=False)
-                cwd = os.getcwd()
-                os.chdir(caldir)
-                os.system('tar -xvf cal_values.tar')
-                os.chdir(cwd)
                 d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
                 if d['err'] or d['code']!=0:
                     print('Rclone failed to download inspection plots')
@@ -63,7 +59,7 @@ def get_linc( obsid, caldir ):
                 if d['err'] or d['code']!=0:
                     print('Rclone failed to download logs')
                 ## check that solutions are ok (tim scripts)
-                sols = glob.glob(os.path.join(caldir,'cal_values/solutions.h5'))[0]
+                sols = glob.glob(os.path.join(caldir,'LINC-target_solutions.h5'))[0]
                 success = check_solutions(sols)
     return(success)
 
@@ -124,8 +120,8 @@ def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
     command='tar --strip-components=%i -C %s -xf %s %s' % (depth,tmpdir,tarfile,fullpath)
     if verbose: print('running',command)
     os.system(command)
-    if verbose: print('renaming',tmpdir+'/'+searchfile,'as',destfile)
-    os.rename(tmpdir+'/'+searchfile,destfile)
+    if verbose: print('renaming',tmpdir+'/'+os.path.basename(fullpath),'as',destfile)
+    os.rename(tmpdir+'/'+os.path.basename(fullpath),destfile)
     os.rmdir(tmpdir)
     
 def unpack_calibrator_sols(wd,rd,verbose=False):
