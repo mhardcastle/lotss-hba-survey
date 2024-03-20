@@ -114,7 +114,6 @@ def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
     proc=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.PIPE)
     (out, err) = proc.communicate()
     files=splitlines(out)
-    if ''
     for f in files:
         if fnmatch.fnmatch(os.path.basename(f),searchfile):
             fullpath=f
