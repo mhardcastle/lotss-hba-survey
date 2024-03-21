@@ -356,8 +356,21 @@ def cleanup_step(field):
     procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
     outdir = os.path.join(procdir,field)
     workflow, obsid = get_workflow_obsid(outdir)
-    
-
+    caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'{:s}/{:s}'.format(field,obsid))
+    workflowdir = os.path.join(caldir,workflow)
+    os.makedirs(workflowdir)
+    ## remove logs directory (run was successful)
+    os.system('rm -r {:s}'.format(os.path.join(outdir,'logs')))
+    ## same for tmp directory
+    os.system('rm -r {:s}'.format(os.path.join(outdir,'tmp')))
+    ## move everything else to the data directory and rename MSs
+    remaining_files = glob.glob(os.path.join(outdir,'*'))
+    for ff in remaining_files:
+        dest = os.path.join(workflowdir,os.path.basename(ff).replace('out_',''))
+        os.system('mv {:s} {:s}'.format(ff,dest))
+    ## remove data from previous step if required
+    if workflow in ['setup']:
+        os.system('rm -r {:s}'.format(os.path.join(caldir,'*.MS')))
 
 def do_verify(field):
     tarfile = glob.glob(field+'*tgz')[0]
