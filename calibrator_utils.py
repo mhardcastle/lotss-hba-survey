@@ -116,7 +116,7 @@ def download_ddfpipeline_solutions(name,soldir,ddflight=False):
     for utf in untar_files:
         untar_file(uv_tar,soldir,utf,os.path.join(soldir,utf))
     if not ddflight:
-    untar_files = ['logs/*DIS2*log','L*frequencies.txt']
+        untar_files = ['logs/*DIS2*log','L*frequencies.txt']
     for utf in untar_files:
         untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
         freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
