@@ -137,7 +137,7 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
             tarfile=os.path.join(wd, '%i.tgz' % cal )
             if not os.path.isfile(tarfile):
                 raise RuntimeError('Cannot find the calibrator tar file!')
-            untar_file(tarfile,wd+'/tmp','cal_solutions.h5',os.path.join(wd,'%i_solutions.h5' % cal),verbose=verbose)
+            untar_file(tarfile,wd+'/tmp','cal*solutions.h5',os.path.join(wd,'%i_solutions.h5' % cal),verbose=verbose)
             sollist.append(os.path.join(wd,'%i_solutions.h5' % cal))
     return(sollist)
 
