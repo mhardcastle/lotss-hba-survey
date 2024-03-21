@@ -65,55 +65,21 @@ def collect_solutions( caldir ):
     calibrator_id = fld[0]['calibrator_id']
 
     ## check if linc/prefactor 3 has been run
-    linc_check = get_linc( obsid, caldir )
+    linc_check, macname = get_linc( obsid, caldir )
 
     if linc_check: 
         ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
-        linc_time = os.path.getmtime(os.path.join(caldir,'LINC-target_solutions.h5'))
-        ## find the ddf solutions
         soldir = os.path.join(caldir,'ddfsolutions')
         if not os.path.exists(soldir):
             os.mkdir(soldir)
-        do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
-        cwd = os.getcwd()
-        os.chdir(soldir)
-        os.system('tar -xvf misc.tar *crossmatch-results-2.npy')
-        os.chdir(cwd)
-        ddfpipeline_time = os.path.getmtime(glob.glob(os.path.join(soldir,'*crossmatch-results-2.npy'))[0])
-
+        ddfpipeline_time = ddfpipeline_timecheck(name,caldir)
         if ddfpipeline_time - linc_time > 0:
             ## linc was run before ddfpipeline -- in this case can start with vlbi pipeline directly
             ## download the rest of the ddfpipeline things
-            do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
-            cwd = os.getcwd()
-            os.chdir(soldir)
-            os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.app.restored.fits')
-            os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.mask01.fits')
-            os.system('tar -xvf images.tar image_full_ampphase_di_m.NS.DicoModel')
-            os.system('tar -xvf uv.tar image_dirin_SSD_m.npy.ClusterCat.npy')
-            os.system('tar -xvf uv.tar SOLSDIR')
-            os.system('tar -xvf misc.tar logs/*DIS2*log')
-            os.system('tar -xvf misc.tar L*frequencies.txt')
-            os.chdir(cwd)
-            ## what's needed is actually just:
-            ## DDS3_full_slow*.npz 
-            ## DDS3_full*smoothed.npz 
-            ## but SOLSDIR needs to be present with the right directory structure, this is expected for the subtract.
-            ## and the bootstrap if required
-            '''
-            So the things needed for the subtract are:
-            and if the bootstrap is applied
-            L*frequencies.txt (which can probably be reconstructed if missing)
-
-
-            DIS2 logs --> look for the input column and if that's scaled data then you NEED the numpy array. for versions that start from data then those values are absorbed into the amplitude solutions and need to re-run
-            and if the input col is scaled data then need to check for the numpy array
-
-            scaled data + no numpy array = rerun up to boostrap
-            scaled data + numpy array = need to generate data (i.e. scaled with numpy corrections) [there is code]
-
-            frequencies missing --> regenerate from small mslist  [there is code]
-            '''
+            result = download_ddfpipeline_solutions(name,soldir)
+            if not result:
+                ## re-generate missing frequencies
+                print('Frequency list is missing, need to regenerate it.')
             tasklist.append('setup')
             tasklist.append('concat-flag')
             tasklist.append('phaseup-concat')
@@ -122,10 +88,14 @@ def collect_solutions( caldir ):
             tasklist.append('selfcal')
         else:
             ## linc was run after and ddfpipeline ("light" options) need to be run
+            ## go back and get the LINC data 
+            get_linc_for_ddfpipeline(macname,caldir)
+            templatedir = os.path.join(caldir,'ddfpipeline/template')
+            ## get the previous ddf-pipeline images
+            result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+            tasklist.append('ddflight')            
             tasklist.append('setup')
             tasklist.append('concat-flag')
-            tasklist.append('ddflight') ## needs to include initial dumping of intl stations
-            ## apply solutions?
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
