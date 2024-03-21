@@ -11,7 +11,12 @@ OBSID=${1}
 
 #################################################################################
 ## Cluster specific directories to change
+
+## DEFINE IN YOUR .bashrc 
 export INSTALL_DIR=/home/azimuth/software
+export MYSINGULARITYDIR=/project/lofarvlbi/Software/singularity
+
+
 export VLBIDIR=${INSTALL_DIR}/VLBI-cwl
 export LINCDIR=${INSTALL_DIR}/LINC
 export FLOCSDIR=${INSTALL_DIR}/flocs
@@ -20,13 +25,12 @@ export FACETSELFCAL=${INSTALL_DIR}/lofar_facet_selfcal
 BINDPATHS=${INSTALL_DIR},${LINC_DATA_DIR}
 
 ## Singularity
-MYSINGULARITYDIR=/project/lofarvlbi/Software/singularity
 SIMG=${MYSINGULARITYDIR}/lofar_sksp_v4.2.3_znver2_znver2_aocl4_debug.sif
 #################################################################################
 ## IN GENERAL DO NOT TOUCH ANYTHING BELOW HERE
 
 ## define the data directories
-DATADIR=${LINC_DATA_DIR}/${OBSID}
+DATADIR=${LINC_DATA_DIR}/${OBSID}/setup
 PROCDIR=${LINC_DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
 TMPDIR=${PROCDIR}/${OBSID}/tmp/
@@ -61,7 +65,7 @@ fi
 cd ${OUTDIR}
 
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
-singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag  --delay_calibrator ${DATADIR}/delay_calibrators.csv --ddf_solset ${DATADIR}/ddfsolutions/<insert_path_here>  --linc ${LINCDIR} ${DATADIR}/ >> test.log 2>&1
+singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag  --delay_calibrator ${DATADIR}/delay_calibrators.csv --ddf_solset ${DATADIR}/ddfsolutions --linc ${LINCDIR} ${DATADIR}/ >> create_ms_list.log 2>&1
 
 
 echo LINC starting

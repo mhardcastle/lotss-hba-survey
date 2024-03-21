@@ -288,13 +288,15 @@ while True:
                     ## and cleanup after the step
                     cleanup_step(field)
                     ## start next step
-                    next_task = get_task_list(obsid)[0] 
-                    fieldobsid = '{:s}/{:s}'.format(field,obsid)
-                    command = "sbatch -J {:s} {:s}/slurm/run_{:s}.sh {:s}".format(field, str(basedir).rstrip('/'), next_task, fieldobsid)
-                    if os.system(command):
-                        update_status(field,"Submission failed")
-                    
-                    ## if no more tasks, set to Verified
+                    remaining_tasks = get_task_list(obsid)
+                    if len(remaining_tasks) > 0:
+                        next_task = remaining_tasks[0]
+                        fieldobsid = '{:s}/{:s}'.format(field,obsid)
+                        command = "sbatch -J {:s} {:s}/slurm/run_{:s}.sh {:s}".format(field, str(basedir).rstrip('/'), next_task, fieldobsid)
+                        if os.system(command):
+                            update_status(field,"Submission failed")
+                    else:
+                        update_status(field,'Verified')  
                 else:
                     update_status(field,'Workflow failed')
 
