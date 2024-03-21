@@ -322,17 +322,7 @@ def do_unpack(field):
 ##############################
 ## verifying
 
-def check_field(field):
-    procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
-    outdir = os.path.join(procdir,field)
-    ## get status from finished.txt
-    with open(os.path.join(outdir,'finished.txt'),'r') as f:
-        lines = f.readlines()
-    if 'SUCCESS: Pipeline finished successfully' in lines[0]:
-        success = True
-    else:
-        print('Pipeline did not report finishing successfully. Please check processing for {:s}!!'.format(field))
-        success = False
+def get_workflow_obsid(outdir):
     ## get the workflow that was run
     with open(os.path.join(outdir,'job_output.txt'),'r') as f:
         lines = [next(f) for _ in range(10)]
@@ -346,7 +336,28 @@ def check_field(field):
     line = [ line for line in lines if 'path' in line ]
     tmp = line[0].split('_SB')
     obsid = os.path.basename(tmp[0]).replace('L','')
+    return(workflow,obsid)
+
+def check_field(field):
+    procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
+    outdir = os.path.join(procdir,field)
+    ## get status from finished.txt
+    with open(os.path.join(outdir,'finished.txt'),'r') as f:
+        lines = f.readlines()
+    if 'SUCCESS: Pipeline finished successfully' in lines[0]:
+        success = True
+    else:
+        print('Pipeline did not report finishing successfully. Please check processing for {:s}!!'.format(field))
+        success = False
+    workflow, obsid = get_worflow_obsid(outdir)
     return success, workflow, obsid
+
+def cleanup_step(field):
+    procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
+    outdir = os.path.join(procdir,field)
+    workflow, obsid = get_workflow_obsid(outdir)
+    
+
 
 def do_verify(field):
     tarfile = glob.glob(field+'*tgz')[0]
