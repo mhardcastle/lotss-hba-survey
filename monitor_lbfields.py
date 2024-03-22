@@ -31,21 +31,7 @@ from lbfields_utils import *
 ## CLUSTER SPECIFICS - use environment variables
 
 '''
-export DDF_PIPELINE_CLUSTER=cosma
-export LINC_DATA_DIR=/cosma5/data/durham/dc-mora2/surveys/
-export MACAROON_DIR=/cosma/home/durham/dc-mora2/macaroons/
-
-export DDF_PIPELINE_CLUSTER=spider
-export LINC_DATA_DIR=/project/lofarvlbi/Share/surveys
-export MACAROON_DIR=/home/lofarvlbi-lmorabito/macaroons/
-
-export DDF_PIPELINE_CLUSTER=azimuth
-export LINC_DATA_DIR=/home/azimuth/surveys/
-export MACAROON_DIR=/home/azimuth/macaroons/
-export LOFAR_SINGULARITY=/home/azimuth/software/singularity/lofar_sksp_v4.4.0_cascadelake_cascadelake_ddf_mkl_cuda.sif
-
-# If you want to have untar and dysco as a job - eg. for COSMA in Durham
-export UNPACK_AS_JOB=True
+PLEASE SEE THE slurm/add_these_to_bashrc.txt file
 '''
 
 user = os.getenv('USER')

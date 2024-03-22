@@ -103,25 +103,26 @@ def get_linc_for_ddfpipeline(macname,caldir):
             untar_ms(trf,ddfpipelinedir)
 
 def download_ddfpipeline_solutions(name,soldir,ddflight=False):
+    if not os.path.isdir(soldir):
+        os.makedirs(soldir)
     do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
     image_tar = os.path.join(soldir,'images.tar') 
     uv_tar = os.path.join(soldir,'uv.tar')
     misc_tar = os.path.join(soldir,'misc.tar')
     untar_files = ['image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.mask01.fits','image_full_ampphase_di_m.NS.DicoModel']
     for utf in untar_files:
-        untar_file(image_tar,soldir,utf,os.path.join(soldir,utf))
+        untar_file(image_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
     if ddflight:
         untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy']
     else:
         untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy','SOLSDIR']
     for utf in untar_files:
-        untar_file(uv_tar,soldir,utf,os.path.join(soldir,utf))
+        untar_file(uv_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
     if not ddflight:
         untar_files = ['logs/*DIS2*log','L*frequencies.txt']
-    for utf in untar_files:
-        untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
-        freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
-    if not ddflight:
+        for utf in untar_files:
+            untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
+            freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
         if len(freq_check) > 0:
             success = True
         else:
