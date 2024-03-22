@@ -72,6 +72,7 @@ def collect_solutions( caldir ):
         soldir = os.path.join(caldir,'ddfsolutions')
         if not os.path.exists(soldir):
             os.mkdir(soldir)
+        linc_time = os.path.getmtime(os.path.join(caldir,'LINC-target_solutions.h5'))
         ddfpipeline_time = ddfpipeline_timecheck(name,caldir)
         if ddfpipeline_time - linc_time > 0:
             ## linc was run before ddfpipeline -- in this case can start with vlbi pipeline directly

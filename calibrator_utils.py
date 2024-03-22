@@ -67,7 +67,7 @@ def get_linc( obsid, caldir ):
 
 def ddfpipeline_timecheck(name,soldir):
     do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
-    untar_file(os.path.join(soldir,'misc.tar'),soldir,'*crossmatch-results-2.npy',os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
+    untar_file(os.path.join(soldir,'misc.tar'),os.path.join(soldir,'tmp'),'*crossmatch-results-2.npy',os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
     ddftime = os.path.getmtime(os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
     os.system('rm {:s}'.format(os.path.join(soldir,'timetest-crossmatch-results-2.npy')))
     return(ddftime)
@@ -100,7 +100,7 @@ def get_linc_for_ddfpipeline(macname,caldir):
         ## untar them
         untar_files = glob.glob(os.path.join(ddfpipelinedir,'*tar'))
         for trf in untar_files:
-            untar_file(trf,ddfpipelinedir,trf.replace('.tar',''),os.path.join(ddfpipelinedir,trf.replace('.tar','')))
+            untar_ms(trf,ddfpipelinedir)
 
 def download_ddfpipeline_solutions(name,soldir,ddflight=False):
     do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
@@ -188,6 +188,7 @@ def download_field_calibrators(field,wd,verbose=False):
                 rd[obsid].append(calid)
             elif verbose: print('     No processed calibrator found!')
     return rd
+
 
 def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
     if not os.path.isdir(tmpdir):
