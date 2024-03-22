@@ -12,6 +12,7 @@ import fnmatch
 import datetime
 from losoto.h5parm import h5parm
 import numpy as np
+from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 
 #################################
 '''
