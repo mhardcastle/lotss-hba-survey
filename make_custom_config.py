@@ -51,7 +51,7 @@ def make_custom_config(name,workdir,do_field,averaged=False,tdir=None):
         lotss_field=True
 
     if idd['field_type']=="Galactic":
-        if idd['decl'<10.0:
+        if idd['decl']<10.0:
                template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-mar2024-MW-lowdec.cfg'
         else:
                template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-mar2024-MW.cfg'
