@@ -63,7 +63,7 @@ fig.add_subplot(111, projection='aitoff')
 
 # GP
 
-for b in [-10,0,10]:
+for b in [-23,0,23]:
 
     lon=np.linspace(-180,180,1000)
     lat=b*np.ones_like(lon)
@@ -75,7 +75,7 @@ for b in [-10,0,10]:
 
     ra_r,dec_r=cc(ra,dec)
     
-    plt.scatter(ra_r,dec_r,color='blue',s=5,label='MW' if b==0 else None)
+    plt.scatter(ra_r,dec_r,color='blue',s=5,label='MW $\pm 23^\circ$' if b==0 else None)
 
 #DR2 area
 #ravals = []

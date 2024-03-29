@@ -7,10 +7,12 @@ import os
 import sys
 
 flag_failed=(len(sys.argv)>1 and sys.argv[1]=='flag_failed')
+rerun=(len(sys.argv)>1 and sys.argv[1]=='rerun')
 
 from plot_db_status import qstat
 
 q=qstat()
+reruns=[]
 with SurveysDB(readonly=not flag_failed) as sdb:
     sdb.cur.execute('select * from fields where clustername="Herts" and (status="Running" or status="Queued") order by status,id')
     fields=sdb.cur.fetchall()
@@ -33,5 +35,12 @@ with SurveysDB(readonly=not flag_failed) as sdb:
                 sdb.set_field(f)
             if f['location'] is not None and os.path.isdir(f['location']):
                 os.system('ls -tlr '+f['location']+' | tail -1')
+            if rerun:
+                reruns.append(id)
         else:
             print(id,'has status',f['status'],'and queue status',q[key])
+
+if rerun:
+    for id in reruns:
+        os.system('run_job.py '+id)
+        
