@@ -8,9 +8,11 @@ from surveys_db import SurveysDB
 import os
 import subprocess
 import glob
+import fnmatch
 import datetime
 from losoto.h5parm import h5parm
 import numpy as np
+from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 
 #################################
 '''
@@ -23,6 +25,7 @@ def get_linc( obsid, caldir ):
     rclone_works = True
     obsname = 'L'+str(obsid)
     success = False
+    thismac = None
     for macaroon in macaroons:
         macname = os.path.join(os.getenv('MACAROON_DIR'),macaroon)
         try:
@@ -40,21 +43,17 @@ def get_linc( obsid, caldir ):
         
         if rclone_works and obsname in remote_obs:
             print('Data available in rclone repository, downloading solutions!')
-    
-            ## try a couple different cal solutions names .... 
-            ## cal_values.tar  cal_solutions.h5.tar ... what else?
-            ## NEED TO DO A MORE COMPLETE SEARCH
-            tarfile = 'cal_values.tar'
+            thismac = macname
+            d = rc.execute(['-P','ls',rc.remote + obsname])
+            filelist = d['out']
+            tarfiles = [ line.split(' ')[-1] for line in filelist if 'tar' in line ]
+            tarfile = [ tf for tf in tarfiles if 'cal' in tf and 'ms' not in tf ][0]
 
             d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,tarfile)]+[caldir]) 
             if d['err'] or d['code']!=0:
                 print('Rclone failed to download solutions')
             else:
                 untar_file(os.path.join(caldir,tarfile),caldir+'/tmp','*h5',os.path.join(caldir,'LINC-target_solutions.h5'),verbose=False)
-                cwd = os.getcwd()
-                os.chdir(caldir)
-                os.system('tar -xvf cal_values.tar')
-                os.chdir(cwd)
                 d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,'inspection.tar')]+[caldir]) 
                 if d['err'] or d['code']!=0:
                     print('Rclone failed to download inspection plots')
@@ -62,8 +61,93 @@ def get_linc( obsid, caldir ):
                 if d['err'] or d['code']!=0:
                     print('Rclone failed to download logs')
                 ## check that solutions are ok (tim scripts)
-                sols = glob.glob(os.path.join(caldir,'cal_values/solutions.h5'))[0]
+                sols = glob.glob(os.path.join(caldir,'LINC-target_solutions.h5'))[0]
                 success = check_solutions(sols)
+    return(success,thismac)
+
+def ddfpipeline_timecheck(name,soldir):
+    do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
+    untar_file(os.path.join(soldir,'misc.tar'),os.path.join(soldir,'tmp'),'*crossmatch-results-2.npy',os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
+    ddftime = os.path.getmtime(os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
+    os.system('rm {:s}'.format(os.path.join(soldir,'timetest-crossmatch-results-2.npy')))
+    return(ddftime)
+
+def get_linc_for_ddfpipeline(macname,caldir):
+    obsname = 'L' + os.path.basename(caldir)
+    try:
+        rc = RClone(macname,debug=True)
+        rclone_works=True
+    except RuntimeError as e:
+        print('rclone setup failed, probably RCLONE_CONFIG_DIR not set:',e)
+        rclone_works=False                    
+    if rclone_works:
+        try:
+            remote_obs = rc.get_dirs()
+        except OSError as e:
+            print('rclone command failed, probably rclone not installed or RCLONE_COMMAND not set:',e)
+            rclone_works=False
+    if rclone_works:
+        d = rc.execute(['-P','ls',rc.remote + obsname])
+        filelist = d['out']
+        tarfiles = [ line.split(' ')[-1] for line in filelist if 'tar' in line ]
+        msfiles = [ tf for tf in tarfiles if 'ms' in tf ]
+        ddfpipelinedir = os.path.join(caldir,'ddfpipeline')
+        os.makedirs(ddfpipelinedir)
+        for msfile in msfiles:
+            d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,msfile)]+[ddfpipelinedir])
+        if d['err'] or d['code']!=0:
+            print('Rclone failed to download solutions')
+        ## untar them
+        untar_files = glob.glob(os.path.join(ddfpipelinedir,'*tar'))
+        for trf in untar_files:
+            untar_ms(trf,ddfpipelinedir)
+
+def download_ddfpipeline_solutions(name,soldir,ddflight=False):
+    if not os.path.isdir(soldir):
+        os.makedirs(soldir)
+    do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
+    image_tar = os.path.join(soldir,'images.tar') 
+    uv_tar = os.path.join(soldir,'uv.tar')
+    misc_tar = os.path.join(soldir,'misc.tar')
+    untar_files = ['image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.mask01.fits','image_full_ampphase_di_m.NS.DicoModel']
+    for utf in untar_files:
+        untar_file(image_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
+    if ddflight:
+        untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy']
+    else:
+        untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy','SOLSDIR']
+    for utf in untar_files:
+        untar_file(uv_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
+    if not ddflight:
+        untar_files = ['logs/*DIS2*log','L*frequencies.txt']
+        for utf in untar_files:
+            untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
+            freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
+        if len(freq_check) > 0:
+            success = True
+        else:
+            success = False
+    else:
+        success = True
+    ## what's needed is actually just:
+    ## DDS3_full_slow*.npz 
+    ## DDS3_full*smoothed.npz 
+    ## but SOLSDIR needs to be present with the right directory structure, this is expected for the subtract.
+    ## and the bootstrap if required
+    '''
+    So the things needed for the subtract are:
+    and if the bootstrap is applied
+    L*frequencies.txt (which can probably be reconstructed if missing)
+
+
+    DIS2 logs --> look for the input column and if that's scaled data then you NEED the numpy array. for versions that start from data then those values are absorbed into the amplitude solutions and need to re-run
+    and if the input col is scaled data then need to check for the numpy array
+
+    scaled data + no numpy array = rerun up to boostrap
+    scaled data + numpy array = need to generate data (i.e. scaled with numpy corrections) [there is code]
+
+    frequencies missing --> regenerate from small mslist  [there is code]
+    '''
     return(success)
 
 def find_calibrators(obsid):
@@ -106,6 +190,7 @@ def download_field_calibrators(field,wd,verbose=False):
             elif verbose: print('     No processed calibrator found!')
     return rd
 
+
 def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
     if not os.path.isdir(tmpdir):
         os.mkdir(tmpdir)
@@ -114,7 +199,7 @@ def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
     (out, err) = proc.communicate()
     files=splitlines(out)
     for f in files:
-        if os.path.basename(f)==searchfile:
+        if fnmatch.fnmatch(os.path.basename(f),searchfile):
             fullpath=f
             break
     else:
@@ -123,8 +208,8 @@ def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
     command='tar --strip-components=%i -C %s -xf %s %s' % (depth,tmpdir,tarfile,fullpath)
     if verbose: print('running',command)
     os.system(command)
-    if verbose: print('renaming',tmpdir+'/'+searchfile,'as',destfile)
-    os.rename(tmpdir+'/'+searchfile,destfile)
+    if verbose: print('renaming',tmpdir+'/'+os.path.basename(fullpath),'as',destfile)
+    os.rename(tmpdir+'/'+os.path.basename(fullpath),destfile)
     os.rmdir(tmpdir)
     
 def unpack_calibrator_sols(wd,rd,verbose=False):
@@ -140,7 +225,7 @@ def unpack_calibrator_sols(wd,rd,verbose=False):
             tarfile=os.path.join(wd, '%i.tgz' % cal )
             if not os.path.isfile(tarfile):
                 raise RuntimeError('Cannot find the calibrator tar file!')
-            untar_file(tarfile,wd+'/tmp','cal_solutions.h5',os.path.join(wd,'%i_solutions.h5' % cal),verbose=verbose)
+            untar_file(tarfile,wd+'/tmp','cal*solutions.h5',os.path.join(wd,'%i_solutions.h5' % cal),verbose=verbose)
             sollist.append(os.path.join(wd,'%i_solutions.h5' % cal))
     return(sollist)
 
