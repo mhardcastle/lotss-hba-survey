@@ -138,7 +138,7 @@ def do_download( id ):
                 for surl in surls:
                     dest = os.path.join(caldir,os.path.basename(surl))
                     if not os.path.isfile(dest):
-                        download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,catch_codes=(500,),retry_size=1024)
+                        download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,catch_codes=(500,403),retry_size=1024)
                     else:
                         print(dest,'exists already, not downloading')
             else:
