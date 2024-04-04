@@ -12,6 +12,7 @@ import fnmatch
 import datetime
 from losoto.h5parm import h5parm
 import numpy as np
+from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 
 #################################
 '''
@@ -66,7 +67,7 @@ def get_linc( obsid, caldir ):
 
 def ddfpipeline_timecheck(name,soldir):
     do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
-    untar_file(os.path.join(soldir,'misc.tar'),soldir,'*crossmatch-results-2.npy',os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
+    untar_file(os.path.join(soldir,'misc.tar'),os.path.join(soldir,'tmp'),'*crossmatch-results-2.npy',os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
     ddftime = os.path.getmtime(os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
     os.system('rm {:s}'.format(os.path.join(soldir,'timetest-crossmatch-results-2.npy')))
     return(ddftime)
@@ -99,28 +100,29 @@ def get_linc_for_ddfpipeline(macname,caldir):
         ## untar them
         untar_files = glob.glob(os.path.join(ddfpipelinedir,'*tar'))
         for trf in untar_files:
-            untar_file(trf,ddfpipelinedir,trf.replace('.tar',''),os.path.join(ddfpipelinedir,trf.replace('.tar','')))
+            untar_ms(trf,ddfpipelinedir)
 
 def download_ddfpipeline_solutions(name,soldir,ddflight=False):
+    if not os.path.isdir(soldir):
+        os.makedirs(soldir)
     do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
     image_tar = os.path.join(soldir,'images.tar') 
     uv_tar = os.path.join(soldir,'uv.tar')
     misc_tar = os.path.join(soldir,'misc.tar')
     untar_files = ['image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.mask01.fits','image_full_ampphase_di_m.NS.DicoModel']
     for utf in untar_files:
-        untar_file(image_tar,soldir,utf,os.path.join(soldir,utf))
+        untar_file(image_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
     if ddflight:
         untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy']
     else:
         untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy','SOLSDIR']
     for utf in untar_files:
-        untar_file(uv_tar,soldir,utf,os.path.join(soldir,utf))
+        untar_file(uv_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
     if not ddflight:
         untar_files = ['logs/*DIS2*log','L*frequencies.txt']
-    for utf in untar_files:
-        untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
-        freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
-    if not ddflight:
+        for utf in untar_files:
+            untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
+            freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
         if len(freq_check) > 0:
             success = True
         else:
@@ -187,6 +189,7 @@ def download_field_calibrators(field,wd,verbose=False):
                 rd[obsid].append(calid)
             elif verbose: print('     No processed calibrator found!')
     return rd
+
 
 def untar_file(tarfile,tmpdir,searchfile,destfile,verbose=False):
     if not os.path.isdir(tmpdir):

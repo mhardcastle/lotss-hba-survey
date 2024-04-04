@@ -7,28 +7,25 @@
 #SBATCH --output=/project/lofarvlbi/Share/surveys/logs/R-%x.%j.out  ### CLUSTER SPECIFIC
 
 ## submit the job with OBSID as an argument
-## the format is actually name/obsid e.g. P210+37/662482
 OBSID=${1}
 
 #################################################################################
 ## Cluster specific directories to change
-export INSTALL_DIR=/home/azimuth/software
-export VLBIDIR=${INSTALL_DIR}/VLBI-cwl
-export LINCDIR=${INSTALL_DIR}/LINC
-export FLOCSDIR=${INSTALL_DIR}/flocs
-export LOFARHELPERS=${INSTALL_DIR}/lofar_helpers
-export FACETSELFCAL=${INSTALL_DIR}/lofar_facet_selfcal
-BINDPATHS=${INSTALL_DIR},${LINC_DATA_DIR}
+## PLEASE SEE slurm/add_these_to_bashrc.txt 
 
-## Singularity
-MYSINGULARITYDIR=/project/lofarvlbi/Software/singularity
-SIMG=${MYSINGULARITYDIR}/lofar_sksp_v4.2.3_znver2_znver2_aocl4_debug.sif
+export VLBIDIR=${SOFTWAREDIR}/VLBI-cwl
+export LINCDIR=${SOFTWAREDIR}/LINC
+export FLOCSDIR=${SOFTWAREDIR}/flocs
+export LOFARHELPERS=${SOFTWAREDIR}/lofar_helpers
+export FACETSELFCAL=${SOFTWAREDIR}/lofar_facet_selfcal
+BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
+
 #################################################################################
 ## IN GENERAL DO NOT TOUCH ANYTHING BELOW HERE
 
 ## define the data directories
-DATADIR=${LINC_DATA_DIR}/${OBSID}
-PROCDIR=${LINC_DATA_DIR}/processing
+DATADIR=${DATA_DIR}/${OBSID}
+PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
 TMPDIR=${PROCDIR}/${OBSID}/tmp/
 LOGSDIR=${OUTDIR}/logs
@@ -64,13 +61,13 @@ fi
 cd ${OUTDIR}
 
 ## list of measurement sets
-singularity exec -B ${PWD},${BINDPATHS} ${SIMG} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI setup --solset ${DATADIR}/cal_values/solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv  --h5merger ${LOFARHELPERS} --linc ${LINCDIR} --selfcal ${FACETSELFCAL} ${DATADIR}/ >> test.log 2>&1
+singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI setup --solset ${DATADIR}/cal_values/solutions.h5 --delay_calibrator ${DATADIR}/delay_calibrators.csv  --h5merger ${LOFARHELPERS} --linc ${LINCDIR} --selfcal ${FACETSELFCAL} ${DATADIR}/ >> test.log 2>&1
 
 
 echo LINC starting
 echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${OBSID}.sh
 echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/setup.cwl mslist.json' >> tmprunner_${OBSID}.sh
-(time singularity exec -B ${PWD},${BINDPATHS} ${SIMG} bash tmprunner_${OBSID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
+(time singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} bash tmprunner_${OBSID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
 echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt
 then 
