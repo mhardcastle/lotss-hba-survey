@@ -35,3 +35,14 @@ then
 else
 	echo "Pipeline did not report finishing successfully. Please check processing" > finished.txt
 fi
+
+## copy files over to the processing directory where the monitor script checks for them
+## and make sure that there will be the right things to check
+if ! test -d ${DATA_DIR}/processing/${OBSID}
+then
+	mkdir ${DATA_DIR}/processing/${OBSID}
+fi
+cp finished.txt ${DATA_DIR}/processing/${OBSID}/
+echo -e "ddflight.cwl Resolved \n\n\n\n\n\n\n\n\n\n" > ${DATA_DIR}/processing/${OBSID}/job_output.txt
+cp big-mslist.txt ${DATA_DIR}/processing/${OBSID}/mslist-ddflight.json
+sed -i 's~ms~ path~g' ${DATA_DIR}/processing/${OBSID}/mslist-ddflight.json
