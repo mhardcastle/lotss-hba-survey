@@ -265,14 +265,16 @@ while True:
     if 'Queued' in d:
         for field in fd['Queued']:
             print('Verifying processing for',field)            
-            outdir = os.path.join(procdir,field)
+            field_obsids = get_local_obsid(field)
+            fieldobsid = '{:s}/{:s}'.format(field,field_obsids[0])
+            outdir = os.path.join(procdir,fieldobsid)
             if os.path.isfile(os.path.join(outdir,'finished.txt')):        
-                result, workflow, obsid = check_field(field)
+                result, workflow, obsid = check_field(fieldobsid)
                 if result:
                     ## get task that was run from the finished.txt to mark done
                     mark_done(obsid,workflow)
                     ## and cleanup after the step
-                    cleanup_step(field)
+                    cleanup_step(fieldobsid)
                     ## start next step
                     remaining_tasks = get_task_list(obsid)
                     if len(remaining_tasks) > 0:

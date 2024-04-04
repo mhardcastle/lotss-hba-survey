@@ -31,7 +31,20 @@ then
 		mkdir ../ddfsolutions
 	fi
 	mv SOLSDIR ../ddfsolutions
-	## L*frequencies.txt (which can probably be reconstructed if missing)
+	## check whether the bootstrap will need to be applied
+	FILES=(logs/KillMS-L*DIS2_full.log)
+	TMP=`grep ' InCol' ${FILES[1]}`
+	INCOL=`echo ${TMP} | cut -d' ' -f 7`
+	if [ "${INCOL}" = "DATA" ]
+	then
+		echo "used bootstrapped model, no corrections necessary"
+	else
+		## will also need     
+		#L*frequencies.txt (can be reconstructed if it doesn't exist)
+		#L*crossmatch-results-2.npy
+		cp L*frequencies.txt ../ddfsolutions
+		cp L*crossmatch-results-2.npy ../ddfsolutions
+	fi
 else
 	echo "Pipeline did not report finishing successfully. Please check processing" > finished.txt
 fi
