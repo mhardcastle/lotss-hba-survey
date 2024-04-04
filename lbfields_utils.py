@@ -328,13 +328,13 @@ def cleanup_step(field):
     outdir = os.path.join(procdir,field)
     workflow, obsid = get_workflow_obsid(outdir)
     workflowdir = os.path.join(outdir,workflow)
-    os.makedirs(workflowdir)
     ## remove logs directory (run was successful)
     os.system('rm -r {:s}'.format(os.path.join(outdir,'logs')))
     ## same for tmp directory
     os.system('rm -r {:s}'.format(os.path.join(outdir,'tmp')))
     ## move everything else to the data directory and rename MSs
     remaining_files = glob.glob(os.path.join(outdir,'*'))
+    os.makedirs(workflowdir)
     for ff in remaining_files:
         dest = os.path.join(workflowdir,os.path.basename(ff).replace('out_',''))
         os.system('mv {:s} {:s}'.format(ff,dest))
