@@ -37,7 +37,7 @@ def get_obsids( name, survey=None ):
     return(obsids)
 
 def get_local_obsid( name ):
-    basedir = os.getenv('LINC_DATA_DIR')
+    basedir = os.getenv('DATA_DIR')
     fielddir = os.path.join(basedir, name)
     fieldfiles = glob.glob(os.path.join(fielddir,'*'))
     fielddirs = []
@@ -151,7 +151,7 @@ def stage_field( name, survey=None ):
     uris = data.rstrip('\n').split('\n')
     ## get obsid and create a directory
     obsid = uris[0].split('/')[-2]
-    tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(name))
+    tmp = os.path.join(str(os.getenv('DATA_DIR')),str(name))
     caldir = os.path.join(tmp,obsid)   
     os.makedirs(caldir) 
     stage_id = stager_access.stage(uris)
@@ -173,7 +173,7 @@ def do_download( name ):
     obsid = surls[0].split('/')[-2]
     obsid_path = os.path.join(project,obsid)
     if len(surls) > 0:
-        tmp = os.path.join(str(os.getenv('LINC_DATA_DIR')),str(name))
+        tmp = os.path.join(str(os.getenv('DATA_DIR')),str(name))
         caldir = os.path.join(tmp,obsid)
         ## os.makedirs(caldir)  # now done in stage_field
         if 'juelich' in surls[0]:
@@ -247,7 +247,7 @@ def do_unpack(field):
     update_status(field,'Unpacking')
     success=True
     do_dysco=False # Default should be false
-    caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),field)
+    caldir = os.path.join(str(os.getenv('DATA_DIR')),field)
     obsdirs = glob.glob(os.path.join(caldir,'*'))
     obsdir = [ val for val in obsdirs if 'csv' not in val ]
     if len(obsdir) > 1:
@@ -309,7 +309,7 @@ def get_workflow_obsid(outdir):
     return(workflow,obsid)
 
 def check_field(field):
-    procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
+    procdir = os.path.join(str(os.getenv('DATA_DIR')),'processing')
     outdir = os.path.join(procdir,field)
     ## get status from finished.txt
     with open(os.path.join(outdir,'finished.txt'),'r') as f:
@@ -323,10 +323,10 @@ def check_field(field):
     return success, workflow, obsid
 
 def cleanup_step(field):
-    procdir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'processing')
+    procdir = os.path.join(str(os.getenv('DATA_DIR')),'processing')
     outdir = os.path.join(procdir,field)
     workflow, obsid = get_workflow_obsid(outdir)
-    caldir = os.path.join(str(os.getenv('LINC_DATA_DIR')),'{:s}/{:s}'.format(field,obsid))
+    caldir = os.path.join(str(os.getenv('DATA_DIR')),'{:s}/{:s}'.format(field,obsid))
     workflowdir = os.path.join(caldir,workflow)
     os.makedirs(workflowdir)
     ## remove logs directory (run was successful)
