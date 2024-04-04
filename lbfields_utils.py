@@ -324,16 +324,18 @@ def check_field(field):
     return success, workflow, obsid
 
 def cleanup_step(field):
+    basedir = os.getenv('DATA_DIR')
     procdir = os.path.join(str(os.getenv('DATA_DIR')),'processing')
-    outdir = os.path.join(procdir,field)
-    workflow, obsid = get_workflow_obsid(outdir)
-    workflowdir = os.path.join(outdir,workflow)
+    field_procdir = os.path.join(procdir,field)
+    workflow, obsid = get_workflow_obsid(field_procdir)
+    field_datadir = os.path.join(basedir,field)
+    workflowdir = os.path.join(field_datadir,workflow)
     ## remove logs directory (run was successful)
-    os.system('rm -r {:s}'.format(os.path.join(outdir,'logs')))
+    os.system('rm -r {:s}'.format(os.path.join(field_procdir,'logs')))
     ## same for tmp directory
-    os.system('rm -r {:s}'.format(os.path.join(outdir,'tmp')))
+    os.system('rm -r {:s}'.format(os.path.join(field_procdir,'tmp')))
     ## move everything else to the data directory and rename MSs
-    remaining_files = glob.glob(os.path.join(outdir,'*'))
+    remaining_files = glob.glob(os.path.join(field_procdir,'*'))
     os.makedirs(workflowdir)
     for ff in remaining_files:
         dest = os.path.join(workflowdir,os.path.basename(ff).replace('out_',''))

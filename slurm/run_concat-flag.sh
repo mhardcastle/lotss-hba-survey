@@ -13,7 +13,6 @@ OBSID=${1}
 ## Cluster specific directories to change
 ## PLEASE SEE slurm/add_these_to_bashrc.txt 
 
-export SOFTWAREDIR=/home/azimuth/software
 export VLBIDIR=${SOFTWAREDIR}/VLBI-cwl
 export LINCDIR=${SOFTWAREDIR}/LINC
 export FLOCSDIR=${SOFTWAREDIR}/flocs
@@ -26,6 +25,7 @@ BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
 
 ## define the data directories
 DATADIR=${DATA_DIR}/${OBSID}/setup
+DDFSOLSDIR=${DATA_DIR}/${OBSID}/ddfsolutions
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
 TMPDIR=${PROCDIR}/${OBSID}/tmp/
@@ -60,7 +60,7 @@ fi
 cd ${OUTDIR}
 
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
-singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag  --delay_calibrator ${DATADIR}/delay_calibrators.csv --ddf_solset ${DATADIR}/ddfsolutions --linc ${LINCDIR} ${DATADIR}/ >> create_ms_list.log 2>&1
+singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag --ddf_solset ${DDFSOLSDIR}/SOLSDIR --linc ${LINCDIR} ${DATADIR}/ >> create_ms_list.log 2>&1
 
 
 echo LINC starting

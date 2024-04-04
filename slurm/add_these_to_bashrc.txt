@@ -2,6 +2,7 @@ export DDF_PIPELINE_CLUSTER=azimuth
 export DATA_DIR=/home/azimuth/surveys/
 export MACAROON_DIR=/home/azimuth/macaroons/
 export LOFAR_SINGULARITY=/home/azimuth/software/singularity/lofar_sksp_v4.4.0_cascadelake_cascadelake_ddf_mkl_cuda.sif
+export SOFTWAREDIR=/cosma/home/durham/dc-mora2/Software
 
 ## ddf-pipeline
 export DDFPIPELINE_SINGULARITY=/home/azimuth/software/singularity/ddf.sif
