@@ -320,7 +320,7 @@ def check_field(field):
     else:
         print('Pipeline did not report finishing successfully. Please check processing for {:s}!!'.format(field))
         success = False
-    workflow, obsid = get_worflow_obsid(outdir)
+    workflow, obsid = get_workflow_obsid(outdir)
     return success, workflow, obsid
 
 def cleanup_step(field):
