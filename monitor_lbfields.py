@@ -69,26 +69,8 @@ updated in MySQL_utils.py:
 update_status
 get_lbcalibrator
 set_lbcalibrator
-'''
 
-def update_status(name,status,stage_id=None,time=None,workdir=None,av=None,survey=None):
-    # adapted from surveys_db
-    # utility function to just update the status of a field
-    # name can be None (work it out from cwd), or string (field name)
-    with SurveysDB(survey=survey) as sdb:
-        idd=sdb.db_get('lb_fields',name)
-        if idd is None:
-          raise RuntimeError('Unable to find database entry for field "%s".' % name)
-        idd['status']=status
-        tag_field(sdb,idd,workdir=workdir)
-        if time is not None and idd[time] is None:
-            idd[time]=datetime.datetime.now()
-        if stage_id is not None:
-            idd['staging_id']=stage_id
-        sdb.db_set('lb_fields',idd)
-
-
-''' Logic is as follows:
+Logic is as follows:
 
 1. if there is a not started dataset, first operation is always to stage a dataset (NB a different operation if it's on rclone or on SDR -- can do SDR first). At most one staging thread. Set status to Staged on sucessful complete. From this point on we only look for datasets that are associated with the local cluster.
 
