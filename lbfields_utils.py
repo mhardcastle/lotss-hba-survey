@@ -280,6 +280,7 @@ def do_unpack(field):
         do_dysco = True
     if os.getenv("UNPACK_AS_JOB"):
         # Logic for Unpacking Jobs - Files should be named {cluster}_untar.sh and {cluster}_dysco.sh
+        cluster = os.getenv('DDF_PIPELINE_CLUSTER')
         for trf in tarfiles:
             os.system('sbatch -W slurm/{:s}_untar.sh {:s} {:s}'.format(cluster, trf, field))
             msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
