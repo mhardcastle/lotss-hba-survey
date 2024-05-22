@@ -38,6 +38,7 @@ user = os.getenv('USER')
 if len(user) > 20:
     user = user[0:20]
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
+softwaredir = os.getenv('SOFTWAREDIR')
 basedir = os.getenv('DATA_DIR')
 procdir = os.path.join(basedir,'processing')
 
@@ -52,7 +53,7 @@ unpack_name=None
 verify_thread=None
 verify_name=None
 totallimit=20
-staginglimit=2
+staginglimit=0 #2
 maxstaged=6
 
 ## cluster specific queuing limits
@@ -179,6 +180,8 @@ while True:
     else:
         do_stage = True
 
+    do_stage = False
+
     if do_stage and nextfield is not None:
         stage_name=nextfield
         print('We need to stage a new field (%s)' % stage_name)
@@ -205,8 +208,6 @@ while True:
                 print('Staging for {:s} is complete, updating status'.format(str(r['staging_id'])))
                 update_status(r['id'],'Staged') ## don't reset the staging id till download happens
             else:
-                print('Staging for {:s} is {:s} (staging id {:s})'.format(field,stage_status,str(s)))
-
     ## this does one download at a time
     if ksum<totallimit and 'Staged' in d and download_thread is None:
         download_name=fd['Staged'][0]
@@ -239,7 +240,7 @@ while True:
                     print('next task is',next_task)
                     update_status(field,'Queued')
                     fieldobsid = '{:s}/{:s}'.format(field,obsid)
-                    command = "sbatch -J {:s} {:s}/slurm/run_{:s}.sh {:s}".format(field, str(basedir).rstrip('/'), next_task, fieldobsid)
+                    command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, os.getenv('CLUSTER_OPTS'), str(softwaredir).rstrip('/'), next_task, fieldobsid)
                     ## will need run scripts for each task
                     if os.system(command):
                         update_status(field,"Submission failed")
@@ -262,7 +263,7 @@ while True:
                     if len(remaining_tasks) > 0:
                         next_task = remaining_tasks[0]
                         fieldobsid = '{:s}/{:s}'.format(field,obsid)
-                        command = "sbatch -J {:s} {:s}/slurm/run_{:s}.sh {:s}".format(field, str(basedir).rstrip('/'), next_task, fieldobsid)
+                        command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, os.getenv('CLUSTER_OPTS'), str(softwaredir).rstrip('/'), next_task, fieldobsid)
                         if os.system(command):
                             update_status(field,"Submission failed")
                     else:

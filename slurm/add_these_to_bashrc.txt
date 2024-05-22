@@ -4,6 +4,9 @@ export MACAROON_DIR=/home/azimuth/macaroons/
 export LOFAR_SINGULARITY=/home/azimuth/software/singularity/lofar_sksp_v4.4.0_cascadelake_cascadelake_ddf_mkl_cuda.sif
 export SOFTWAREDIR=/cosma/home/durham/dc-mora2/Software
 
+## cluster options
+export CLUSTER_OPTS="-A do011 -p cosma8-ska --output=${DATA_DIR}/logs/R-%x.%j.out" 
+
 ## ddf-pipeline
 export DDFPIPELINE_SINGULARITY=/home/azimuth/software/singularity/ddf.sif
 export BOOTSTRAP_DIR=/cosma/home/durham/dc-mora2/Software/bootstrap

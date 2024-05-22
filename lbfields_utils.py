@@ -252,7 +252,7 @@ def dysco_compress_job(caldir):
     success=True
     os.system('ls -d {:s}/*.MS > {:s}/myfiles.txt'.format(caldir,caldir))
     file_number = len(open("{:s}/myfiles.txt".format(caldir), "r").readlines())
-    command = 'sbatch -W --array=1-{:n}%%30 slurm/{:s}_dysco.sh {:s}'.format(file_number,cluster,caldir)
+    command = 'sbatch -W --array=1-{:n}%%30 {:s} {:s}/lotss-hba-survey/slurm/{:s}_dysco.sh {:s}'.format(file_number,os.getenv('CLUSTER_OPTS'),os.getenv('SOFTWAREDIR'),cluster,caldir)
     if os.system(command):
         print("Something went wrong with the dysco compression job!")
         success = False
@@ -282,7 +282,7 @@ def do_unpack(field):
         # Logic for Unpacking Jobs - Files should be named {cluster}_untar.sh and {cluster}_dysco.sh
         cluster = os.getenv('DDF_PIPELINE_CLUSTER')
         for trf in tarfiles:
-            os.system('sbatch -W slurm/{:s}_untar.sh {:s} {:s}'.format(cluster, trf, field))
+            os.system('sbatch -W {:s} {:s}/lotss-hba-survey/slurm/{:s}_untar.sh {:s} {:s}'.format(os.getenv('CLUSTER_OPTS'), os.getenv('SOFTWAREDIR'), cluster, trf, field))
             msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
             os.system( 'mv {:s} {:s}'.format(msname,obsdir))
         if do_dysco:
