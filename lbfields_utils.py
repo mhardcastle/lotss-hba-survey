@@ -266,7 +266,7 @@ def do_unpack(field):
     do_dysco=False # Default should be false
     caldir = os.path.join(str(os.getenv('DATA_DIR')),field)
     obsdirs = glob.glob(os.path.join(caldir,'*'))
-    obsdir = [ val for val in obsdirs if 'csv' not in val ]
+    obsdir = [ val for val in obsdirs if os.path.isdir(val) ]
     if len(obsdir) > 1:
         ## there are multiple observations for this field, this isn't handled yet
         pass
