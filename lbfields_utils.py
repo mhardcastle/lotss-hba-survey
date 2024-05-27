@@ -281,10 +281,25 @@ def do_unpack(field):
     if os.getenv("UNPACK_AS_JOB"):
         # Logic for Unpacking Jobs - Files should be named {cluster}_untar.sh and {cluster}_dysco.sh
         cluster = os.getenv('DDF_PIPELINE_CLUSTER')
+        ## get subband numbers for array jobs
+        sbs = [ int(val.split('_SB')[1].split('_')[0]) for val in tarfiles ]
+        sorted_sbs = np.sort(sbs)
+        gap_check = sorted_sbs[1:] - sorted_sbs[0:-1]
+        if np.max(gap_check) > 1:
+            gap_idx = np.where( gap_check > 1 )[0]
+            array_job = '--array={:s}-'.format(str(np.min(sorted_sbs)))
+            for i in np.arange(0,len(gap_idx)):
+                array_job = array_job + '{:s}'.format(str(sorted_sbs[gap_idx[i]]))
+                if not i == len(gap_idx):
+                    array_job = array_job + ','.format(str(sorted_sbs[gap_idx[i]+1]))
+                    array_job = array_job + '{:s}-'.format(str(sorted_sbs[gap_idx[i]+1]))
+            array_job = array_job+'{:s}%5'.format(str(np.max(sorted_sbs)))
+        else:
+            array_job = '--array={:s}-{:s}%5'.format(str(np.min(sorted_sbs)),str(np.max(sorted_sbs)))
         for trf in tarfiles:
-            os.system('sbatch -W {:s} {:s}/lotss-hba-survey/slurm/{:s}_untar.sh {:s} {:s}'.format(os.getenv('CLUSTER_OPTS'), os.getenv('SOFTWAREDIR'), cluster, trf, field))
-            msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
-            os.system( 'mv {:s} {:s}'.format(msname,obsdir))
+            os.system('sbatch -J {:s} {:s} {:s} {:s}/lotss-hba-survey/slurm/run_untar.sh {:s} {:s}'.format(field,os.getenv('CLUSTER_OPTS'), array_job, os.getenv('SOFTWAREDIR')),obsdir,field)
+            #msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
+            #os.system( 'mv {:s} {:s}'.format(msname,obsdir))
         if do_dysco:
             dysco_success = dysco_compress_job(obsdir)
     else:
@@ -348,9 +363,9 @@ def cleanup_step(field):
     field_datadir = os.path.join(basedir,field)
     workflowdir = os.path.join(field_datadir,workflow)
     ## remove logs directory (run was successful)
-    os.system('rm -r {:s}'.format(os.path.join(field_procdir,'logs')))
+    os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'logs')))
     ## same for tmp directory
-    os.system('rm -r {:s}'.format(os.path.join(field_procdir,'tmp')))
+    os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'tmp')))
     ## move everything else to the data directory and rename MSs
     remaining_files = glob.glob(os.path.join(field_procdir,'*'))
     os.makedirs(workflowdir)
