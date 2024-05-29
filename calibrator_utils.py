@@ -109,7 +109,7 @@ def download_ddfpipeline_solutions(name,soldir,ddflight=False):
     image_tar = os.path.join(soldir,'images.tar') 
     uv_tar = os.path.join(soldir,'uv.tar')
     misc_tar = os.path.join(soldir,'misc.tar')
-    untar_files = ['image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.mask01.fits','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.app.model.fits']
+    untar_files = ['image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.mask01.fits','image_full_ampphase_di_m.NS.DicoModel']
     for utf in untar_files:
         untar_file(image_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
     if ddflight:
