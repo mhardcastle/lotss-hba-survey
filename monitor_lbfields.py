@@ -242,7 +242,11 @@ while True:
                     print('next task is',next_task)
                     update_status(field,'Queued')
                     fieldobsid = '{:s}/{:s}'.format(field,obsid)
-                    command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, os.getenv('CLUSTER_OPTS'), str(softwaredir).rstrip('/'), next_task, fieldobsid)
+                    if 'ddf' in next_task:
+                        cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
+                    else:
+                        cluster_opts = os.getenv('CLUSTER_OPTS')
+                    command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, cluster_opts, str(softwaredir).rstrip('/'), next_task, fieldobsid)
                     ## will need run scripts for each task
                     if os.system(command):
                         update_status(field,"Submission failed")
