@@ -83,11 +83,12 @@ def collect_solutions( caldir ):
     ## check if linc/prefactor 3 has been run
     linc_check, macname = get_linc( obsid, caldir )
 
+    soldir = os.path.join(caldir,'ddfsolutions')
+    if not os.path.exists(soldir):
+        os.mkdir(soldir)
+
     if linc_check: 
         ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
-        soldir = os.path.join(caldir,'ddfsolutions')
-        if not os.path.exists(soldir):
-            os.mkdir(soldir)
         linc_time = os.path.getmtime(os.path.join(caldir,'LINC-target_solutions.h5'))
         ddfpipeline_time = ddfpipeline_timecheck(name,caldir)
         if ddfpipeline_time - linc_time > 0:
@@ -130,8 +131,9 @@ def collect_solutions( caldir ):
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
             tasklist.append('target')
-            ## check if need full ddfpipeline or ddflight? -- talk to tim
-            tasklist.append('ddfpipeline')
+            ## get previous ddfpipeline results
+            result = download_ddfpipeline_solutions(name,soldir,ddflight=True)
+            tasklist.append('ddflight')
             tasklist.append('setup')
             tasklist.append('concat-flag')
             tasklist.append('phaseup-concat')
