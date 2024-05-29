@@ -2,19 +2,19 @@
 #SBATCH --job-name=test_ddf
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --cpus-per-task=54
+#SBATCH --cpus-per-task=64
 #SBATCH --exclusive 
 #SBATCH --time=72:00:00
-#SBATCH -A durham
-#SBATCH -p cosma8-shm
-#SBATCH --output=/cosma8/data/do011/dc-mora2/logs/ddf-%x.%j.out
 
 ## submit the job with OBSID as an argument
 OBSID=${1}
 
 echo "Starting up, field is " ${OBSID}
 hostname
+mkdir ${DATA_DIR}/${OBSID}/ddfpipeline
 cd ${DATA_DIR}/${OBSID}/ddfpipeline
+mkdir template
+mv ${DATA_DIR}/${OBSID}/ddfsolutions/* template/
 cp ${DDF_PIPELINE_INSTALL}/examples/tier1-rerun.cfg .
 sed -i "s~\\\$\\\$~${BOOTSTRAP_DIR}~g" tier1-rerun.cfg
 
