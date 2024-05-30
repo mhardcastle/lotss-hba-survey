@@ -83,17 +83,16 @@ def collect_solutions( caldir ):
     ## check if linc/prefactor 3 has been run
     linc_check, macname = get_linc( obsid, caldir )
 
-    soldir = os.path.join(caldir,'ddfsolutions')
-    if not os.path.exists(soldir):
-        os.mkdir(soldir)
-
     if linc_check: 
         ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
         linc_time = os.path.getmtime(os.path.join(caldir,'LINC-target_solutions.h5'))
         ddfpipeline_time = ddfpipeline_timecheck(name,caldir)
         if ddfpipeline_time - linc_time > 0:
             ## linc was run before ddfpipeline -- in this case can start with vlbi pipeline directly
-            ## download the rest of the ddfpipeline things
+            ## create the solutions directory and download things to it
+            soldir = os.path.join(caldir,'ddfsolutions')
+            if not os.path.exists(soldir):
+                os.mkdir(soldir)
             result = download_ddfpipeline_solutions(name,soldir)
             if not result:
                 ## re-generate missing frequencies
@@ -107,8 +106,10 @@ def collect_solutions( caldir ):
         else:
             ## linc was run after and ddfpipeline ("light" options) need to be run
             ## go back and get the LINC data 
+            ## internally, get_linc_for_ddfpipeline will create and download to HBA_target/results
+            ## that way run_ddflight can always just go to HBA_target/results regardless if run_target was used or not
             get_linc_for_ddfpipeline(macname,caldir)
-            templatedir = os.path.join(caldir,'ddfpipeline/template')
+            templatedir = os.path.join(caldir,'HBA_target/results/template')
             ## get the previous ddf-pipeline images
             result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
             tasklist.append('ddflight')            
@@ -130,9 +131,11 @@ def collect_solutions( caldir ):
             os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
-            tasklist.append('target')
             ## get previous ddfpipeline results
-            result = download_ddfpipeline_solutions(name,soldir,ddflight=True)
+            templatedir = os.path.join(caldir,'HBA_target/results/template')
+            os.makedirs(templatedir)
+            result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+            tasklist.append('target')
             tasklist.append('ddflight')
             tasklist.append('setup')
             tasklist.append('concat-flag')

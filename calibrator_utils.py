@@ -91,7 +91,7 @@ def get_linc_for_ddfpipeline(macname,caldir):
         filelist = d['out']
         tarfiles = [ line.split(' ')[-1] for line in filelist if 'tar' in line ]
         msfiles = [ tf for tf in tarfiles if 'ms' in tf ]
-        ddfpipelinedir = os.path.join(caldir,'ddfpipeline')
+        ddfpipelinedir = os.path.join(caldir,'HBA_target/results')
         os.makedirs(ddfpipelinedir)
         for msfile in msfiles:
             d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,msfile)]+[ddfpipelinedir])
