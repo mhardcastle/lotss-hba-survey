@@ -198,7 +198,8 @@ def do_download( name ):
         if 'juelich' in surls[0]:
             for surl in surls:
                 dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,name))
+		if not os.path.isfile(dest):
+                    os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,name))
             os.system('rm {:s}_gfal.log'.format(name))
         if 'psnc' in surls[0]:
             for surl in surls:
