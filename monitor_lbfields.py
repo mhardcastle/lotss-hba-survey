@@ -137,9 +137,6 @@ while True:
     print('Next field to work on is',nextfield)
 
 
-    if solutions_thread is not None:
-        print('Solutions thread is running (%s)' % solutions_name )
-
     if download_thread is not None:
         print('Download thread is running (%s)' % download_name)
     if unpack_thread is not None:
@@ -187,7 +184,7 @@ while True:
         print('We need to stage a new field (%s)' % stage_name)
         caldir = stage_field(stage_name)
         ## while staging, collect the solutions
-        solutions_thread=threading.Thread(target=collect_solutions, args=(caldir,))
+        collect_solutions( caldir )
         ## and download the catalogue
         with SurveysDB(survey=None) as sdb:
             idd=sdb.db_get('lb_fields',stage_name)
