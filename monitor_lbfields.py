@@ -184,7 +184,8 @@ while True:
         print('We need to stage a new field (%s)' % stage_name)
         caldir = stage_field(stage_name)
         ## while staging, collect the solutions
-        collect_solutions( caldir )
+        solutions_thread=threading.Thread(target=collect_solutions, args=(caldir,))
+        solutions_thread.start()
         ## and download the catalogue
         with SurveysDB(survey=None) as sdb:
             idd=sdb.db_get('lb_fields',stage_name)
