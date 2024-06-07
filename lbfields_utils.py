@@ -227,13 +227,25 @@ def do_download( name ):
                 update_status(field,'rclone failed')
                 print('Rclone failed for field {:s}'.format(field))
         ## check that everything was downloaded
-        tarfiles = glob.glob(os.path.join(caldir,'*tar'))
+        tarfiles = check_tarfiles( caldir )
         if len(tarfiles) == len(surls):
             print('Download successful for {:s}'.format(name) )
             update_status(id,'Downloaded',stage_id=0)
     else:
-        print('SURLs do not appear to be online for {:s} (staging id {:s})'.format(name,str(stage_id)))
+        print('Something went wrong with the download for {:s} (staging id {:s})'.format(name,str(stage_id)))
         update_status(name,'Download failed')
+
+def check_tarfiles( caldir ):
+    trfs = glob.glob(os.path.join(caldir,'*tar'))
+    for trf in trfs:
+        os.system( 'tar -tvf {:s} > tmp.txt 2>&1'.format(trf) )
+        with open( 'tmp.txt', 'r' ) as f:
+            lines = f.readlines()
+        if 'tar: Unexpected EOF in archive\n' in lines:
+            os.system( 'rm {:s}'.format(trf) )
+    os.system('rm tmp.txt')    
+    trfs = glob.glob(os.path.join(caldir,'*tar'))
+    return(trfs)
 
 ##############################
 ## unpacking
@@ -330,7 +342,7 @@ def get_workflow_obsid(outdir):
     with open(jsonfile,'r') as f:
         lines = [next(f) for _ in range(10)]
     line = [ line for line in lines if 'path' in line ]
-    tmp = line[0].split('_SB')
+    tmp = line[0].split('_SB')[0].split('_1')
     obsid = os.path.basename(tmp[0]).replace('L','')
     return(workflow,obsid)
 

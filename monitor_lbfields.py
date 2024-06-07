@@ -272,7 +272,8 @@ while True:
                     if len(remaining_tasks) > 0:
                         next_task = remaining_tasks[0]
                         fieldobsid = '{:s}/{:s}'.format(field,obsid)
-                        if 'ddf' in next_task:
+                        if 'ddf' in next_task or next_task =='setup':
+                            ## need to change to cosma8-dine2
                             cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
                         else:
                             cluster_opts = os.getenv('CLUSTER_OPTS')
