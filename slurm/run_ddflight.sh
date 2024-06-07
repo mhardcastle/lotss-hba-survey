@@ -28,11 +28,11 @@ if test -f image_full_ampphase_di_m.NS.app.restored.fits
 then
 	echo "SUCCESS: Pipeline finished successfully" > finished.txt
 	## move solutions etc to ../ddfsolutions
-	if ! test -d ../ddfsolutions
+	if ! test -d ${DATA_DIR}/${OBSID}/ddfsolutions
 	then
-		mkdir ../ddfsolutions
+		mkdir ${DATA_DIR}/${OBSID}/ddfsolutions
 	fi
-	mv SOLSDIR ../ddfsolutions
+	mv SOLSDIR ${DATA_DIR}/${OBSID}/ddfsolutions
 	## check whether the bootstrap will need to be applied
 	FILES=(logs/KillMS-L*DIS2_full.log)
 	TMP=`grep ' InCol' ${FILES[1]}`
@@ -44,8 +44,8 @@ then
 		## will also need     
 		#L*frequencies.txt (can be reconstructed if it doesn't exist)
 		#L*crossmatch-results-2.npy
-		cp L*frequencies.txt ../ddfsolutions
-		cp L*crossmatch-results-2.npy ../ddfsolutions
+		cp L*frequencies.txt ${DATA_DIR}/${OBSID}/ddfsolutions
+		cp L*crossmatch-results-2.npy ${DATA_DIR}/${OBSID}/ddfsolutions
 	fi
 else
 	echo "Pipeline did not report finishing successfully. Please check processing" > finished.txt

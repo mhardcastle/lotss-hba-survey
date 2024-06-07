@@ -1,10 +1,12 @@
 #!/bin/bash 
 #SBATCH -N 1                  # number of nodes
-#SBATCH -c 32                 # number of cores  ### CLUSTER SPECIFIC
+#SBATCH -c 48                 # number of cores  ### CLUSTER SPECIFIC
 #SBATCH --ntasks=1            # number of tasks
-#SBATCH -t 128:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
-#SBATCH -p normal             # partition (queue); job can run up to 3 days  ### CLUSTER SPECIFIC
-#SBATCH --output=/project/lofarvlbi/Share/surveys/logs/R-%x.%j.out  ### CLUSTER SPECIFIC
+#SBATCH -t 72:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
+#SBATCH -A do011
+#SBATCH -p cosma8-ska2
+#SBATCH -w mad03
+#SBATCH --output=/cosma8/data/do011/dc-mora2/logs/R-%x.%j.out  ### CLUSTER SPECIFIC
 
 ## submit the job with OBSID as an argument
 OBSID=${1}
@@ -54,19 +56,21 @@ else
     export SINGULARITYENV_PYTHONPATH="$VLBIDIR/scripts:$LINCDIR/scripts:\$PYTHONPATH"
 fi
 
-
+## temporary, for lotss-subtract
+export FLOCSDIR=/cosma8/data/do011/dc-mora2/processing/flocs
 
 ## go to working directory
 cd ${OUTDIR}
 
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
-singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag --ddf_solset ${DDFSOLSDIR}/SOLSDIR --linc ${LINCDIR} ${DATADIR}/ >> create_ms_list.log 2>&1
+singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag --solset ${DATADIR}/../LINC-target_solutions.h5 --ddf_solsdir ${DDFSOLSDIR}/SOLSDIR --linc ${LINCDIR} --h5merger ${LOFARHELPERS} --aoflagger_memory_fraction 20 ${DATADIR}/ >> create_ms_list.log 2>&1
 
 
 echo LINC starting
-echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${OBSID}.sh
-echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/concatenate-flag.cwl mslist_VLBI_concatenate-flag.json' >> tmprunner_${OBSID}.sh
-(time singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} bash tmprunner_${OBSID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
+TMPID=`echo ${OBSID} | cut -d'/' -f 1`
+echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${TMPID}.sh
+echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/concatenate-flag.cwl mslist_VLBI_concatenate-flag.json' >> tmprunner_${TMPID}.sh
+(time singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} bash tmprunner_${TMPID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
 echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt
 then 

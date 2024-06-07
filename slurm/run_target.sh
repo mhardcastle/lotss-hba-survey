@@ -13,8 +13,6 @@ OBSID=${1}
 ## Cluster specific directories to change
 ## PLEASE SEE slurm/add_these_to_bashrc.txt 
 
-export SOFTWAREDIR=/home/azimuth/software
-export VLBIDIR=${SOFTWAREDIR}/VLBI-cwl
 export LINCDIR=${SOFTWAREDIR}/LINC
 export FLOCSDIR=${SOFTWAREDIR}/flocs
 BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
@@ -52,12 +50,13 @@ fi
 cd ${OUTDIR}
 
 ## pipeline input
-singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python ${FLOCSDIR}/runners/create_ms_list.py --filter_baselines="*&" ${DATADIR}
+singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python ${FLOCSDIR}/runners/create_ms_list.py LINC target --cal_solutions ${DATADIR}/LINC-cal_solutions.h5 ${DATADIR} > create_mslist.log
 
 echo LINC starting
-echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${OBSID}.sh
-echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --leave-tmpdir --log-dir=${LOGSDIR} ${LINC_DATA_ROOT}/workflows/HBA_calibrator.cwl mslist.json' >> tmprunner_${OBSID}.sh
-(time singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} bash tmprunner_${OBSID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
+TMPID=`echo ${OBSID} | cut -d'/' -f 1`
+echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${TMPID}.sh
+echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --leave-tmpdir --log-dir=${LOGSDIR} ${LINC_DATA_ROOT}/workflows/HBA_target.cwl mslist_LINC_target.json' >> tmprunner_${TMPID}.sh
+(time singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} bash tmprunner_${TMPID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
 echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt
 then 

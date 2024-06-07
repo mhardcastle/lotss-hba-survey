@@ -1,10 +1,8 @@
 #!/bin/bash 
-#SBATCH -N 1                  # number of nodes
-#SBATCH -c 32                 # number of cores  ### CLUSTER SPECIFIC
-#SBATCH --ntasks=1            # number of tasks
-#SBATCH -t 128:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
-#SBATCH -p normal             # partition (queue); job can run up to 3 days  ### CLUSTER SPECIFIC
-#SBATCH --output=/project/lofarvlbi/Share/surveys/logs/R-%x.%j.out  ### CLUSTER SPECIFIC
+#SBATCH -A do011
+#SBATCH --output=/cosma8/data/do011/dc-mora2/logs/R-%x.%j.out  ### CLUSTER SPECIFIC
+
+export TOIL_SLURM_ARGS="--export=ALL --job-name delaycal -p cosma8-dine2"
 
 ## submit the job with OBSID as an argument
 OBSID=${1}
@@ -24,7 +22,8 @@ BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
 ## IN GENERAL DO NOT TOUCH ANYTHING BELOW HERE
 
 ## define the data directories
-DATADIR=${DATA_DIR}/${OBSID}
+DATADIR=${DATA_DIR}/${OBSID}/concatenate-flag
+DDFSOLSDIR=${DATA_DIR}/${OBSID}/ddfsolutions
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
 TMPDIR=${PROCDIR}/${OBSID}/tmp/
@@ -53,22 +52,68 @@ else
     export SINGULARITYENV_PYTHONPATH="$VLBIDIR/scripts:$LINCDIR/scripts:\$PYTHONPATH"
 fi
 
-## pipeline input
-## catalogue - James script
-
+## temporary, for lotss-subtract
+export FLOCSDIR=/cosma8/data/do011/dc-mora2/processing/flocs
 
 ## go to working directory
 cd ${OUTDIR}
 
-## list of measurement sets
-singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI setup --solset ${DATADIR}/LINC-target_solutions.h5 --linc ${LINCDIR} ${DATADIR}/ >> create_mslist.log 2>&1
+## list of measurement sets - THIS WILL NEED TO BE CHECKED
+singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI lotss-subtract --ms_suffix .ms --solsdir ${DDFSOLSDIR}/SOLSDIR --ddf_rundir ${DATA_DIR}/${OBSID}/ddfpipeline ${DATADIR} >> create_ms_list.log 2>&1
+## default options:
+## --box_size 2.5 --freqavg 1 --timeavg 1 --ncpu 24 --chunkhours 0.5
+
+
+########################
+
+# MAKE TOIL STRUCTURE
+
+# make folder for running toil
+WORKDIR=${OUTDIR}/workdir
+OUTPUT=${OUTDIR}
+JOBSTORE=${OUTDIR}/jobstore
+LOGDIR=${OUTDIR}/logs
+TMPD=${OUTDIR}/tmpdir
+
+mkdir -p ${TMPD}_interm
+mkdir -p $WORKDIR
+mkdir -p $OUTPUT
+mkdir -p $LOGDIR
+
+
+########################
+
+# RUN TOIL
+
+toil-cwl-runner \
+--no-read-only \
+--retryCount 0 \
+--singularity \
+--disableCaching \
+--writeLogsFromAllJobs True \
+--logFile ${OUTDIR}/job_output.txt \
+--writeLogs ${LOGDIR} \
+--outdir ${OUTPUT} \
+--tmp-outdir-prefix ${TMPD}/ \
+--jobStore ${JOBSTORE} \
+--workDir ${WORKDIR} \
+--coordinationDir ${OUTPUT} \
+--tmpdir-prefix ${TMPD}_interm/ \
+--disableAutoDeployment True \
+--bypass-file-store \
+--preserve-entire-environment \
+--batchSystem slurm \
+${VLBIDIR}/workflows/lotss-subtract.cwl mslist_VLBI_delay_calibration.json
+#--cleanWorkDir never \ --> for testing
+
+
 
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
 echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${TMPID}.sh
-echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/setup.cwl mslist_VLBI_setup.json' >> tmprunner_${TMPID}.sh
-(time singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} bash tmprunner_${TMPID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
+echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/concatenate-flag.cwl mslist_VLBI_concatenate-flag.json' >> tmprunner_${TMPID}.sh
+(time singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} bash tmprunner_${TMPID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
 echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt
 then 
