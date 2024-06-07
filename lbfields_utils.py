@@ -380,6 +380,8 @@ def cleanup_step(field):
     ## remove data from previous step if required
     if workflow in ['setup']:
         os.system('rm -r {:s}'.format(os.path.join(caldir,'*.MS')))
+    if workflow in ['HBA_target']:
+        os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,'LINC-target_solutions.h5')))
 
 def do_verify(field):
     tarfile = glob.glob(field+'*tgz')[0]
