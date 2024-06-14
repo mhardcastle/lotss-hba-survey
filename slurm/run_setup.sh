@@ -60,8 +60,13 @@ fi
 ## go to working directory
 cd ${OUTDIR}
 
+## check name of phase solutions
+singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} losoto -i ${DATADIR}/LINC-target_solutions.h5 > tmp.txt
+TMP=`grep 'TGSS' tmp.txt`
+export PHASENAME=`echo ${TMP} | cut -d "'" -f 2`
+
 ## list of measurement sets
-singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI setup --solset ${DATADIR}/LINC-target_solutions.h5 --linc ${LINCDIR} ${DATADIR}/ >> create_mslist.log 2>&1
+singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI setup --solset ${DATADIR}/LINC-target_solutions.h5 --linc ${LINCDIR} --phasesol ${PHASENAME} ${DATADIR}/ >> create_mslist.log 2>&1
 
 
 echo LINC starting
