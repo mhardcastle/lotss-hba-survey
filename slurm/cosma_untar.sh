@@ -11,6 +11,9 @@
 #SBATCH -p cosma
 #SBATCH -A durham
 
+OUTDIR=$(dirname "${1}")
+
+cd ${OUTDIR}
 
 tar -xvf ${1} >> ${2}_unpack.log 2>&1
 
