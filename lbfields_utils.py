@@ -303,7 +303,7 @@ def do_unpack(field):
         # Logic for Unpacking Jobs - Files should be named {cluster}_untar.sh and {cluster}_dysco.sh
         cluster = os.getenv('DDF_PIPELINE_CLUSTER')
         for trf in tarfiles:
-            os.system('sbatch -W {:s}/lotss-hba-survey/slurm/{:s}_untar.sh {:s} {:s}'.format(os.getenv("SOFTWAREDIR"),cluster, trf, field))
+            os.system('sbatch {:s} -W {:s}/lotss-hba-survey/slurm/{:s}_untar.sh {:s} {:s}'.format(os.getenv('CLUSTER_OPTS'),os.getenv("SOFTWAREDIR"),cluster, trf, field))
             msname = '_'.join(os.path.basename(trf).split('_')[0:-1])
             os.system( 'mv {:s} {:s}'.format(msname,obsdir))
         if do_dysco:
