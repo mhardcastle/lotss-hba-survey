@@ -30,7 +30,7 @@ mkdir -p ${TMPDIR}
 mkdir -p ${LOGSDIR}
 
 ## location of LINC
-LINC_DATA_ROOT=${LINC_SOFTWAREDIR}
+LINC_DATA_ROOT=${LINCDIR}
 
 # Pass along necessary variables to the container.
 CONTAINERSTR=$(singularity --version)
