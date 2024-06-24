@@ -50,13 +50,13 @@ fi
 cd ${OUTDIR}
 
 ## pipeline input
-singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} python ${FLOCSDIR}/runners/create_ms_list.py LINC target --cal_solutions ${DATADIR}/LINC-cal_solutions.h5 ${DATADIR} > create_mslist.log
+singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python ${FLOCSDIR}/runners/create_ms_list.py LINC target --cal_solutions ${DATADIR}/LINC-cal_solutions.h5 ${DATADIR} > create_mslist.log
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
 echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${TMPID}.sh
 echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --leave-tmpdir --log-dir=${LOGSDIR} ${LINC_DATA_ROOT}/workflows/HBA_target.cwl mslist_LINC_target.json' >> tmprunner_${TMPID}.sh
-(time singularity exec -B ${PWD},${BINDPATHS} ${LOFAR_SINGULARITY} bash tmprunner_${TMPID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
+(time singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} bash tmprunner_${TMPID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
 echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt
 then 
