@@ -1,3 +1,4 @@
+from __future__ import print_function
 from surveys_db import SurveysDB
 import matplotlib.pyplot as plt
 from astropy.table import Table
@@ -24,14 +25,14 @@ for key in results[0]:
 t=Table(td)
 t['scaled_rms']=t['rms']/(t['nvss_scale']/5.91)
 t['scaled_vs_predicted']=t['scaled_rms']/(100.0/np.cos((t['decl']-53.0)*np.pi/180)**2.0)
-print t
 t.write('quality_table.fits',overwrite=True)
 
-print len(t)
+print(len(t))
 
-t=t[~(t['scale']==None)]
-t=t[~(t['nvss_scale']==None)]
-t=t[~(t['tgss_scale']==None)]
+#t=t[~(t['scale']==None)]
+t=t[~np.isnan(t['nvss_scale'])]
+
+#t=t[~(t['tgss_scale']==None)]
 
 
 plt.figure(figsize=(8,8))
