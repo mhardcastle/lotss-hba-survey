@@ -1,15 +1,12 @@
 #!/usr/bin/python
 
-# clone of monitor.py to do monitoring of full field reprocessing
+# Utilities for monitor_lbfields and friends
 
 from __future__ import print_function
 from time import sleep
 import datetime
 from surveys_db import SurveysDB, tag_field, get_cluster
 
-## need to update this
-#from run_full_field_reprocessing_pipeline import stage_field
-#from reprocessing_utils import prepare_field  ## ddf-pipeline utils
 import os
 import threading
 import glob
@@ -203,16 +200,55 @@ def do_download( name ):
         caldir = os.path.join(tmp,obsid)
         ## os.makedirs(caldir)  # now done in stage_field
         if 'juelich' in surls[0]:
-            for surl in surls:
-                dest = os.path.join(caldir,os.path.basename(surl))
-                if not os.path.isfile(dest):
-                    os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,name))
-            os.system('rm {:s}_gfal.log'.format(name))
+            print('Juelich download:',surls[0])
+            if 'NO_GRID' in os.environ:
+                logfile=None
+                prefix="https://lofar-download.fz-juelich.de/webserver-lofar/SRMFifoGet.py?surl="
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    if not os.path.isfile(dest):
+                        download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,catch_codes=(500,403),retry_size=1024)
+                    else:
+                        print(dest,'exists already, not downloading')
+            else:
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    if not os.path.isfile(dest):
+                        os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lofar-srm.fz-juelich.de:8443','gsiftp://lofar-gridftp.fz-juelich.de:2811'),dest,name))
+                os.system('rm {:s}_gfal.log'.format(name))
         if 'psnc' in surls[0]:
-            for surl in surls:
-                dest = os.path.join(caldir,os.path.basename(surl))
-                os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lta-head.lofar.psnc.pl:8443','gsiftp://gridftp.lofar.psnc.pl:2811'),dest,name))
-            os.system('rm {:s}_gfal.log'.format(name))
+            print('Poznan download:',surls[0])
+            if 'NO_GRID' in os.environ:
+                auth=None
+                # Poznan requires username and password, which are in your .stagingrc
+                # Rudimentary parsing of this needed...
+                if os.path.isfile(home+'/.stagingrc'):
+                    user=None
+                    password=None
+                    with open(home+'/.stagingrc','r') as f:
+                        lines = f.readlines()
+                    for l in lines:
+                        if '=' in l:
+                            bits=l.split('=')
+                            if bits[0]=='user': user=bits[1].rstrip('\n')
+                            if bits[0]=='password': password=bits[1].rstrip('\n')
+                    if user and password:
+                        auth=(user,password)
+                    else:
+                        print('*** Warning: failed to parse stagingrc, download will fail ***')
+                logfile=None
+                prefix="https://lta-download.lofar.psnc.pl/lofigrid/SRMFifoGet.py?surl="
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    if not os.path.isfile(dest):
+                        download_file(prefix+surl,dest,retry_partial=True,progress_bar=True,retry_size=1024,auth=auth)
+                    else:
+                        print(dest,'exists already, not downloading')
+            else:
+                for surl in surls:
+                    dest = os.path.join(caldir,os.path.basename(surl))
+                    os.system('gfal-copy {:s} {:s} > {:s}_gfal.log 2>&1'.format(surl.replace('srm://lta-head.lofar.psnc.pl:8443','gsiftp://gridftp.lofar.psnc.pl:2811'),dest,name))
+                os.system('rm {:s}_gfal.log'.format(name))
         if 'sara' in surls[0]:
             ## can use a macaroon
             files = [ os.path.basename(val) for val in surls ]
