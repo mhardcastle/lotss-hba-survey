@@ -10,7 +10,7 @@ import subprocess
 import glob
 import fnmatch
 import datetime
-from losoto.h5parm import h5parm
+import h5py
 import numpy as np
 from reprocessing_utils import do_sdr_and_rclone_download, do_rclone_download
 
@@ -67,9 +67,9 @@ def get_linc( obsid, caldir ):
 
 def ddfpipeline_timecheck(name,soldir):
     do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
-    untar_file(os.path.join(soldir,'misc.tar'),os.path.join(soldir,'tmp'),'*crossmatch-results-2.npy',os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
-    ddftime = os.path.getmtime(os.path.join(soldir,'timetest-crossmatch-results-2.npy'))
-    os.system('rm {:s}'.format(os.path.join(soldir,'timetest-crossmatch-results-2.npy')))
+    untar_file(os.path.join(soldir,'misc.tar'),os.path.join(soldir,'tmp'),'*summary.txt',os.path.join(soldir,'timetest-summary.txt'))
+    ddftime = os.path.getmtime(os.path.join(soldir,'timetest-summary.txt'))
+    os.system('rm {:s}'.format(os.path.join(soldir,'timetest-summary.txt')))
     return(ddftime)
 
 def get_linc_for_ddfpipeline(macname,caldir):
@@ -244,7 +244,7 @@ def download_calibrator(calid,dest):
     rc.copy(rc.remote+'disk/surveys/'+str(calid)+'.tgz',dest)
 
 def check_cal_clock(calh5parm,verbose=False):
-    data=h5parm(calh5parm,'r')
+    data=h5py.File(calh5parm,'r')
     cal = data.getSolset('calibrator')
     soltabs = list(cal.getSoltabNames())
     data.close()
@@ -267,7 +267,7 @@ def isint(ant):
 def check_int_stations(calh5parm,verbose=False,n_req=9):
     # Check number of int stations and flagging fraction for clock and bandpass
     if verbose: print('Opening',calh5parm)
-    data=h5parm(calh5parm,'r')
+    data=h5py.File(calh5parm,'r')
     cal = data.getSolset('calibrator')
     soltabs = list(cal.getSoltabNames())
     if verbose: print('Solution tables are:',soltabs)
