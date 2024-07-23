@@ -245,8 +245,8 @@ def download_calibrator(calid,dest):
 
 def check_cal_clock(calh5parm,verbose=False):
     data=h5py.File(calh5parm,'r')
-    cal = data.getSolset('calibrator')
-    soltabs = list(cal.getSoltabNames())
+    solset = 'calibrator'
+    soltabs = list(data[solset].keys())
     data.close()
     if verbose: print(soltabs)
     if 'clock' not in soltabs:
@@ -268,8 +268,8 @@ def check_int_stations(calh5parm,verbose=False,n_req=9):
     # Check number of int stations and flagging fraction for clock and bandpass
     if verbose: print('Opening',calh5parm)
     data=h5py.File(calh5parm,'r')
-    cal = data.getSolset('calibrator')
-    soltabs = list(cal.getSoltabNames())
+    solset = 'calibrator'
+    soltabs = list(data[solset].keys())
     if verbose: print('Solution tables are:',soltabs)
     d={}
     if 'clock' not in soltabs:
@@ -277,8 +277,10 @@ def check_int_stations(calh5parm,verbose=False,n_req=9):
     elif 'bandpass' not in soltabs:
         d['err']='no_bandpass'
     else:
-        clock=cal.getSoltab('clock')
-        v,a=clock.getValues()
+        a = data['calibrator']['clock']['ant'][:]
+        v = data['calibrator']['clock']['val'][:]
+        #clock=cal.getSoltab('clock')
+        #v,a=clock.getValues()
         good=[ant for ant in a['ant'] if isint(ant)]
         count=len(good)
         d['n_int']=count
