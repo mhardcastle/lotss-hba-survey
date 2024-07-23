@@ -35,10 +35,14 @@ user = os.getenv('USER')
 if len(user) > 20:
     user = user[0:20]
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
+if cluster is None:
+    raise RuntimeError('DDF_PIPELINE_CLUSTER must be set')
 softwaredir = os.getenv('SOFTWAREDIR')
 basedir = os.getenv('DATA_DIR')
 if basedir is None:
     raise RuntimeError('DATA_DIR must point to your data directory')
+if not os.getenv('LOFAR_SINGULARITY'):
+    raise RuntimeError('LOFAR_SINGULARITY must point to a singularity image')
 procdir = os.path.join(basedir,'processing')
 
 solutions_thread=None
