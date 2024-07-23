@@ -6,7 +6,6 @@ export LBCAL_DIR=/home/mjh/pipeline-lbcal
 export LINC_INSTALL_DIR=/home/mjh/pipeline-lbcal/LINC
 export LINC_DATA_ROOT=$LINC_INSTALL_DIR
 export FLOCS_DIR=/home/mjh/git/flocs
-export NUMEXPR_MAX_THREADS=96
 
 export PYTHONPATH=${LINC_INSTALL_DIR}/scripts:$PYTHONPATH
 export PATH=${LBCAL_DIR}/lotss-hba-survey:${LINC_INSTALL_DIR}/scripts:$PATH
@@ -16,7 +15,7 @@ export LINC_DATA_DIR=/beegfs/car/mjh/lb
 DATADIR=${LINC_DATA_DIR}/${OBSID}
 PROCDIR=${LINC_DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
-TMPDIR=/scratch/tmp/mjh/${OBSID}/
+TMPDIR=/scratch/mjh/${OBSID}/
 LOGSDIR=${OUTDIR}/logs
 mkdir -p ${TMPDIR}
 mkdir -p ${LOGSDIR}
@@ -33,7 +32,6 @@ echo LINC ended
 if grep 'Final process status is success' ${OUTDIR}/job_output.txt
 then 
 	echo 'SUCCESS: Pipeline finished successfully' > ${OUTDIR}/finished.txt
-	rm -rf $TMPDIR
 else
 	echo "**FAILURE**: Pipeline failed with exit status: ${?}" > ${OUTDIR}/finished.txt
 fi
