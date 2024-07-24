@@ -168,7 +168,7 @@ def stage_field( name, survey=None ):
     srmfilename = idd['srmfile']
     if srmfilename == 'multi':
         with SurveysDB(survey=survey) as sdb:
-            sdb.cur.execute('select * from observations where field=%s',(id,))
+            sdb.cur.execute('select * from observations where field=%s',(name,))
             obs = sdb.cur.fetchall()
         obs_ok = 0
         # check how many observations there really are, as opposed to failed on
@@ -184,7 +184,7 @@ def stage_field( name, survey=None ):
         else:
             print ('Multiple observations in one field not currently supported')
             print ('Updating status to Multiple')
-            update_status (id, 'Multiple')
+            update_status (name, 'Multiple')
             return(None)
     response = requests.get(srmfilename) 
     data = response.text
