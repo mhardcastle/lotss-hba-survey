@@ -262,6 +262,7 @@ def check_cal_clock(calh5parm,verbose=False):
 ## so probably the above code can be merged with something that does the important stuff?
 
 def isint(ant):
+    ant = str(ant)
     return not(ant.startswith('CS') or ant.startswith('RS'))
 
 def check_int_stations(calh5parm,verbose=False,n_req=9):
@@ -281,7 +282,8 @@ def check_int_stations(calh5parm,verbose=False,n_req=9):
         v = data['calibrator']['clock']['val'][:]
         #clock=cal.getSoltab('clock')
         #v,a=clock.getValues()
-        good=[ant for ant in a['ant'] if isint(ant)]
+        print(a)
+        good=[ant for ant in a if isint(ant)]
         count=len(good)
         d['n_int']=count
         if count==0:
@@ -289,12 +291,12 @@ def check_int_stations(calh5parm,verbose=False,n_req=9):
         elif count<n_req:
             d['err']='too_few_international'
         else:
-            assert(v.shape[1]==len(a['ant']))
+            assert(v.shape[1]==len(a))
             nclock=v.shape[0]
             # Now check the flag fractions
             if verbose: print('Checking clock flag fractions')
             nffc=0
-            for i,ant in enumerate(a['ant']):
+            for i,ant in enumerate(a):
                 flagf=np.sum(np.isnan(v[:,i]))/nclock
                 if isint(ant):
                     if verbose: print("%-12s %7.2f%%" % (ant,100*flagf))
@@ -303,13 +305,12 @@ def check_int_stations(calh5parm,verbose=False,n_req=9):
                         if ant in good: good.remove(ant)
             d['flagged_clock']=nffc
 
-            bp=cal.getSoltab('bandpass')
-            v,a=bp.getValues()
-            assert(v.shape[2]==len(a['ant']))
+            v=data['calibrator']['bandpass']['val'][:]
+            assert(v.shape[2]==len(a))
             nbp=v.shape[0]*v.shape[1]*v.shape[3]
             if verbose: print('Checking bandpass flag fractions')
             nffb=0
-            for i,ant in enumerate(a['ant']):
+            for i,ant in enumerate(a):
                 flagf=np.sum(np.isnan(v[:,:,i,:]))/nbp
                 if isint(ant):
                     if verbose: print("%-12s %7.2f%%" % (ant,100*flagf))
