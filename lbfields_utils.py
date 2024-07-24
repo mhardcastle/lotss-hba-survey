@@ -420,6 +420,8 @@ def cleanup_step(field):
         os.system('rm -r {:s}'.format(os.path.join(caldir,'*.MS')))
     if workflow in ['HBA_target']:
         os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,'LINC-target_solutions.h5')))
+    if workflow in ['concatenate-flag']:
+        os.system('rm -r {:s}'.format(os.path.join(field_datadir,'setup/L*MS')))
 
 def do_verify(field):
     tarfile = glob.glob(field+'*tgz')[0]
