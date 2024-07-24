@@ -350,6 +350,8 @@ def check_cal_flag(calh5parm):
         if 'Flagged' in line[0] and 'data' in line[1]:
             flagdict[flagtype] = float(line[2].replace('%',''))
     print('Flag dict',flagdict)
+    ## MJH removing part that returns a str not a dict
+    '''
     for element in flagdict:
         print(element,flagdict[element],element=='bandpass')
         if element == 'bandpass':
@@ -368,6 +370,7 @@ def check_cal_flag(calh5parm):
             if flagdict[element] > 10.0:
                 print('badpolalign')
                 return('badflag')
+    '''
     ## number of flagged intl stations
     ## average flagging for intl stations
     return(flagdict)
