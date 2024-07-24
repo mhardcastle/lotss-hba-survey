@@ -272,14 +272,17 @@ while True:
                     if len(remaining_tasks) > 0:
                         next_task = remaining_tasks[0]
                         fieldobsid = '{:s}/{:s}'.format(field,obsid)
-                        if 'ddf' in next_task or next_task =='setup':
-                            ## need to change to cosma8-dine2
-                            cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
+                        if next_task == 'delay':
+                            update_status(field,'DelayCheck')
                         else:
-                            cluster_opts = os.getenv('CLUSTER_OPTS')
-                        command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, cluster_opts, str(softwaredir).rstrip('/'), next_task, fieldobsid)
-                        if os.system(command):
-                            update_status(field,"Submission failed")
+                            if 'ddf' in next_task or next_task =='setup':
+                                ## need to change to cosma8-dine2
+                                cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
+                            else:
+                                cluster_opts = os.getenv('CLUSTER_OPTS')
+                            command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, cluster_opts, str(softwaredir).rstrip('/'), next_task, fieldobsid)
+                            if os.system(command):
+                                update_status(field,"Submission failed")
                     else:
                         update_status(field,'Verified')  
                 else:

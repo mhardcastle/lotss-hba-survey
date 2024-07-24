@@ -297,6 +297,7 @@ def do_unpack(field):
     tarfiles = glob.glob(os.path.join(obsdir,'*tar'))
     ## check if needs dysco compression
     gb_filesize = os.path.getsize(tarfiles[0])/(1024*1024*1024)
+    ## update the above to be non-hacky
     if gb_filesize > 40.:
         do_dysco = True
     if os.getenv("UNPACK_AS_JOB"):
