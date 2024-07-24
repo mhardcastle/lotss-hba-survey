@@ -164,11 +164,28 @@ def collect_solutions( caldir ):
 def stage_field( name, survey=None ):
     with SurveysDB(survey=survey) as sdb:
         idd = sdb.db_get('lb_fields',name)
-    ## currently srmfile is 'multi' if the field has more than one observation, so this staging will fail if that is the case
+    ## currently srmfile is 'multi' if the field has more than one observation
     srmfilename = idd['srmfile']
     if srmfilename == 'multi':
-        obsids = get_obsids(name)
-        ## NEED TO UPDATE FOR MULTI FIELDS
+        with SurveysDB(survey=survey) as sdb:
+            sdb.cur.execute('select * from observations where field=%s',(id,))
+            obs = sdb.cur.fetchall()
+        obs_ok = 0
+        # check how many observations there really are, as opposed to failed on$
+        for nobs in range(len(obs)):
+            if obs[nobs]['status'] in ['Archived','DI_Processed']:
+                obs_ok+=1
+                nobs_ok=nobs
+        # If really only 1 observation, construct its srmfile and proceed
+        if obs_ok==1:
+            srmfilename = 'https://public.spider.surfsara.nl/project/lotss/shim$
+        # multiple obs in 1 field complicated because ddflight, phaseup_concat $
+        # data from all obs to be done at once; these to be left "for later"
+        else:
+            print ('Multiple observations in one field not currently supported')
+            print ('Updating status to Multiple')
+            update_status (id, 'Multiple')
+            return(None)
     response = requests.get(srmfilename) 
     data = response.text
     uris = data.rstrip('\n').split('\n')

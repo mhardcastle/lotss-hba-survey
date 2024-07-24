@@ -189,6 +189,8 @@ while True:
         stage_name=nextfield
         print('We need to stage a new field (%s)' % stage_name)
         solutions_name = stage_field(stage_name)
+        if solutions_name is None:  # multiple field ignored for now
+            continue
         ## while staging, collect the solutions
         solutions_thread=threading.Thread(target=collect_solutions, args=(solutions_name,))
         solutions_thread.start()
