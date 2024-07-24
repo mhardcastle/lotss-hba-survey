@@ -100,7 +100,7 @@ def get_linc_for_ddfpipeline(macname,caldir):
         ## untar them
         untar_files = glob.glob(os.path.join(ddfpipelinedir,'*tar'))
         for trf in untar_files:
-            untar_ms(trf,ddfpipelinedir)
+            untar_file(trf,ddfpipelinedir)
 
 def download_ddfpipeline_solutions(name,soldir,ddflight=False):
     if not os.path.isdir(soldir):
