@@ -1,15 +1,12 @@
 #!/usr/bin/python
 
-# clone of monitor.py to do monitoring of full field reprocessing
+# clone of monitor.py to do LB target processing
 
 from __future__ import print_function
 from time import sleep
 import datetime
 from surveys_db import SurveysDB, tag_field, get_cluster
 
-## need to update this
-#from run_full_field_reprocessing_pipeline import stage_field
-#from reprocessing_utils import prepare_field  ## ddf-pipeline utils
 import os
 import threading
 import glob
@@ -38,8 +35,14 @@ user = os.getenv('USER')
 if len(user) > 20:
     user = user[0:20]
 cluster = os.getenv('DDF_PIPELINE_CLUSTER')
+if cluster is None:
+    raise RuntimeError('DDF_PIPELINE_CLUSTER must be set')
 softwaredir = os.getenv('SOFTWAREDIR')
 basedir = os.getenv('DATA_DIR')
+if basedir is None:
+    raise RuntimeError('DATA_DIR must point to your data directory')
+if not os.getenv('LOFAR_SINGULARITY'):
+    raise RuntimeError('LOFAR_SINGULARITY must point to a singularity image')
 procdir = os.path.join(basedir,'processing')
 
 solutions_thread=None
@@ -181,8 +184,6 @@ while True:
         do_stage = False
     else:
         do_stage = True
-
-    do_stage = False
 
     if do_stage and nextfield is not None:
         stage_name=nextfield
