@@ -46,7 +46,11 @@ def main( obsid='', solutions='' ):
                         with open( os.path.join(procdir,'job_output.txt') ) as f:
                             f.write("delay.cwl Resolved \n\n\n\n\n\n\n\n\n\n")    
                         ## move solutions to the procdir
+
+                        ## update statuses
+                        mark_done(obsid,'delay')
                         update_status(field,'Queued')
+
             else:
                 print('Solutions not validated.')
 
