@@ -171,15 +171,15 @@ def stage_field( name, survey=None ):
             sdb.cur.execute('select * from observations where field=%s',(id,))
             obs = sdb.cur.fetchall()
         obs_ok = 0
-        # check how many observations there really are, as opposed to failed on$
+        # check how many observations there really are, as opposed to failed on
         for nobs in range(len(obs)):
             if obs[nobs]['status'] in ['Archived','DI_Processed']:
                 obs_ok+=1
                 nobs_ok=nobs
         # If really only 1 observation, construct its srmfile and proceed
         if obs_ok==1:
-            srmfilename = 'https://public.spider.surfsara.nl/project/lotss/shim$
-        # multiple obs in 1 field complicated because ddflight, phaseup_concat $
+            srmfilename = 'https://public.spider.surfsara.nl/project/lotss/shimwell/LINC/srmfiles/srm%d.txt'%(obs[nobs_ok]['id'])
+        # multiple obs in 1 field complicated because ddflight, phaseup_concat need
         # data from all obs to be done at once; these to be left "for later"
         else:
             print ('Multiple observations in one field not currently supported')
