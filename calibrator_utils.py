@@ -92,7 +92,10 @@ def get_linc_for_ddfpipeline(macname,caldir):
         tarfiles = [ line.split(' ')[-1] for line in filelist if 'tar' in line ]
         msfiles = [ tf for tf in tarfiles if 'ms' in tf ]
         ddfpipelinedir = os.path.join(caldir,'HBA_target/results')
-        os.makedirs(ddfpipelinedir)
+        try:
+            os.makedirs(ddfpipelinedir)
+        except OSError:
+            pass
         for msfile in msfiles:
             d = rc.execute(['-P','copy',rc.remote + os.path.join(obsname,msfile)]+[ddfpipelinedir])
         if d['err'] or d['code']!=0:
@@ -329,9 +332,8 @@ def check_cal_flag(calh5parm):
     print('Running losoto to check cal flagging')
     sing_img = os.getenv('LOFAR_SINGULARITY')
     flaginfo = calh5parm.replace('.h5','.info')
-    if not os.path.isfile(flaginfo):
-        cmd = 'singularity exec -B {:s} {:s} losoto -iv {:s} > {:s}'.format(os.getcwd(),sing_img,calh5parm,flaginfo)
-        os.system(cmd)
+    cmd = 'singularity exec -B {:s} {:s} losoto -iv {:s} > {:s}'.format(os.path.dirname(calh5parm),sing_img,calh5parm,flaginfo)
+    os.system(cmd)
     print('Checking outputfile for flaggging')
     with open(flaginfo,'r') as f:
         lines = f.readlines()
