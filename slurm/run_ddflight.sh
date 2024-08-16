@@ -18,7 +18,7 @@ cp ${DDF_PIPELINE_INSTALL}/examples/tier1-rerun.cfg .
 sed -i "s~\\\$\\\$~${BOOTSTRAP_DIR}~g" tier1-rerun.cfg
 
 DICOMODEL=template/image*DicoModel
-singularity exec -B ${PWD},${SOFTWARE_DIR} ${DDFPIPELINE_SINGULARITY} python3 ${SOFTWAREDIR}/lotss-hba-survey/fix_dicomodel.py ${DICOMODEL}
+singularity exec -B ${PWD},${SOFTWAREDIR} ${DDFPIPELINE_SINGULARITY} python3 ${SOFTWAREDIR}/lotss-hba-survey/fix_dicomodel.py ${DICOMODEL}
 
 singularity exec -B ${PWD},${BOOTSTRAP_DIR} ${DDFPIPELINE_SINGULARITY} CleanSHM.py
 singularity exec -B ${PWD},${BOOTSTRAP_DIR} ${DDFPIPELINE_SINGULARITY} make_mslists.py
