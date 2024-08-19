@@ -283,7 +283,7 @@ def do_download( name ):
         tarfiles = check_tarfiles( caldir )
         if len(tarfiles) == len(surls):
             print('Download successful for {:s}'.format(name) )
-            update_status(id,'Downloaded',stage_id=0)
+            update_status(name,'Downloaded',stage_id=0)
     else:
         print('Something went wrong with the download for {:s} (staging id {:s})'.format(name,str(stage_id)))
         update_status(name,'Download failed')
