@@ -52,7 +52,7 @@ def main( obsid='', solutions='' ):
                                 os.system('mv {:s} {:s}'.format(oldf, os.path.join(defaultdir,os.path.basename(oldf)) )
                             ## also want to move plots etc, assume in os.path.dirname(solutions)
                             
-                            os.system('mv {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath,os.path.basename(solutions))
+                            os.system('mv {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath,os.path.basename(solutions)) )
 
                         field_procdir = os.path.join( procdir, '{:s}/{:s}'.format(field,obsid) )
                         os.makedirs(field_procdir,exist_ok=True)
