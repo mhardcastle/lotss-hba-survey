@@ -39,6 +39,21 @@ def main( obsid='', solutions='' ):
                     loc = r['location']
                     if obsid == os.path.basename(loc):
                         field = r['id']
+                        phaseupconcatpath = '{:s}/{:s}/phaseup-concat'.format(os.path.join(basedir,r['id']),os.path.basename(loc))
+                        solutionspath = os.path.dirname(solutions)
+                        if phaseupconcatpath == solutionspath:
+                            ## the first solutions are suitable! nothing to be done
+                            print('Accepting the pipeline version of the solutions.')
+                        else:
+                            oldfiles = glob.glob(os.path.join(phaseupconcatpath,'*'))
+                            defaultdir = os.path.join(phaseupconcatpath,'pipelinesols') 
+                            os.makedirs()
+                            for oldf in oldfiles:
+                                os.system('mv {:s} {:s}'.format(oldf, os.path.join(defaultdir,os.path.basename(oldf)) )
+                            ## also want to move plots etc, assume in os.path.dirname(solutions)
+                            
+                            os.system('mv {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath,os.path.basename(solutions))
+
                         field_procdir = os.path.join( procdir, '{:s}/{:s}'.format(field,obsid) )
                         os.makedirs(field_procdir,exist_ok=True)
                         with open( os.path.join(field_procdir,'finished.txt') ) as f:
