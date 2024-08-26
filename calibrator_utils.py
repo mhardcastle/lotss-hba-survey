@@ -107,6 +107,7 @@ def get_linc_for_ddfpipeline(macname,caldir):
             os.system(command)
 
 def download_ddfpipeline_solutions(name,soldir,ddflight=False):
+    file_check = []
     if not os.path.isdir(soldir):
         os.makedirs(soldir)
     do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
@@ -116,23 +117,34 @@ def download_ddfpipeline_solutions(name,soldir,ddflight=False):
     untar_files = ['image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.mask01.fits','image_full_ampphase_di_m.NS.DicoModel']
     for utf in untar_files:
         untar_file(image_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
+    file_check = file_check + untar_files
     if ddflight:
         untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy']
     else:
         untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy','SOLSDIR']
     for utf in untar_files:
         untar_file(uv_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
+    file_check = file_check + untar_files
     if not ddflight:
         untar_files = ['logs/*DIS2*log','L*frequencies.txt']
         for utf in untar_files:
             untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
-            freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
-        if len(freq_check) > 0:
-            success = True
-        else:
-            success = False
-    else:
+        file_check = file_check + untar_files
+        ## freq_check will not happen here -- Frits will add to subtract step
+        ##    freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
+        ##if len(freq_check) > 0:
+        ##    success = True
+        ##else:
+        ##    success = False
+    ## now check the untarred files
+    check = 0
+    for fc in file_check:
+        if os.path.exists( fc ):
+            check = check + 1
+    if check = len(file_check):
         success = True
+    else:
+        success = False
     ## what's needed is actually just:
     ## DDS3_full_slow*.npz 
     ## DDS3_full*smoothed.npz 

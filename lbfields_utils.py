@@ -72,6 +72,9 @@ def collect_solutions( caldir ):
     name = os.path.basename(namedir)
     tasklist = []
 
+    update_status( name,'Solutions' )
+    success = False
+
     with SurveysDB(survey=survey) as sdb:
         sdb.execute('select * from observations where id="'+obsid+'"')
         fld = sdb.cur.fetchall()
@@ -90,10 +93,13 @@ def collect_solutions( caldir ):
             soldir = os.path.join(caldir,'ddfsolutions')
             if not os.path.exists(soldir):
                 os.mkdir(soldir)
-            result = download_ddfpipeline_solutions(name,soldir)
+            ddf_result = download_ddfpipeline_solutions(name,soldir)
+            '''            
+            ## re-generate missing frequencies -- this will now happen in the subtract step
             if not result:
-                ## re-generate missing frequencies
+
                 print('Frequency list is missing, need to regenerate it.')
+            '''
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
             tasklist.append('lotss-subtract')
@@ -109,7 +115,7 @@ def collect_solutions( caldir ):
             get_linc_for_ddfpipeline(macname,caldir)
             templatedir = os.path.join(caldir,'HBA_target/results/template')
             ## get the previous ddf-pipeline images
-            result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+            ddf_result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
             tasklist.append('ddflight')            
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
@@ -133,7 +139,7 @@ def collect_solutions( caldir ):
             ## get previous ddfpipeline results
             templatedir = os.path.join(caldir,'HBA_target/results/template')
             os.makedirs(templatedir)
-            result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+            ddf_result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
             tasklist.append('target')
             tasklist.append('ddflight')
             tasklist.append('setup')
@@ -143,8 +149,14 @@ def collect_solutions( caldir ):
             tasklist.append('delay')
             tasklist.append('split')
             tasklist.append('selfcal')
+            ## check that all solutions exist and set success = True
+            '''
+            if os.path.isfile( LINC-cal_solutions.h5 )
+            if os.path.isfile( ddflight data products in HBA_target/results/template )
+            '''
         else:
             ## need to re-run calibrator .... shouldn't ever be in this situation!
+            ## success = False will remain true if we end up here
             tasklist.append('calibrator')
             tasklist.append('target')
             tasklist.append('ddfpipeline')
@@ -381,6 +393,39 @@ def do_unpack(field):
         os.system('rm {:s}_unpack.log'.format(field))
     else:
         update_status(field,'Unpack failed')    
+
+##############################
+## split directions
+
+def chunk_imagecat( fieldobsid, numdirs=10, catname='image_catalogue.csv', nchunkspertime=2 ):
+    basedir = os.getenv('DATA_DIR')
+    name = fieldobsid.split('/')[0]
+    obsid = fieldobsid.split('/')[1]
+    catfile = os.path.join( basedir, '{:s}/{:s}'.format(name,catname) )
+
+    with open( catfile, 'r' ) as f:
+        lines = f.readlines()
+    header = lines[0]
+    lines = lines[1:]
+
+    nchunks = int(np.ceil(len(lines)/numdirs))
+
+    chunk = 1
+    for i in np.arange(nchunks):
+        j = 10*i
+        if i < nchunks - 1:
+            mylines = lines[j:j+numdirs]
+        else:
+            mylines = lines[j:]
+        with open( catfile.replace('.csv','_{:s}.csv'.format(str(chunk))), 'w' ) as f:
+            f.write(header)
+            for myline in mylines:
+                f.write(myline)
+        chunk = chunk + 1
+    cmd = 'sbatch -J split {:s} --array=1-{:s}%{:s} {:s}/lotss-hba-survey/slurm/run_split-directions-toil.sh {:s}'.format(os.getenv('CLUSTER_OPTS'),str(nchunks),str(nchunkspertime),os.getenv('SOFTWAREDIR'),fileobsid)
+    return( cmd )
+
+
 
 ##############################
 ## verifying
