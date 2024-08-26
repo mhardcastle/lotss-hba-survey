@@ -141,7 +141,7 @@ def download_ddfpipeline_solutions(name,soldir,ddflight=False):
     for fc in file_check:
         if os.path.exists( fc ):
             check = check + 1
-    if check = len(file_check):
+    if check == len(file_check):
         success = True
     else:
         success = False
