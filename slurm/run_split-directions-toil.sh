@@ -66,7 +66,7 @@ cd ${OUTDIR}
 export DELAYSOLS=/cosma8/data/do011/dc-mora2/surveys/processing/P210+37/resetsols/merged_addCS_selfcalcyle009_linearfulljones_ILTJ140520.50+372031.2_142MHz_uv.dp3-concat.copy.phaseup.h5
 
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
-apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI split-directions --linc ${LINCDIR} --max_dp3_threads 8 --delay_solset ${DELAYSOLS} --image_cat ${IMCAT} --ms_suffix .ms ${DATADIR} >> create_ms_list.log 2>&1
+apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI split-directions --linc ${LINCDIR} --max_dp3_threads 8 --h5merger=${LOFARHELPERS} --selfcal=${FACETSELFCAL} --do_selfcal=false --delay_solset ${DELAYSOLS} --image_cat ${IMCAT} --ms_suffix .ms ${DATADIR} >> create_ms_list.log 2>&1
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
