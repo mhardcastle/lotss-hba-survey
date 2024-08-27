@@ -57,7 +57,8 @@ export APPTAINERENV_LINC_DATA_ROOT=${LINC_DATA_ROOT}
 #### PATH: note that apptainer has a bug and does not use APPTAINERENV_PREPEND_PATH correctly
 export SINGULARITYENV_PREPEND_PATH=${VLBIDIR}/scripts:${LINCDIR}/scripts
 #### PYTHONPATH
-export APPTAINERENV_PYTHONPATH='$VLBIDIR/scripts:$LINCDIR/scripts:$PYTHONPATH' 
+export APPTAINERENV_PYTHONPATH='/cosma8/data/do011/dc-mora2/Software/VLBI-cwl/scripts:/cosma8/data/do011/dc-mora2/Software/LINC/scripts:$PYTHONPATH' 
+## APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPATH
 
 ## go to working directory
 cd ${OUTDIR}
