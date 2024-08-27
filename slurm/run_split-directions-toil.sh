@@ -11,6 +11,9 @@ IMCAT=${DATA_DIR}/${OBSID}/../image_catalogue_${SLURM_ARRAY_TASK_ID}.csv
 ## make a name for the output directory
 CATOUTDIR=${OBSID}_${SLURM_ARRAY_TASK_ID}
 
+# delay cal solutions
+export DELAYSOLS=`ls ${DATA_DIR}/${OBSID}/phaseup-concat/*verified.h5`
+
 #################################################################################
 ## Cluster specific directories to change
 ## PLEASE SEE slurm/add_these_to_bashrc.txt 
@@ -62,9 +65,6 @@ export APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPAT
 
 ## go to working directory
 cd ${OUTDIR}
-
-# delay cal solutions
-export DELAYSOLS=/cosma8/data/do011/dc-mora2/surveys/processing/P210+37/resetsols/merged_addCS_selfcalcyle009_linearfulljones_ILTJ140520.50+372031.2_142MHz_uv.dp3-concat.copy.phaseup.h5
 
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
 apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI split-directions --linc ${LINCDIR} --max_dp3_threads 8 --h5merger=${LOFARHELPERS} --selfcal=${FACETSELFCAL} --do_selfcal=false --delay_solset ${DELAYSOLS} --image_cat ${IMCAT} --ms_suffix .ms ${DATADIR} >> create_ms_list.log 2>&1
