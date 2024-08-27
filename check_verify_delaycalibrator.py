@@ -4,6 +4,7 @@ import argparse
 from surveys_db import SurveysDB, tag_field, get_cluster
 from lbfields_utils import update_status, get_local_obsid
 import os
+import glob
 
 def main( obsid='', solutions='' ):
     user = os.getenv('USER')
@@ -43,26 +44,26 @@ def main( obsid='', solutions='' ):
                         solutionspath = os.path.dirname(solutions)
                         if phaseupconcatpath == solutionspath:
                             ## the first solutions are suitable! nothing to be done
-                            print('Accepting the pipeline version of the solutions.')
+                            print('Accepting the pipeline version of the solutions, cleaning up.')
+                            os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath,os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
                         else:
                             oldfiles = glob.glob(os.path.join(phaseupconcatpath,'*'))
                             defaultdir = os.path.join(phaseupconcatpath,'pipelinesols') 
-                            os.makedirs()
+                            os.makedirs(defaultdir)
                             for oldf in oldfiles:
-                                os.system('mv {:s} {:s}'.format(oldf, os.path.join(defaultdir,os.path.basename(oldf)) )
+                                os.system('mv {:s} {:s}'.format(oldf, os.path.join(defaultdir,os.path.basename(oldf)) ) )
+                            ## copy solutions
+                            os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
+
                             ## also want to move plots etc, assume in os.path.dirname(solutions)
-                            
-                            os.system('mv {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath,os.path.basename(solutions)) )
-
-                        field_procdir = os.path.join( procdir, '{:s}/{:s}'.format(field,obsid) )
-                        os.makedirs(field_procdir,exist_ok=True)
-                        with open( os.path.join(field_procdir,'finished.txt') ) as f:
-                            f.write("SUCCESS: Pipeline finished successfully")
-                        with open( os.path.join(procdir,'job_output.txt') ) as f:
-                            f.write("delay.cwl Resolved \n\n\n\n\n\n\n\n\n\n")    
-                        ## move solutions to the procdir
-
+                            newfiles = glob.glob(os.path.join(solutionspath,'*'))
+                            verifieddir = os.path.join(phaseupconcatpath,'verified_solution_plots')
+                            os.makedirs(verifieddir)
+                            for newf in newfiles:
+                                os.system('mv {:s} {:s}'.format(newf, os.path.join(verifieddir, os.path.basename(newf)) ) )
                         ## update statuses
+                        print('Delay solutions verified and have been copied to: {:s}'.format( os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
+                        print('Updating status for {:s}'.format(fieldobsid) )
                         mark_done(obsid,'delay')
                         update_status(field,'Queued')
 
