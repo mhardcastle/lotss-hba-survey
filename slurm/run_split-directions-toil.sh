@@ -1,6 +1,6 @@
 #!/bin/bash 
 #SBATCH -N 1                  # number of nodes
-#SBATCH -c 48                 # number of cores  ### CLUSTER SPECIFIC
+#SBATCH -c 1                 # number of cores 
 #SBATCH --ntasks=1            # number of tasks
 #SBATCH -t 72:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
 
@@ -23,7 +23,7 @@ export FACETSELFCAL=${SOFTWAREDIR}/lofar_facet_selfcal
 export BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
 
 ## FOR TOIL
-export TOIL_SLURM_ARGS="${CLUSTER_OPTS} --export=ALL -t 24:00:00 -N 1 -c 16 --ntasks=1"
+export TOIL_SLURM_ARGS="${CLUSTER_OPTS} --export=ALL -t 24:00:00 -N 1 --ntasks=1"
 export CWL_SINGULARITY_CACHE=${SOFTWAREDIR}/singularity
 export TOIL_CHECK_ENV=True
 
@@ -57,8 +57,8 @@ export APPTAINERENV_LINC_DATA_ROOT=${LINC_DATA_ROOT}
 #### PATH: note that apptainer has a bug and does not use APPTAINERENV_PREPEND_PATH correctly
 export SINGULARITYENV_PREPEND_PATH=${VLBIDIR}/scripts:${LINCDIR}/scripts
 #### PYTHONPATH
-export APPTAINERENV_PYTHONPATH='/cosma8/data/do011/dc-mora2/Software/VLBI-cwl/scripts:/cosma8/data/do011/dc-mora2/Software/LINC/scripts:$PYTHONPATH' 
-## APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPATH
+##export APPTAINERENV_PYTHONPATH='/cosma8/data/do011/dc-mora2/Software/VLBI-cwl/scripts:/cosma8/data/do011/dc-mora2/Software/LINC/scripts:$PYTHONPATH' 
+export APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPATH
 
 ## go to working directory
 cd ${OUTDIR}
