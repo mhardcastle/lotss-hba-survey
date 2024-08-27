@@ -66,11 +66,14 @@ def get_linc( obsid, caldir ):
     return(success,thismac)
 
 def ddfpipeline_timecheck(name,soldir):
-    do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
-    untar_file(os.path.join(soldir,'misc.tar'),os.path.join(soldir,'tmp'),'*summary.txt',os.path.join(soldir,'timetest-summary.txt'))
-    ddftime = os.path.getmtime(os.path.join(soldir,'timetest-summary.txt'))
-    os.system('rm {:s}'.format(os.path.join(soldir,'timetest-summary.txt')))
-    return(ddftime)
+    try:
+        do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Misc",operations=['download'])
+        untar_file(os.path.join(soldir,'misc.tar'),os.path.join(soldir,'tmp'),'*summary.txt',os.path.join(soldir,'timetest-summary.txt'))
+        ddftime = os.path.getmtime(os.path.join(soldir,'timetest-summary.txt'))
+        os.system('rm {:s}'.format(os.path.join(soldir,'timetest-summary.txt')))
+        return(ddftime)
+    except RuntimeError:
+        raise
 
 def get_linc_for_ddfpipeline(macname,caldir):
     obsname = 'L' + os.path.basename(caldir)
@@ -110,41 +113,43 @@ def download_ddfpipeline_solutions(name,soldir,ddflight=False):
     file_check = []
     if not os.path.isdir(soldir):
         os.makedirs(soldir)
-    do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
+    try:
+        do_sdr_and_rclone_download(name,soldir,verbose=False,Mode="Imaging",operations=['download'])
+    except RuntimeError:
+        raise
     image_tar = os.path.join(soldir,'images.tar') 
     uv_tar = os.path.join(soldir,'uv.tar')
     misc_tar = os.path.join(soldir,'misc.tar')
     untar_files = ['image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.mask01.fits','image_full_ampphase_di_m.NS.DicoModel']
     for utf in untar_files:
-        untar_file(image_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
+        try:
+            untar_file(image_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
+        except RuntimeError:
+            raise
     file_check = file_check + untar_files
     if ddflight:
         untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy']
     else:
         untar_files = ['image_dirin_SSD_m.npy.ClusterCat.npy','SOLSDIR']
     for utf in untar_files:
-        untar_file(uv_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
+        try:
+            untar_file(uv_tar,os.path.join(soldir,'tmp'),utf,os.path.join(soldir,utf))
+        except RuntimeError:
+            raise
     file_check = file_check + untar_files
     if not ddflight:
         untar_files = ['logs/*DIS2*log','L*frequencies.txt']
         for utf in untar_files:
-            untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
-        file_check = file_check + untar_files
+            try:
+                untar_file(misc_tar,soldir,utf,os.path.join(soldir,utf))
+            except RuntimeError:
+                raise
         ## freq_check will not happen here -- Frits will add to subtract step
         ##    freq_check = glob.glob(os.path.join(soldir,'L*frequencies.txt'))
         ##if len(freq_check) > 0:
         ##    success = True
         ##else:
         ##    success = False
-    ## now check the untarred files
-    check = 0
-    for fc in file_check:
-        if os.path.exists( fc ):
-            check = check + 1
-    if check == len(file_check):
-        success = True
-    else:
-        success = False
     ## what's needed is actually just:
     ## DDS3_full_slow*.npz 
     ## DDS3_full*smoothed.npz 
@@ -164,7 +169,6 @@ def download_ddfpipeline_solutions(name,soldir,ddflight=False):
 
     frequencies missing --> regenerate from small mslist  [there is code]
     '''
-    return(success)
 
 def find_calibrators(obsid):
     # Find all the calibrators appropriate for a given obsid by

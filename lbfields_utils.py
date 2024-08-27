@@ -73,7 +73,7 @@ def collect_solutions( caldir ):
     tasklist = []
 
     update_status( name,'Solutions' )
-    success = False
+    success = True
 
     with SurveysDB(survey=survey) as sdb:
         sdb.execute('select * from observations where id="'+obsid+'"')
@@ -86,14 +86,20 @@ def collect_solutions( caldir ):
     if linc_check: 
         ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
         linc_time = os.path.getmtime(os.path.join(caldir,'LINC-target_solutions.h5'))
-        ddfpipeline_time = ddfpipeline_timecheck(name,caldir)
+        try:
+            ddfpipeline_time = ddfpipeline_timecheck(name,caldir)
+        except RuntimeError:
+            success = False
         if ddfpipeline_time - linc_time > 0:
             ## linc was run before ddfpipeline -- in this case can start with vlbi pipeline directly
             ## create the solutions directory and download things to it
             soldir = os.path.join(caldir,'ddfsolutions')
             if not os.path.exists(soldir):
                 os.mkdir(soldir)
-            ddf_result = download_ddfpipeline_solutions(name,soldir)
+            try:
+                download_ddfpipeline_solutions(name,soldir)
+            except RuntimeError:
+                success = False
             '''            
             ## re-generate missing frequencies -- this will now happen in the subtract step
             if not result:
@@ -112,10 +118,16 @@ def collect_solutions( caldir ):
             ## go back and get the LINC data 
             ## internally, get_linc_for_ddfpipeline will create and download to HBA_target/results
             ## that way run_ddflight can always just go to HBA_target/results regardless if run_target was used or not
-            get_linc_for_ddfpipeline(macname,caldir)
+            try:
+                get_linc_for_ddfpipeline(macname,caldir)
+            except RuntimeError:
+                success = False
             templatedir = os.path.join(caldir,'HBA_target/results/template')
             ## get the previous ddf-pipeline images
-            ddf_result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+            try:
+                download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+            except RuntimeError:
+                success = False
             tasklist.append('ddflight')            
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
@@ -139,7 +151,10 @@ def collect_solutions( caldir ):
             ## get previous ddfpipeline results
             templatedir = os.path.join(caldir,'HBA_target/results/template')
             os.makedirs(templatedir)
-            ddf_result = download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+            try:
+                download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+            except RuntimeError:
+                success = False
             tasklist.append('target')
             tasklist.append('ddflight')
             tasklist.append('setup')
@@ -167,8 +182,11 @@ def collect_solutions( caldir ):
             tasklist.append('delay')
             tasklist.append('split')
             tasklist.append('selfcal')
-    ## set the task list in the lb_operations table
-    set_task_list(obsid,tasklist)
+    if success:
+        ## set the task list in the lb_operations table
+        set_task_list(obsid,tasklist)
+        ## set the status back to staging if no runtime errors
+        update_status( name, 'Staging' )
 
 ##############################
 ## staging
