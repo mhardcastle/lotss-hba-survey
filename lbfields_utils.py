@@ -451,17 +451,12 @@ def chunk_imagecat( fieldobsid, numdirs=10, catname='image_catalogue.csv', nchun
 def get_workflow_obsid(outdir):
     ## get the workflow that was run
     with open(os.path.join(outdir,'job_output.txt'),'r') as f:
-        lines = [next(f) for _ in range(10)]
-    line = [ line for line in lines if 'Resolved' in line ]
-    tmp = line[0].split('.cwl')
+        for line in f:
+            if 'Resolved' in line:
+                break
+    tmp = line.split('.cwl')
     workflow = os.path.basename(tmp[0])
-    ## get the obsid
-    jsonfile = glob.glob(os.path.join(outdir,'mslist*json'))[0]
-    with open(jsonfile,'r') as f:
-        lines = [next(f) for _ in range(10)]
-    line = [ line for line in lines if 'path' in line ]
-    tmp = line[0].split('_SB')[0].split('_1')
-    obsid = os.path.basename(tmp[0]).replace('L','')
+    obsid = os.path.basename(outdir)
     return(workflow,obsid)
 
 def check_field(field):
