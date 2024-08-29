@@ -139,7 +139,7 @@ def collect_solutions( caldir ):
     else:
         print('valid LINC solutions not found. Checking lb_calibrators.')
         ## linc is not good
-        result = download_field_calibrators(name,caldir)
+        result = download_field_calibrators(obsid,caldir)
         solutions = unpack_calibrator_sols(caldir,result)
         if len(solutions) >= 1:
             print('One or more calibrator found, comparing solutions ...')

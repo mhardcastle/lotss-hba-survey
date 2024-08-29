@@ -189,14 +189,14 @@ def find_calibrators(obsid):
             calibrators.append(int(r['id']))
     return(set(calibrators))
 
-def download_field_calibrators(field,wd,verbose=False):
+def download_field_calibrators(obsid,wd,verbose=False):
     # download the LOFAR-VLBI calibrator solutions for the field into the specified parent working directory. return dictionary of downloaded cals
     rd={}
     with SurveysDB(readonly=True) as sdb:
-        sdb.execute('select * from observations where field=%s',(field,))
+        sdb.execute('select * from observations where id=%s',(obsid,))
         results=sdb.cur.fetchall()
     if not results:
-        raise RuntimeError('No observations found for field '+field)
+        raise RuntimeError('No observations found for obsid '+obsid)
     for r in results:
         obsid=r['id']
         if verbose: print('Doing obsid',obsid)
