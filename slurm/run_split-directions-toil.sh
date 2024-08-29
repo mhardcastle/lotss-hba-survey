@@ -76,7 +76,7 @@ ulimit -n 8192
 
 toil-cwl-runner --no-read-only --singularity --bypass-file-store --jobStore=${JOBSTORE} --logFile=${OUTDIR}/job_output.txt --workDir=${WORKDIR} --outdir=${OUTPUT} --retryCount 0 --writeLogsFromAllJobs TRUE --writeLogs=${LOGSDIR} --tmp-outdir-prefix=${TMPD}/ --coordinationDir=${OUTPUT} --tmpdir-prefix=${TMPD}_interim/ --disableAutoDeployment True --preserve-environment ${APPTAINERENV_PYTHONPATH} ${SINGULARITYENV_PREPEND_PATH} ${APPTAINERENV_LINC_DATA_ROOT} ${APPTAINER_BIND} ${APPTAINER_PULLDIR} ${APPTAINER_TMPDIR} ${APPTAINER_CACHEDIR} --batchSystem slurm ${VLBIDIR}/workflows/alternative_workflows/split-directions-toil.cwl mslist_VLBI_split_directions.json
 
-if grep 'Final process status is success' ${OUTDIR}/job_output.txt
+if grep 'CWL run complete' ${OUTDIR}/job_output.txt
 then 
 	echo 'SUCCESS: Pipeline finished successfully' > ${OUTDIR}/finished.txt
 else
