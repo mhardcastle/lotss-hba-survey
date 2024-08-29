@@ -1,12 +1,8 @@
 #!/bin/bash 
 #SBATCH -N 1                  # number of nodes
-#SBATCH -c 48                 # number of cores  ### CLUSTER SPECIFIC
+#SBATCH -c 1                 # number of cores 
 #SBATCH --ntasks=1            # number of tasks
 #SBATCH -t 72:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
-#SBATCH -A do011
-#SBATCH -p cosma8-ska2
-#SBATCH -w mad03
-#SBATCH --output=/cosma8/data/do011/dc-mora2/logs/R-%x.%j.out  ### CLUSTER SPECIFIC
 
 ## submit the job with OBSID as an argument
 OBSID=${1}
@@ -22,6 +18,11 @@ export LOFARHELPERS=${SOFTWAREDIR}/lofar_helpers
 export FACETSELFCAL=${SOFTWAREDIR}/lofar_facet_selfcal
 BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
 
+## FOR TOIL
+export TOIL_SLURM_ARGS="${CLUSTER_OPTS} --export=ALL -t 24:00:00 -N 1 --ntasks=1"
+export CWL_SINGULARITY_CACHE=${SOFTWAREDIR}/singularity
+export TOIL_CHECK_ENV=True
+
 #################################################################################
 ## IN GENERAL DO NOT TOUCH ANYTHING BELOW HERE
 
@@ -30,40 +31,34 @@ DATADIR=${DATA_DIR}/${OBSID}/concatenate-flag
 DDFSOLSDIR=${DATA_DIR}/${OBSID}/ddfsolutions
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
-TMPDIR=${PROCDIR}/${OBSID}/tmp/
+WORKDIR=${OUTDIR}/workdir
+OUTPUT=${OUTDIR}
+JOBSTORE=${OUTDIR}/jobstore
+TMPD=${OUTDIR}/tmp
 LOGSDIR=${OUTDIR}/logs
-mkdir -p ${TMPDIR}
+mkdir -p ${TMPD}
+mkdir -p ${TMPD}_interim
 mkdir -p ${LOGSDIR}
+mkdir -p ${WORKDIR}
 
 ## location of LINC
 LINC_DATA_ROOT=${LINCDIR}
 
 # Pass along necessary variables to the container.
-CONTAINERSTR=$(singularity --version)
-if [[ "$CONTAINERSTR" == *"apptainer"* ]]; then
-    export APPTAINERENV_LINC_DATA_ROOT=${LINC_DATA_ROOT}
-    export APPTAINERENV_LOGSDIR=${LOGSDIR}
-    export APPTAINERENV_TMPDIR=${TMPDIR}
-    export APPTAINERENV_PREPEND_PATH=${LINC_DATA_ROOT}/scripts
-    export APPTAINERENV_PREPEND_PATH=${VLBIDIR}/scripts
-    export APPTAINERENV_PYTHONPATH="$VLBIDIR/scripts:$LINCDIR/scripts:\$PYTHONPATH"
-else
-    export SINGULARITYENV_LINC_DATA_ROOT=${LINC_DATA_ROOT}
-    export SINGULARITYENV_LOGSDIR=${LOGSDIR}
-    export SINGULARITYENV_TMPDIR=${TMPDIR}
-    export SINGULARITYENV_PREPEND_PATH=${LINC_DATA_ROOT}/scripts
-    export SINGULARITYENV_PREPEND_PATH=${VLBIDIR}/scripts
-    export SINGULARITYENV_PYTHONPATH="$VLBIDIR/scripts:$LINCDIR/scripts:\$PYTHONPATH"
-fi
-
-## temporary, for lotss-subtract
-export FLOCSDIR=/cosma8/data/do011/dc-mora2/processing/flocs
+export APPTAINER_CACHEDIR=${SOFTWAREDIR}/singularity
+export APPTAINER_TMPDIR=${APPTAINER_CACHEDIR}/tmp
+export APPTAINER_PULLDIR=${APPTAINER_CACHEDIR}/pull
+export APPTAINER_BIND=${BINDPATHS}
+export APPTAINERENV_LINC_DATA_ROOT=${LINC_DATA_ROOT}
+#### PATH: note that apptainer has a bug and does not use APPTAINERENV_PREPEND_PATH correctly
+export SINGULARITYENV_PREPEND_PATH=${VLBIDIR}/scripts:${LINCDIR}/scripts
+export APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPATH
 
 ## go to working directory
 cd ${OUTDIR}
 
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
-singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI phaseup-concat --delay_calibrator ${DATA_DIR}/${OBSID}/../delay_calibrators.csv --configfile ${VLBIDIR}/facetselfcal_config.txt --selfcal ${FACETSELFCAL} --h5merger ${LOFARHELPERS} --flags ${DATADIR}/flagged_fraction_antenna.json ${DATADIR}/../setup/flagged_fraction_antenna.json ${DATADIR}/../setup/flagged_fraction_antenna.json_2 --linc ${LINCDIR} --check_Ateam_separation.json ${DATADIR}/../setup/Ateam_separation.json --ms_suffix .ms ${DATADIR} >> create_ms_list.log 2>&1
+apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI phaseup-concat --delay_calibrator ${DATA_DIR}/${OBSID}/../delay_calibrators.csv --configfile ${VLBIDIR}/facetselfcal_config.txt --selfcal ${FACETSELFCAL} --h5merger ${LOFARHELPERS} --flags ${DATADIR}/flagged_fraction_antenna.json ${DATADIR}/../setup/flagged_fraction_antenna.json ${DATADIR}/../setup/flagged_fraction_antenna.json_2 --linc ${LINCDIR} --check_Ateam_separation.json ${DATADIR}/../setup/Ateam_separation.json --ms_suffix .ms ${DATADIR} >> create_ms_list.log 2>&1
 
 
 #  --numbands NUMBANDS   The number of bands to group. -1 means all bands. (default: -1)
@@ -81,13 +76,15 @@ singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 $
 #  --max_dp3_threads MAX_DP3_THREADS   Number of threads per process for DP3. (default: 5)
 
 
+
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
-echo export PYTHONPATH=\$LINC_DATA_ROOT/scripts:\$PYTHONPATH > tmprunner_${TMPID}.sh
-echo 'cwltool --parallel --preserve-entire-environment --no-container --tmpdir-prefix=${TMPDIR} --outdir=${OUTDIR} --log-dir=${LOGSDIR} ${VLBIDIR}/workflows/phaseup-concat.cwl mslist_VLBI_phaseup-concat.json' >> tmprunner_${TMPID}.sh
-(time singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} bash tmprunner_${TMPID}.sh 2>&1) | tee ${OUTDIR}/job_output.txt
-echo LINC ended
-if grep 'Final process status is success' ${OUTDIR}/job_output.txt
+
+ulimit -n 8192
+
+toil-cwl-runner --no-read-only --singularity --bypass-file-store --jobStore=${JOBSTORE} --logFile=${OUTDIR}/job_output.txt --workDir=${WORKDIR} --outdir=${OUTPUT} --retryCount 0 --writeLogsFromAllJobs TRUE --writeLogs=${LOGSDIR} --tmp-outdir-prefix=${TMPD}/ --coordinationDir=${OUTPUT} --tmpdir-prefix=${TMPD}_interim/ --disableAutoDeployment True --preserve-environment ${APPTAINERENV_PYTHONPATH} ${SINGULARITYENV_PREPEND_PATH} ${APPTAINERENV_LINC_DATA_ROOT} ${APPTAINER_BIND} ${APPTAINER_PULLDIR} ${APPTAINER_TMPDIR} ${APPTAINER_CACHEDIR} --batchSystem slurm ${VLBIDIR}/workflows/phaseup-concat.cwl mslist_VLBI_phaseup-concat.json
+
+if grep 'CWL run complete' ${OUTDIR}/job_output.txt
 then 
 	echo 'SUCCESS: Pipeline finished successfully' > ${OUTDIR}/finished.txt
 else
