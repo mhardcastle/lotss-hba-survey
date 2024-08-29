@@ -63,7 +63,7 @@ fi
 cd ${OUTDIR}
 
 ## pipeline input
-singularity exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py LINC target --cal_solutions ${DATADIR}/LINC-cal_solutions.h5 ${DATADIR} > create_mslist.log
+apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py LINC target --target_skymodel ${DATADIR}/target.skymodel --cal_solutions ${DATADIR}/LINC-cal_solutions.h5 ${DATADIR} > create_mslist.log
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
@@ -72,7 +72,7 @@ ulimit -n 8192
 
 toil-cwl-runner --no-read-only --singularity --bypass-file-store --jobStore=${JOBSTORE} --logFile=${OUTDIR}/job_output.txt --workDir=${WORKDIR} --outdir=${OUTPUT} --retryCount=0 --writeLogsFromAllJobs=True --writeLogs=${LOGSDIR} --tmp-outdir-prefix=${TMPD}/ --coordinationDir=${OUTPUT} --tmpdir-prefix=${TMPD}_interim/ --disableAutoDeployment=True --preserve-environment ${APPTAINERENV_PYTHONPATH} ${SINGULARITYENV_PREPEND_PATH} ${APPTAINERENV_LINC_DATA_ROOT} ${APPTAINER_BIND} ${APPTAINER_PULLDIR} ${APPTAINER_TMPDIR} ${APPTAINER_CACHEDIR} --batchSystem=slurm ${LINC_DATA_ROOT}/workflows/HBA_target.cwl mslist_LINC_target.json
 
-if grep 'Final process status is success' ${OUTDIR}/job_output.txt
+if grep 'CWL run complete' ${OUTDIR}/job_output.txt
 then 
 	echo 'SUCCESS: Pipeline finished successfully' > ${OUTDIR}/finished.txt
 else

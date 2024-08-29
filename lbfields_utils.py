@@ -412,6 +412,26 @@ def do_unpack(field):
         update_status(field,'Unpack failed')    
 
 ##############################
+## get LINC input
+
+def get_linc_inputs( field, obsid ):
+    datadir = os.path.join( os.getenv('DATA_DIR'), field, obsid )
+    softwaredir = os.getenv('SOFTWAREDIR')
+    mslist = glob.glob( os.path.join( datadir, '*.MS' ) )
+    singularity_img = os.getenv('LOFAR_SINGULARITY')
+    ## download TGSS skymodel
+    skymodel = os.path.join( datadir, 'target.skymodel' )
+    cmd = "apptainer exec -B {:s},{:s} --no-home {:s} python3 {:s}/LINC/scripts/download_skymodel_target.py {:s} {:s}".format( os.getcwd(), softwaredir, singularity_img, softwaredir, mslist[0], skymodel )
+    if os.system(cmd):
+        update_status(field,"TGSS failed")
+    #Download IONEX
+    ionexpath = datadir
+    cal_solutions = os.path.join( datadir, 'LINC-cal_solutions.h5' )
+    cmd = "apptainer exec -B {:s},{:s} --no-home {:s} python3 {:s}/LINC/scripts/createRMh5parm.py --ionexpath={:s} --solsetName=target --server='http://ftp.aiub.unibe.ch/CODE/' {:s} {:s}".format( os.getcwd(), softwaredir, singularity_img, softwaredir, datadir, mslist[0], cal_solutions )
+    if os.system(cmd):
+        update_status(field,"IONEX failed")
+
+##############################
 ## split directions
 
 def chunk_imagecat( fieldobsid, numdirs=10, catname='image_catalogue.csv', nchunkspertime=2 ):
