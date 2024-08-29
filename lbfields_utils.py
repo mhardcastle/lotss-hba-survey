@@ -139,7 +139,7 @@ def collect_solutions( caldir ):
     else:
         print('valid LINC solutions not found. Checking lb_calibrators.')
         ## linc is not good
-        result = download_field_calibrators(name,caldir)
+        result = download_field_calibrators(obsid,caldir)
         solutions = unpack_calibrator_sols(caldir,result)
         if len(solutions) >= 1:
             print('One or more calibrator found, comparing solutions ...')
@@ -164,14 +164,13 @@ def collect_solutions( caldir ):
             tasklist.append('delay')
             tasklist.append('split')
             tasklist.append('selfcal')
-            ## check that all solutions exist and set success = True
             '''
             if os.path.isfile( LINC-cal_solutions.h5 )
             if os.path.isfile( ddflight data products in HBA_target/results/template )
             '''
         else:
             ## need to re-run calibrator .... shouldn't ever be in this situation!
-            ## success = False will remain true if we end up here
+            success = False
             tasklist.append('calibrator')
             tasklist.append('target')
             tasklist.append('ddfpipeline')
