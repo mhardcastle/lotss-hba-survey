@@ -264,37 +264,35 @@ while True:
 
     if 'Queued' in d:
         for field in fd['Queued']:
-            print('Verifying processing for',field)            
-            field_obsids = get_local_obsid(field)
-            fieldobsid = '{:s}/{:s}'.format(field,field_obsids[0])
-            outdir = os.path.join(procdir,fieldobsid)
-            if os.path.isfile(os.path.join(outdir,'finished.txt')):        
-                result, workflow, obsid = check_field(fieldobsid)
-                if result:
-                    ## get task that was run from the finished.txt to mark done
-                    mark_done(obsid,workflow.replace('HBA_',''))
-                    ## and cleanup after the step
-                    cleanup_step(fieldobsid)
-                    ## start next step
-                    remaining_tasks = get_task_list(obsid)
-                    if len(remaining_tasks) > 0:
-                        next_task = remaining_tasks[0]
-                        fieldobsid = '{:s}/{:s}'.format(field,obsid)
-                        if next_task == 'delay':
-                            update_status(field,'DelayCheck')
-                        else:
-                            if 'ddf' in next_task or next_task =='setup':
-                                ## need to change to cosma8-dine2
-                                cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
-                            else:
-                                cluster_opts = os.getenv('CLUSTER_OPTS')
-                            command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, cluster_opts, str(softwaredir).rstrip('/'), next_task, fieldobsid)
-                            if os.system(command):
-                                update_status(field,"Submission failed")
+            print('Verifying processing for',field)      
+            result, workflow, obsid = check_field(field)
+            if result == 'Running':
+                pass
+            elif result == 'Finished':
+                ## get task that was run from the finished.txt to mark done
+                mark_done(obsid,workflow.replace('HBA_',''))
+                ## and cleanup after the step
+                cleanup_step(fieldobsid)
+                ## start next step
+                remaining_tasks = get_task_list(obsid)
+                if len(remaining_tasks) > 0:
+                    next_task = remaining_tasks[0]
+                    fieldobsid = '{:s}/{:s}'.format(field,obsid)
+                    if next_task == 'delay':
+                        update_status(field,'DelayCheck')
                     else:
-                        update_status(field,'Verified')  
+                        if 'ddf' in next_task or next_task =='setup':
+                            ## need to change to cosma8-dine2
+                            cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
+                        else:
+                            cluster_opts = os.getenv('CLUSTER_OPTS')
+                        command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, cluster_opts, str(softwaredir).rstrip('/'), next_task, fieldobsid)
+                        if os.system(command):
+                            update_status(field,"Submission failed")
                 else:
-                    update_status(field,'Workflow failed')
+                    update_status(field,'Verified')  
+            else:
+                update_status(field,'Workflow failed')
 
     ## this will also need to be changed to use macaroons to copy back to spider
     if 'Verified' in d and verify_thread is None:

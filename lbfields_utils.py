@@ -446,7 +446,6 @@ def chunk_imagecat( fieldobsid, numdirs=10, catname='image_catalogue.csv', nchun
     lines = lines[1:]
 
     nchunks = int(np.ceil(len(lines)/numdirs))
-
     chunk = 1
     for i in np.arange(nchunks):
         j = 10*i
@@ -479,17 +478,34 @@ def get_workflow_obsid(outdir):
     return(workflow,obsid)
 
 def check_field(field):
+    field_obsids = get_local_obsid(field)
+    fieldobsid = '{:s}/{:s}'.format(field,field_obsids[0])
     procdir = os.path.join(str(os.getenv('DATA_DIR')),'processing')
-    outdir = os.path.join(procdir,field)
-    ## get status from finished.txt
-    with open(os.path.join(outdir,'finished.txt'),'r') as f:
-        lines = f.readlines()
-    if 'SUCCESS: Pipeline finished successfully' in lines[0]:
-        success = True
+    outdirs = glob.glob(os.path.join(procdir,'{:s}*'.format(fieldobsid)))
+    finished = glob.glob(os.path.join(procdir,'{:s}*'.format(fieldobsid),'finished.txt') )
+    if len(outdirs) == len(finished):
+        check = 0
+        for outdir in outdirs:
+            try:
+                with open(os.path.join(outdir,'finished.txt'),'r') as f:
+                    lines = f.readlines()
+                if 'SUCCESS: Pipeline finished successfully' in lines[0]:
+                    check = check + 1
+                else:
+                    print('Pipeline did not report finishing successfully. Please check processing for {:s}!!'.format(outdir))
+            except:
+                continue
+        if len(outdirs) == check:
+            success = 'Finished'
+            workflow, obsid = get_workflow_obsid(outdirs[0])
+
+        else:
+            success = 'Failed'
     else:
-        print('Pipeline did not report finishing successfully. Please check processing for {:s}!!'.format(field))
-        success = False
-    workflow, obsid = get_workflow_obsid(outdir)
+        ## the process is still running
+        success = 'Running'
+        workflow = 'Running'
+        obsid = field_obsids[0]
     return success, workflow, obsid
 
 def cleanup_step(field):
