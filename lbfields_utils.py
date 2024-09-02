@@ -509,8 +509,12 @@ def check_field(field):
     return success, workflow, obsid
 
 def cleanup_step(field):
+    field_obsids = get_local_obsid(field)
+    fieldobsid = field_obsids[0]
     basedir = os.getenv('DATA_DIR')
     procdir = os.path.join(str(os.getenv('DATA_DIR')),'processing')
+    
+
     field_procdir = os.path.join(procdir,field)
     workflow, obsid = get_workflow_obsid(field_procdir)
     field_datadir = os.path.join(basedir,field)

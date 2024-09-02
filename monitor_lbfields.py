@@ -272,7 +272,7 @@ while True:
                 ## get task that was run from the finished.txt to mark done
                 mark_done(obsid,workflow.replace('HBA_',''))
                 ## and cleanup after the step
-                cleanup_step(fieldobsid)
+                cleanup_step(field)
                 ## start next step
                 remaining_tasks = get_task_list(obsid)
                 if len(remaining_tasks) > 0:
