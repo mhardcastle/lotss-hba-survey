@@ -483,26 +483,26 @@ def check_field(field):
     procdir = os.path.join(str(os.getenv('DATA_DIR')),'processing')
     outdirs = glob.glob(os.path.join(procdir,'{:s}*'.format(fieldobsid)))
     finished = glob.glob(os.path.join(procdir,'{:s}*'.format(fieldobsid),'finished.txt') )
+    success = []
     if len(outdirs) == len(finished):
-        check = 0
         for outdir in outdirs:
-            try:
-                with open(os.path.join(outdir,'finished.txt'),'r') as f:
-                    lines = f.readlines()
-                if 'SUCCESS: Pipeline finished successfully' in lines[0]:
-                    check = check + 1
-                else:
-                    print('Pipeline did not report finishing successfully. Please check processing for {:s}!!'.format(outdir))
-            except:
-                continue
-        if len(outdirs) == check:
+            with open(os.path.join(outdir,'finished.txt'),'r') as f:
+                lines = f.readlines()
+            if 'SUCCESS: Pipeline finished successfully' in lines[0]:
+                success.append(1)
+            else:
+                success.append(0)
+        if sum(success) == len(outdirs):
+            ## everything finished successfully
             success = 'Finished'
-            workflow, obsid = get_workflow_obsid(outdirs[0])
-
+            workflow, obsid = get_workflow_obsid(outdirs[0])        
         else:
+            idx = np.where(np.asarray(success) == 0)
+            print('The following pipelines did not finish successfully, please check processing:')
+            print( np.asarray(outdirs)[idx] )    
             success = 'Failed'
     else:
-        ## the process is still running
+        ## the number of finished != number of directories - the process is still running
         success = 'Running'
         workflow = 'Running'
         obsid = field_obsids[0]
