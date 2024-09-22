@@ -13,6 +13,8 @@ def qstat():
     # check the torque queue for lofar jobs
     # necessarily only works on Herts systems
     try:
+        results=subprocess.check_output(['qstat', '-a'],text=True).split('\n')
+    except TypeError:
         results=subprocess.check_output(['qstat', '-a']).split('\n')
     except OSError:
         results=[]

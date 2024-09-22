@@ -33,12 +33,12 @@ with SurveysDB(readonly=not flag_failed) as sdb:
             if flag_failed:
                 f['status']='Failed (running)'
                 sdb.set_field(f)
-            if f['location'] is not None and os.path.isdir(f['location']):
-                os.system('ls -tlr '+f['location']+' | tail -1')
             if rerun:
                 reruns.append(id)
         else:
             print(id,'has status',f['status'],'and queue status',q[key])
+        if f['location'] is not None and os.path.isdir(f['location']):
+            os.system('ls -tlr '+f['location']+' | tail -1')
 
 if rerun:
     for id in reruns:

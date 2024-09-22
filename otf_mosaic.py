@@ -89,6 +89,8 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
         for r in t:
             if r['status']!='Archived' and r['status']!='Verified':
                 continue
+            if not r['dr2'] and not r['dr3']:
+                continue
             p=r['id']
             if r['dr2']:
                 images='/data/lofar/DR2/fields'
@@ -105,11 +107,14 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
                 scales.append(1.0)
 
     
-    mos_args=dotdict({'save':False, 'load':False,'exact':False,'use_shifted':True,'find_noise':True,'beamcut':beamcut,'header':header,'directories':mosaicdirs,'scale':scales,'do_lowres':do_low})
-    print(mos_args)
-    make_mosaic(mos_args)
-    os.rename('mosaic.fits',objname+'-mosaic.fits')
-    os.rename('mosaic-weights.fits',objname+'-mosaic-weights.fits')
+    if len(mosaicdirs)==0:
+        print('No directories for this position')
+    else:
+        mos_args=dotdict({'save':False, 'load':False,'exact':False,'use_shifted':True,'find_noise':True,'beamcut':beamcut,'header':header,'directories':mosaicdirs,'scale':scales,'do_lowres':do_low})
+        print(mos_args)
+        make_mosaic(mos_args)
+        os.rename('mosaic.fits',objname+'-mosaic.fits')
+        os.rename('mosaic-weights.fits',objname+'-mosaic-weights.fits')
     return True
     
 if __name__=='__main__':
