@@ -126,15 +126,16 @@ if __name__=='__main__':
                         root='public'
                     root+='/DR3/mosaics/'+id+'/'
                     f=root+'mosaic-blanked.fits'
-                    rms=root+'mosaic.rms.fits'
-                    resid=root+'mosaic.resid.fits'
+                    rms=root+'mosaic-blanked--final.rms.fits'
+                    resid=root+'mosaic-blanked--final.resid.fits'
                     weights=root+'mosaic-weights.fits'
-                    mask=root+'mosaic.pybdsmmask.fits'
+                    mask=root+'mosaic-blanked--final.mask.fits'
                     low=root+'low-mosaic-blanked.fits'
                     lowweight=root+'low-mosaic-weights.fits'
-                    image=root+'mosaic-blanked.png'
-                    headers=root+'fits_headers.tar'
-                    outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td></tr>\n' % (id,r['ra'],r['decl'],f,rms,resid,weights,mask,low,lowweight,image,headers))
+                    catalogue=root+'mosaic-blanked--final.srl.fits'
+                    #image=root+'mosaic-blanked.png'
+                    #headers=root+'fits_headers.tar'
+                    outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td></tr>\n' % (id,r['ra'],r['decl'],f,rms,resid,weights,mask,low,lowweight,catalogue))
             outfile.close()
 
         outfile=open('/home/mjh/lofar-surveys/templates/dr3-fields.html','w')

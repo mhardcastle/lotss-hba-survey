@@ -22,6 +22,7 @@ with SurveysDB() as sdb:
 
 dir='/beegfs/lofar/DR3/fields'
 tim_dir='/beegfs/car/shimwell/LoTSS-DR3-pointings/pointing-details'
+dryrun=False
 
 for r in results:
     error=False
@@ -43,11 +44,11 @@ for r in results:
             warn("Tim's directory does not exist")
             error=True
         else:
-            files=['image_full_ampphase_di_m.NS.offset_cat.fits','image_full_ampphase_di_m.NS.offset_cat_radcat_compact.fits','Badfacets.txt']
+            files=['image_full_ampphase_di_m.NS.offset_cat.fits','image_full_ampphase_di_m.NS.offset_cat_radcat_compact.fits','Badfacets.txt','pslocal-facet_offsets.fits']
             for f in files:
                 if not os.path.isfile(f):
                     report('Copying '+f)
-                    os.system('cp '+tim_dir+'/'+id+'/'+f+' .')
+                    if not dryrun: os.system('cp '+tim_dir+'/'+id+'/'+f+' .')
         if not error:
             checksum_lines=open(tim_dir+'/'+id+'/checksums.txt').readlines()
             cs={}
@@ -67,8 +68,8 @@ for r in results:
             if not os.path.isfile('pslocal-facet_offsets.fits'):
                 command='qsub -v FIELD=%s -N offset-%s /home/mjh/pipeline-offsetpointings/lotss-hba-survey/torque/find_offsets.qsub' % (id,id)
                 print(command)
-                os.system(command)
+                if not dryrun: os.system(command)
         if not error and (not os.path.isfile('image_full_ampphase_di_m.NS.app.restored_facetnoise.fits') or not os.path.isfile('image_full_low_m.app.restored_facetnoise.fits') or (r['decl']<14 and not os.path.isfile('image_full_ampphase_di_m.NS.app.restored_convolved_facetnoise.fits'))):
             command='qsub -v FIELD=%s -N noise-%s /home/mjh/pipeline-offsetpointings/lotss-hba-survey/torque/make_noisemap.qsub' % (id,id)
             print(command)
-            os.system(command)
+            if not dryrun: os.system(command)
