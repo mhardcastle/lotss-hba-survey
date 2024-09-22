@@ -126,6 +126,7 @@ if __name__=='__main__':
                         root='public'
                     root+='/DR3/mosaics/'+id+'/'
                     f=root+'mosaic-blanked.fits'
+
                     rms=root+'mosaic-blanked--final.rms.fits'
                     resid=root+'mosaic-blanked--final.resid.fits'
                     weights=root+'mosaic-weights.fits'
