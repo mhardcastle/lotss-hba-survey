@@ -6,7 +6,7 @@
 #PBS -l walltime=168:00:00
 #PBS -o /beegfs/car/mjh/torque
 #PBS -e /beegfs/car/mjh/torque
-#PBS -q main
+#PBS -q core32
 #PBS -W group_list=lofar
 
 echo ------------------------------------------------------
