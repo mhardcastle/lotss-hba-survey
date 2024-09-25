@@ -1,0 +1,9 @@
+astropy
+future
+h5py
+numpy<2
+pymysql
+pyvo
+requests
+sshtunnel
+tqdm
