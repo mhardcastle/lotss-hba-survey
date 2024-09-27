@@ -108,7 +108,7 @@ if __name__=='__main__':
                                     if 'high_stokesV' in f: continue
                                     print('Need to download',id+'/'+f,'from archive')
                                     failcount+=1
-                        if failcount>0:
+                        if failcount>0 and r['dr3']:
                             os.system('get_images.py '+id)
 
 

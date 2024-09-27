@@ -87,8 +87,8 @@ for b in [-23,0,23]:
 #ra_r,dec_r=cc(ravals,decvals)
 #plt.scatter(ra_r,dec_r,marker='o',color='blue',alpha=0.2,zorder=-5,edgecolors='none',s=50,label='DR2')
     
-_,r=plot_select(results,lambda r:r['dr3']>0,label='DR3',color='grey')
-_,_=plot_select(results,lambda r:r['dr3']>0 and r['status']=='Verified',label='DR3 verified',color='cyan')
+_,r=plot_select(results,lambda r:r['dr3'],label='DR3',color='grey')
+_,_=plot_select(results,lambda r:r['dr3'] and r['status']=='Verified',label='DR3 verified',color='cyan')
 
 _,_=plot_select(results,lambda r:r['dr3']==2,label='DR3 status 2',color='yellow')
 _,_=plot_select(results,lambda r:os.path.isfile('/beegfs/lofar/DR3/mosaics/'+r['id']+'/mosaic-blanked.fits'),label='Mosaiced',color='green')

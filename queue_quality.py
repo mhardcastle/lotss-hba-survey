@@ -3,7 +3,6 @@
 # Run the quality pipeline
 # Herts-only code
 
-from __future__ import print_function
 from surveys_db import SurveysDB
 import os
 from subprocess import call,check_output
@@ -11,7 +10,7 @@ import sys
 
 queued=[]
 qlimit=32
-queue=check_output('qstat -a',shell=True).split('\n')
+queue=check_output('qstat -a',shell=True,universal_newlines=True).split('\n')
 for l in queue:
     if 'qual-' in l:
         bits=l.split()

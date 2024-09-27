@@ -93,7 +93,7 @@ _,r=plot_select(r,lambda r:r['status'] in ['Running'],label='Running',color='cya
 _,r=plot_select(r,lambda r:r['status'] in ['Downloaded','Downloading','Unpacking','Averaging','Ready','Queued','Unpacked'],label='In progress',color='yellow')
 _,r=plot_select(r,lambda r:r['status'] in ['Failed','Failed (verified)','Failed (running)','List failed','D/L failed'],label='Failed',color='red')
 
-_,r=plot_select(r,lambda r:r['status']=='Not started' and r['s']>0.95*r['required_integration'],label='Ready',color='black')
+_,r=plot_select(r,lambda r:r['status']=='Not started' and r['s'] is not None and r['required_integration'] is not None and r['s']>0.95*r['required_integration'],label='Ready',color='black')
 
 _,r=plot_select(r,lambda r:r['c']>0,label='Part processed',color='black',alpha=0.5,s=8)
 _,r=plot_select(r,lambda r:True,label='Not processed',color='black',alpha=0.2,s=4)
