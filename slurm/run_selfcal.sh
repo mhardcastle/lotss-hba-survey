@@ -51,8 +51,13 @@ if compgen -G "merged_selfcalcyle009*h5" > /dev/null; then
 	mv tmp/facet_selfcal.log .
 	mv tmp/selfcal.log .
 	rm -r tmp
+	ILTJ=`ls -d ILTJ*ms | cut -d'_' -f 1`
+	mkdir ${ILTJ}
+	mv * ${ILTJ}/
 	echo 'SUCCESS: Pipeline finished successfully' > ${OUTDIR}/finished.txt
+	echo 'Resolved /fake/workflow/selfcal.cwl' > ${OUTDIR}/job_output.txt
 else
         echo "**FAILURE**: Pipeline failed" > ${OUTDIR}/finished.txt
+	echo 'Resolved /fake/workflow/selfcal.cwl' > ${OUTDIR}/job_output.txt
 fi
 
