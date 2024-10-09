@@ -513,29 +513,30 @@ def cleanup_step(field):
     fieldobsid = field_obsids[0]
     basedir = os.getenv('DATA_DIR')
     procdir = os.path.join(str(os.getenv('DATA_DIR')),'processing')
-    
-
-    field_procdir = os.path.join(procdir,field)
-    workflow, obsid = get_workflow_obsid(field_procdir)
-    field_datadir = os.path.join(basedir,field)
+    field_procdirs = glob.glob( os.path.join(procdir,field, fieldobsid+'*') )
+    workflow, tmpid = get_workflow_obsid(field_procdirs[0])
+    field_datadir = os.path.join(basedir,field,fieldobsid)
     workflowdir = os.path.join(field_datadir,workflow)
-    ## remove logs directory (run was successful)
-    os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'logs')))
-    ## same for tmp directory
-    os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'tmp')))
-    ## move everything else to the data directory and rename MSs
-    remaining_files = glob.glob(os.path.join(field_procdir,'*'))
     os.makedirs(workflowdir)
-    for ff in remaining_files:
-        dest = os.path.join(workflowdir,os.path.basename(ff).replace('out_',''))
-        os.system('mv {:s} {:s}'.format(ff,dest))
-    ## remove data from previous step if required
-    if workflow in ['setup']:
-        os.system('rm -r {:s}'.format(os.path.join(caldir,'*.MS')))
-    if workflow in ['HBA_target']:
-        os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,'LINC-target_solutions.h5')))
-    if workflow in ['concatenate-flag']:
-        os.system('rm -r {:s}'.format(os.path.join(field_datadir,'setup/L*MS')))
+    for field_procdir in field_procdirs:
+        ## remove logs directory (run was successful)
+        os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'logs')))
+        ## same for tmp directory
+        os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'tmp*')))
+        ## move everything else to the data directory and rename MSs
+        os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'workdir')))
+        remaining_files = glob.glob(os.path.join(field_procdir,'*'))
+        for ff in remaining_files:
+            dest = os.path.join(workflowdir,os.path.basename(ff).replace('out_',''))
+            os.system('mv {:s} {:s}'.format(ff,dest))
+        ## remove data from previous step if required
+        if workflow in ['setup']:
+            os.system('rm -r {:s}'.format(os.path.join(caldir,'*.MS')))
+        if workflow in ['HBA_target']:
+            os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,fieldobsid,'LINC-target_solutions.h5')))
+        if workflow in ['concatenate-flag']:
+            os.system('rm -r {:s}'.format(os.path.join(field_datadir,fieldobsid,'setup/L*MS')))
+        os.system('rmdir {:s}'.format(field_procdir) )
 
 def do_verify(field):
     tarfile = glob.glob(field+'*tgz')[0]
