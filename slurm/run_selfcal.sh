@@ -51,8 +51,8 @@ if compgen -G "merged_selfcalcyle009*h5" > /dev/null; then
 	mv tmp/facet_selfcal.log .
 	mv tmp/selfcal.log .
 	rm -r tmp
-	echo 'SUCCESS: Pipeline finished successfully' > ${TARGETDIR}/finished.txt
+	echo 'SUCCESS: Pipeline finished successfully' > ${OUTDIR}/finished.txt
 else
-        echo "**FAILURE**: Pipeline failed" > ${TARGETDIR}/finished.txt
+        echo "**FAILURE**: Pipeline failed" > ${OUTDIR}/finished.txt
 fi
 
