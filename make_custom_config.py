@@ -52,17 +52,17 @@ def make_custom_config(name,workdir,do_field,averaged=False,tdir=None):
 
     if idd['field_type']=="Galactic":
         if idd['decl']<10.0:
-               template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-mar2024-MW-lowdec.cfg'
+               template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-sep2024-MW-lowdec.cfg'
         else:
-               template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-mar2024-MW.cfg'
+               template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-sep2024-MW.cfg'
     else:
         if no_wenss:
             if idd['decl']<10.0:
-                template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018-lowdec.cfg'
+                template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-sep2024-lowdec.cfg'
             else:
-                template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018-NVSS.cfg'
+                template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-sep2024-NVSS.cfg'
         else:
-            template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-jul2018.cfg'
+            template=os.environ['DDF_DIR']+'/ddf-pipeline/examples/tier1-sep2024.cfg'
 
     lines=open(template).readlines()
     with open(workdir+'/tier1-config.cfg','w') as outfile:
