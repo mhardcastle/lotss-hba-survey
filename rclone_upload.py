@@ -217,6 +217,14 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
     m=MyGlob(workdir)
     t=Tarrer(workdir)
 
+    # Use the summary to work out what was done
+    od={}
+    lines=open(workdir+'/summary.txt').readlines()
+    for l in lines:
+        if ':' in l:
+            bits=l.split(':')
+            od[bits[0].rstrip()]=bits[1].strip()
+    
     if split_uv:
         # break the uv tar file into obsids and a misc section
         t.make_tar('uv_misc',['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'),ignore_missing=True)
@@ -226,20 +234,24 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
             t.make_tar('uv_'+obsid,m.glob(obsid+'_*.archive')+m.glob('SOLSDIR/'+obsid+'_*'))
     else:
         t.make_tar('uv',m.glob('*.archive')+['image_dirin_SSD_m.npy.ClusterCat.npy','image_full_ampphase_di_m.NS.DicoModel','image_full_ampphase_di_m.NS.tessel.reg','SOLSDIR']+m.glob('DDS*smoothed*.npz')+m.glob('DDS*full_slow*.npz'))
-        
-    imagelist=['astromap.fits']+images('image_full_ampphase_di_m.NS',workdir)+images('image_full_low_m',workdir)
-    imagelist+=shiftimages('image_full_ampphase_di_m.NS')
-    if idd['do_spectral_restored']!=0:
+
+    imagelist=[]
+    if od['method']!='None':
+        imagelist+=['astromap.fits']
+    imagelist+=images('image_full_ampphase_di_m.NS',workdir)+images('image_full_low_m',workdir)
+    if od['method']!='None':
+        imagelist+=shiftimages('image_full_ampphase_di_m.NS')
+    if idd['do_spectral_restored']!=0 and od['spectral_restored']=="True":
         for i in range(3):
             imagelist+=shiftimages('image_full_ampphase_di_m.NS_Band%i' %i)
     t.make_tar('images',imagelist,readme=True)
 
-    if idd['do_polcubes']!=0:
+    if idd['do_polcubes']!=0 and od['polcubes']=='True':
         t.make_tar('stokes_large',
                        m.glob('image_full_low_QU.cube.*.fz'),readme=True)
         t.make_tar('stokes_small',m.glob('image_full_*_stokesV*.dirty.*')+
                        m.glob('image_full_*_stokesV*.SmoothNorm.fits')+m.glob('image_full_vlow_QU.cube.*.fz'),readme=True)
-    if idd['do_dynspec']!=0:
+    if idd['do_dynspec']!=0 and od['do_dynspec']=='True':
         t.make_tar('dynspec',m.glob('DynSpecs*.tgz'))
 
     # now we can get FITS headers from files we've added
@@ -283,7 +295,7 @@ def upload_field(name,basedir=None,split_uv=False,skip_fits=False):
             with SurveysDB() as sdb:
                 sdb.execute('insert into checksums values ( %s, %s, %s)',(name,tarfile, local_checksum))
 
-    update_status(name,'Verified',workdir=workdir,av=5)
+    update_status(name,'Verified',workdir=workdir,av=6)
 
     report('Tidying up')
     for tarfile in t.tars:
