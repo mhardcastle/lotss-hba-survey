@@ -31,7 +31,7 @@ for r in results:
     
     id=r['id']
     dir='/data/lofar/DR3/fields/'+id
-    if not os.path.isfile(dir+'/image_full_ampphase_di_m.NS_shift.app.facetRestored.fits'):
+    if not os.path.isfile(dir+'/image_full_ampphase_di_m.NS.app.restored.fits'):
         print(id,'does not have the images!')
         continue
     if os.path.isfile(dir+'/image_full_ampphase_di_m.NS.cat.reg'):
@@ -42,7 +42,7 @@ for r in results:
         print('Not queueing it as it is already queued')
     else:
         if qcount<qlimit:
-            os.system('qsub -l nodes=1:ppn=6 -l pmem=1800mb -N qual-%s -v WD=%s ~/pipeline-master/lotss-hba-survey/torque/quality.qsub' % (id,dir))
+            os.system('qsub -l nodes=1:ppn=6,mem=20gb -N qual-%s -v WD=%s ~/pipeline-master/lotss-hba-survey/torque/quality.qsub' % (id,dir))
             qcount+=1
         else:
             print('Skipping as too many jobs already queued')

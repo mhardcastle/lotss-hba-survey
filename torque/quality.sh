@@ -9,4 +9,4 @@ export RCLONE_CONFIG_DIR=/home/mjh/macaroons
 export RCLONE_COMMAND=/soft/bin/rclone
 export ADA_COMMAND=/home/mjh/git/SpiderScripts/ada/ada
 
-/soft/singularity-3.8.4/bin/singularity run -B/soft/,/beegfs,/data /beegfs/car/mjh/DDF-oldversion/ddf.sif quality_pipeline.py /usr/local/src/ddf-pipeline/examples/quality-example.cfg
+singularity run -B/soft/,/beegfs,/data /beegfs/car/mjh/DDF-v0.8.0/ddf.sif quality_pipeline.py /usr/local/src/ddf-pipeline/examples/quality-example.cfg

@@ -26,8 +26,9 @@ if __name__=='__main__':
         os.system('chmod +r /beegfs/car/mjh/torque/*')
         
         # make status plot
-        separator('Making plot')
+        separator('Making plots')
         os.system('plot_db_projection.py /home/mjh/lofar-surveys/static/Tier1-dbstatus.png')
+        os.system('plot_mosaics.py /home/mjh/lofar-surveys/static/mosaic.png')
 
         # make JSON file for HIPS
         separator('Make JSON file')
@@ -54,7 +55,7 @@ if __name__=='__main__':
 
         if not skip_construct:
             separator('Preparing release directory')
-            releasefiles=['image_full_high_stokesV.dirty.fits','image_full_high_stokesV.dirty.corr.fits','image_full_high_stokesV.SmoothNorm.fits','image_full_low_m.int.restored.fits','image_full_low_m.app.restored.fits','image_full_ampphase_di_m.NS.tessel.reg','image_full_ampphase_di_m.NS_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.int.restored.fits','image_full_ampphase_di_m.NS_Band0_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_Band1_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_Band2_shift.int.facetRestored.fits','image_full_ampphase_di_m.NS_Band0_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS_Band1_shift.app.facetRestored.fits','image_full_ampphase_di_m.NS_Band2_shift.app.facetRestored.fits','astromap.fits','DynSpec*.tgz']
+            releasefiles=['image_full_high_stokesV.dirty.fits','image_full_high_stokesV.dirty.corr.fits','image_full_high_stokesV.SmoothNorm.fits','image_full_low_m.int.restored.fits','image_full_low_m.app.restored.fits','image_full_ampphase_di_m.NS.tessel.reg','image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.int.restored.fits']
 
             for r in result:
                 id=r['id']
@@ -149,13 +150,13 @@ if __name__=='__main__':
                 lroot='downloads/DR3/fields/'+id+'/'
                 workdir='/data/lofar/DR3'
             if os.path.isdir(workdir+'/fields/'+id):
-                fint=link('image_full_ampphase_di_m.NS_shift.int.facetRestored.fits',id,lroot,'True',workdir+'/fields/')
-                fapp=link('image_full_ampphase_di_m.NS_shift.app.facetRestored.fits',id,lroot,'App',workdir+'/fields/')
+                fint=link('image_full_ampphase_di_m.NS.int.facetRestored.fits',id,lroot,'True',workdir+'/fields/')
+                fapp=link('image_full_ampphase_di_m.NS.app.facetRestored.fits',id,lroot,'App',workdir+'/fields/')
                 lowint=link('image_full_low_m.int.restored.fits',id,lroot,'True',workdir+'/fields/')
                 lowapp=link('image_full_low_m.app.restored.fits',id,lroot,'App',workdir+'/fields/')
-                band=[]
-                for i in range(3):
-                    band.append(link('image_full_ampphase_di_m.NS_Band%i_shift.int.facetRestored.fits' % i,id,lroot,'%i' %i, workdir+'/fields/'))
+                #band=[]
+                #for i in range(3):
+                #    band.append(link('image_full_ampphase_di_m.NS_Band%i_shift.int.facetRestored.fits' % i,id,lroot,'%i' %i, workdir+'/fields/'))
                 stokesv=link('image_full_low_stokesV.dirty.fits',id,lroot,'Download',workdir+'/fields/')
                 if stokesv.startswith('&'):
                     stokesv=link('image_full_high_stokesV.dirty.corr.fits',id,lroot,'Download',workdir+'/fields/')
@@ -168,7 +169,7 @@ if __name__=='__main__':
                     scale='&mdash;'
                 else:
                     scale="%.3f" % (5.9124/r['nvss_scale'])
-                outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%s, %s</td><td>%s, %s, %s</td><td>%s</td></tr>\n' % (id,r['ra'],r['decl'],r['end_date'],scale,fint,fapp,lowint,lowapp,band[0],band[1],band[2],stokesv)) #,stokesqu,stokesquvlow,stokesqu_app,stokesquvlow_app))
+                outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%s, %s</td><td>%s</td></tr>\n' % (id,r['ra'],r['decl'],r['end_date'],scale,fint,fapp,lowint,lowapp,stokesv)) #,stokesqu,stokesquvlow,stokesqu_app,stokesquvlow_app))
 
         outfile.close()
 
