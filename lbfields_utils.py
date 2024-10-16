@@ -353,6 +353,7 @@ def dysco_compress(caldir,msfile):
     return(success)
 
 def dysco_compress_job(caldir):
+    cluster = os.getenv('DDF_PIPELINE_CLUSTER')
     success=True
     os.system('ls -d {:s}/*.MS > {:s}/myfiles.txt'.format(caldir,caldir))
     file_number = len(open("{:s}/myfiles.txt".format(caldir), "r").readlines())
