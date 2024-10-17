@@ -422,7 +422,7 @@ def get_linc_inputs( field, obsid ):
     singularity_img = os.getenv('LOFAR_SINGULARITY')
     ## download TGSS skymodel
     skymodel = os.path.join( datadir, 'target.skymodel' )
-    cmd = "apptainer exec -B {:s},{:s} --no-home {:s} python3 {:s}/LINC/scripts/download_skymodel_target.py {:s} {:s}".format( os.getcwd(), softwaredir, singularity_img, softwaredir, mslist[0], skymodel )
+    cmd = "apptainer exec -B {:s},{:s} --no-home {:s} python3 {:s}/LINC/scripts/download_skymodel_target.py --targetname={:s} {:s} {:s}".format( field, os.getcwd(), softwaredir, singularity_img, softwaredir, mslist[0], skymodel )
     if os.system(cmd):
         update_status(field,"TGSS failed")
     #Download IONEX
