@@ -29,7 +29,7 @@ def parse_position(argv):
         ra=float(argv[3])
         dec=float(argv[4])
         try:
-            bits=objname.split('-')
+            bits=objname.split('_')
             objname=bits[1]
         except:
             objname='pos-%f-%f' % (ra,dec)
