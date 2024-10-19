@@ -36,7 +36,7 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
             if do_low:
                 hdu=fits.open(images+'/'+cfield['id']+'/image_full_low_m.app.restored.fits')
             else:
-                hdu=fits.open(images+'/'+cfield['id']+'/image_full_ampphase_di_m.NS_shift.app.facetRestored.fits')
+                hdu=fits.open(images+'/'+cfield['id']+'/image_full_ampphase_di_m.NS.app.restored.fits')
             break
         except:
             pass
@@ -92,10 +92,10 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
             if not r['dr2'] and not r['dr3']:
                 continue
             p=r['id']
-            if r['dr2']:
-                images='/data/lofar/DR2/fields'
-            else:
+            if os.path.isdir('/data/lofar/DR3/fields/'+p):
                 images='/data/lofar/DR3/fields'
+            else:
+                images='/data/lofar/DR2/fields'
             mosaicdirs.append(images+'/'+p)
             try:
                 qualitydict = sdb.get_quality(p)
@@ -110,7 +110,7 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
     if len(mosaicdirs)==0:
         print('No directories for this position')
     else:
-        mos_args=dotdict({'save':False, 'load':False,'exact':False,'use_shifted':True,'find_noise':True,'beamcut':beamcut,'header':header,'directories':mosaicdirs,'scale':scales,'do_lowres':do_low})
+        mos_args=dotdict({'save':False, 'load':False,'exact':False,'use_shifted':False,'find_noise':True,'beamcut':beamcut,'header':header,'directories':mosaicdirs,'scale':scales,'do_lowres':do_low})
         print(mos_args)
         make_mosaic(mos_args)
         os.rename('mosaic.fits',objname+'-mosaic.fits')
