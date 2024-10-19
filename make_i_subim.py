@@ -25,10 +25,14 @@ def parse_position(argv):
         ra=sc.ra.value
         dec=sc.dec.value
         print('Parsed coordinates to ra=%f, dec=%f' % (ra,dec))
-    elif 'pos' in objname:
+    elif objname.startswith('pos'):
         ra=float(argv[3])
         dec=float(argv[4])
-        objname='pos-%f-%f' % (ra,dec)
+        try:
+            bits=objname.split('-')
+            objname=bits[1]
+        except:
+            objname='pos-%f-%f' % (ra,dec)
     else:
         c=get_icrs_coordinates(objname)
         ra=float(c.ra.degree)
