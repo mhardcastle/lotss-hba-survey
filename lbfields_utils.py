@@ -518,7 +518,7 @@ def cleanup_step(field):
     workflow, tmpid = get_workflow_obsid(field_procdirs[0])
     field_datadir = os.path.join(basedir,field,fieldobsid)
     workflowdir = os.path.join(field_datadir,workflow)
-    os.makedirs(workflowdir)
+    os.makedirs(workflowdir,exist_ok=True)
     for field_procdir in field_procdirs:
         ## remove logs directory (run was successful)
         os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'logs')))
