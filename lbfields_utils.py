@@ -325,6 +325,8 @@ def check_tarfiles( caldir ):
             lines = f.readlines()
         if 'tar: Unexpected EOF in archive\n' in lines:
             os.system( 'rm {:s}'.format(trf) )
+        if 'tar: Exiting with failure status due to previous errors\n' in lines:
+            os.system( 'rm {:s}'.format(trf) )
     os.system('rm tmp.txt')    
     trfs = glob.glob(os.path.join(caldir,'*tar'))
     return(trfs)
