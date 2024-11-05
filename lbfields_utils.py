@@ -355,6 +355,7 @@ def dysco_compress(caldir,msfile):
     return(success)
 
 def dysco_compress_job(caldir):
+    cluster = os.getenv('DDF_PIPELINE_CLUSTER')
     success=True
     os.system('ls -d {:s}/*.MS > {:s}/myfiles.txt'.format(caldir,caldir))
     file_number = len(open("{:s}/myfiles.txt".format(caldir), "r").readlines())
@@ -423,7 +424,7 @@ def get_linc_inputs( field, obsid ):
     singularity_img = os.getenv('LOFAR_SINGULARITY')
     ## download TGSS skymodel
     skymodel = os.path.join( datadir, 'target.skymodel' )
-    cmd = "apptainer exec -B {:s},{:s} --no-home {:s} python3 {:s}/LINC/scripts/download_skymodel_target.py {:s} {:s}".format( os.getcwd(), softwaredir, singularity_img, softwaredir, mslist[0], skymodel )
+    cmd = "apptainer exec -B {:s},{:s} --no-home {:s} python3 {:s}/LINC/scripts/download_skymodel_target.py --targetname={:s} {:s} {:s}".format( os.getcwd(), softwaredir, singularity_img, softwaredir, field, mslist[0], skymodel )
     if os.system(cmd):
         update_status(field,"TGSS failed")
     #Download IONEX
@@ -519,7 +520,7 @@ def cleanup_step(field):
     workflow, tmpid = get_workflow_obsid(field_procdirs[0])
     field_datadir = os.path.join(basedir,field,fieldobsid)
     workflowdir = os.path.join(field_datadir,workflow)
-    os.makedirs(workflowdir)
+    os.makedirs(workflowdir,exist_ok=True)
     for field_procdir in field_procdirs:
         ## remove logs directory (run was successful)
         os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'logs')))
