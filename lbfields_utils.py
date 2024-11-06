@@ -534,7 +534,7 @@ def cleanup_step(field):
             os.system('mv {:s} {:s}'.format(ff,dest))
         ## remove data from previous step if required
         if workflow in ['setup']:
-            os.system('rm -r {:s}'.format(os.path.join(caldir,'*.MS')))
+            os.system('rm -r {:s}'.format(os.path.join(field_datadir, 'setup/*.MS')))
         if workflow in ['HBA_target']:
             os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,'LINC-target_solutions.h5')))
         if workflow in ['concatenate-flag']:
