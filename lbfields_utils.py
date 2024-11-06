@@ -504,11 +504,11 @@ def check_field(field):
             print('The following pipelines did not finish successfully, please check processing:')
             print( np.asarray(outdirs)[idx] )    
             success = 'Failed'
+            workflow, obsid = get_workflow_obsid(outdirs[0])
     else:
         ## the number of finished != number of directories - the process is still running
         success = 'Running'
-        workflow = 'Running'
-        obsid = field_obsids[0]
+        workflow, obsid = get_workflow_obsid(outdirs[0])
     return success, workflow, obsid
 
 def cleanup_step(field):
@@ -536,9 +536,9 @@ def cleanup_step(field):
         if workflow in ['setup']:
             os.system('rm -r {:s}'.format(os.path.join(caldir,'*.MS')))
         if workflow in ['HBA_target']:
-            os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,fieldobsid,'LINC-target_solutions.h5')))
+            os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,'LINC-target_solutions.h5')))
         if workflow in ['concatenate-flag']:
-            os.system('rm -r {:s}'.format(os.path.join(field_datadir,fieldobsid,'setup/L*MS')))
+            os.system('rm -r {:s}'.format(os.path.join(field_datadir,'setup/L*MS')))
         os.system('rmdir {:s}'.format(field_procdir) )
 
 def do_verify(field):
