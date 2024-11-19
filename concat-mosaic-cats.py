@@ -485,7 +485,7 @@ def filter_catalogs(pointingras,pointingdecs,mosaiccat,outname,dessourcenums,cat
 def do_concat(mosdirectories):
 
     """
-    This function concats all the intermediatory catalogues together. It is the function that
+    This function concats all the intermediate catalogues together. It is the function that
     checks whether the process has been started by looking for the intermediatory catalogues. If
     it has not then it will proceed to filter catalogues and go from there. If the catalogues do
     exist then it moves straight to the concat part.
@@ -501,7 +501,7 @@ def do_concat(mosdirectories):
     """
     pointingras,pointingdecs,mosaiccats = find_pointing_coords(mosdirectories)
 
-    srlcatnames = []                                                    ## Empty lists for storing the intermediatory catalogues
+    srlcatnames = []                                                    ## Empty lists for storing the intermediate catalogues
     gauscatnames = []
 
     random.shuffle(mosaiccats)
@@ -522,8 +522,8 @@ def do_concat(mosdirectories):
         srlcatnames.append(srlcat)                                      ## append to output to the lists
         gauscatnames.append(gauscat)
     print('Concatenating %s files'%len(srlcatnames))
-    concat_catalogs(srlcatnames,'LoTSS_DR2_rolling.srl.fits')           ## Concat the catalogues in the lists and save
-    concat_catalogs(gauscatnames,'LoTSS_DR2_rolling.gaus.fits')
+    concat_catalogs(srlcatnames,'LoTSS_DR3_rolling.srl.fits')           ## Concat the catalogues in the lists and save
+    concat_catalogs(gauscatnames,'LoTSS_DR3_rolling.gaus.fits')
 
 ###############
 
@@ -543,17 +543,19 @@ if __name__=='__main__':
     else:                                                                                                   ## Otherwise make the directories
         from surveys_db import SurveysDB
         with SurveysDB(readonly=True) as sdb:
-            sdb.cur.execute('select id from fields where dr2>0 and status="Archived"')
+            sdb.cur.execute('select id from fields where dr3>1 and status="Verified"')
             res=sdb.cur.fetchall()
         mosdirectories=[]
         #pointdirectories=[]
         for r in res:
             id=r['id']
             md=args.mosdirectories[0]+'/'+id
-            if os.path.isfile(md+outfull):
+            print(md,md+outfull)
+            if os.path.isfile(md+'/'+outfull):
                 #pd=args.pointdirectories[0]+'/'+id
                 mosdirectories.append(md)
                 #pointdirectories.append(pd)
+        print(mosdirectories)
         do_concat(mosdirectories)#,pointdirectories)                                                        ## And then do the concat
 
 ###############

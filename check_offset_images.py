@@ -49,7 +49,7 @@ for r in results:
                 if not os.path.isfile(f):
                     report('Copying '+f)
                     if not dryrun: os.system('cp '+tim_dir+'/'+id+'/'+f+' .')
-        if not error:
+        if not error and os.path.isfile(tim_dir+'/'+id+'/checksums.txt'):
             checksum_lines=open(tim_dir+'/'+id+'/checksums.txt').readlines()
             cs={}
             for l in checksum_lines[1:]:
@@ -66,10 +66,10 @@ for r in results:
                 outfile.close()
         if not error:
             if not os.path.isfile('pslocal-facet_offsets.fits'):
-                command='qsub -v FIELD=%s -N offset-%s /home/mjh/pipeline-offsetpointings/lotss-hba-survey/torque/find_offsets.qsub' % (id,id)
+                command='qsub -v FIELD=%s -N offset-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/find_offsets.qsub' % (id,id)
                 print(command)
                 if not dryrun: os.system(command)
         if not error and (not os.path.isfile('image_full_ampphase_di_m.NS.app.restored_facetnoise.fits') or not os.path.isfile('image_full_low_m.app.restored_facetnoise.fits') or (r['decl']<14 and not os.path.isfile('image_full_ampphase_di_m.NS.app.restored_convolved_facetnoise.fits'))):
-            command='qsub -v FIELD=%s -N noise-%s /home/mjh/pipeline-offsetpointings/lotss-hba-survey/torque/make_noisemap.qsub' % (id,id)
+            command='qsub -v FIELD=%s -N noise-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/make_noisemap.qsub' % (id,id)
             print(command)
             if not dryrun: os.system(command)

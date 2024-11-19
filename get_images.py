@@ -23,6 +23,7 @@ def download_image(field,filename='images.tar',remote='archive'):
         raise RuntimeError('Download failed')
     os.system('tar xvf '+filename)
     os.system('rm '+filename)
+    os.system('chmod og+r *')
 
 if __name__=='__main__':
     for name in sys.argv[1:]:

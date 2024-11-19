@@ -35,9 +35,9 @@ def make_custom_config(name,workdir,do_field,averaged=False,tdir=None):
         if idd['lotss_field']>0 or idd['ilotss_field']>0:
             lotss_field=True
             do_polcubes=True
-            do_dynspec=True
+            do_dynspec=False
             do_stokesv=True
-            do_spectral_restored=True
+            do_spectral_restored=False
         else:
             lotss_field=False
             do_polcubes=(idd['do_polcubes']>0)

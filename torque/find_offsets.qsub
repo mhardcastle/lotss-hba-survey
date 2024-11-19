@@ -1,13 +1,13 @@
-#!/bin/tcsh
+#!/bin/bash
 
 #PBS -m abe
 #PBS -N find_offsets
-#PBS -l nodes=1:ppn=4
-#PBS -l pmem=4gb
+#PBS -l nodes=1:ppn=32
+#PBS -l mem=32gb
 #PBS -l walltime=1:00:00
 #PBS -o /beegfs/car/mjh/torque
 #PBS -e /beegfs/car/mjh/torque
-#PBS -q main
+#PBS -q core32
 #PBS -W group_list=lofar
 
 echo ------------------------------------------------------
@@ -23,4 +23,4 @@ echo ------------------------------------------------------
 echo Field is $FIELD
 
 cd /beegfs/lofar/DR3/fields/$FIELD
-bash -c /home/mjh/pipeline-offsetpointings/lotss-hba-survey/torque/find_offsets.sh
+bash -c /home/mjh/pipeline-master/lotss-hba-survey/torque/find_offsets.sh

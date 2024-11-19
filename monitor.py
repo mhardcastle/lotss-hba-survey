@@ -15,10 +15,17 @@ import threading
 from run_pipeline import do_run_pipeline
 from rclone_upload import upload_field
 import glob
-import MySQLdb
+try:
+    import MySQLdb as mdb
+    import MySQLdb.cursors as mdbcursors
+    mdb_type='MySQLdb'
+except ImportError:
+    import pymysql as mdb
+    import pymysql.cursors as mdbcursors
+    mdb_type='pymysql'
 
-queuelimit=10
-runlimit=20
+queuelimit=2
+runlimit=4
 cluster=os.environ['DDF_PIPELINE_CLUSTER']
 home=os.environ['HOME']
 download_thread=None
@@ -38,7 +45,7 @@ while True:
         with SurveysDB(readonly=True) as sdb:
             sdb.cur.execute('select * from fields where clustername="'+cluster+'" and status!="Not started" order by priority desc, end_date')
             result=sdb.cur.fetchall()
-    except MySQLdb.OperationalError as e:
+    except mdb.OperationalError as e:
         print('Database not available! -- sleeping',e)
         sleep(240)
         continue

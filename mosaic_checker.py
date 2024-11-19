@@ -74,7 +74,7 @@ for r in results:
             wanted_pointings.append(p)
     if not pointing_failed:
         print('Ready to mosaic with pointings ',wanted_pointings)
-        print('qsub -v FIELD=%s -N mosaic-%s /home/mjh/pipeline-offsetpointings/lotss-hba-survey/torque/mosaic_dr3.qsub' % (field,field))
+        print('qsub -v FIELD=%s -N mosaic-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/mosaic_dr3.qsub' % (field,field))
         count+=1
 
 print('%i pointings are ready out of %i from DR3' % (count,len(results)))

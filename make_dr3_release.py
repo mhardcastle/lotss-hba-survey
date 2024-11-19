@@ -55,7 +55,7 @@ if __name__=='__main__':
 
         if not skip_construct:
             separator('Preparing release directory')
-            releasefiles=['image_full_high_stokesV.dirty.fits','image_full_high_stokesV.dirty.corr.fits','image_full_high_stokesV.SmoothNorm.fits','image_full_low_m.int.restored.fits','image_full_low_m.app.restored.fits','image_full_ampphase_di_m.NS.tessel.reg','image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.int.restored.fits']
+            releasefiles=['image_full_high_stokesV*dirty.fits','image_full_high_stokesV*dirty.corr.fits','image_full_high_stokesV.SmoothNorm.fits','image_full_low_m.int.restored.fits','image_full_low_m.app.restored.fits','image_full_ampphase_di_m.NS.tessel.reg','image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.int.restored.fits']
 
             for r in result:
                 id=r['id']
@@ -92,6 +92,7 @@ if __name__=='__main__':
                                     copy2(source,tdir)
                                 else:
                                     warn('Source file %s does not exist' % source)
+                        os.system('chmod og+r %s/*' % id)
                 else:
                     # get from archive if necessary
                     if r['status']=='Verified' and not r['dr2']:
@@ -120,23 +121,24 @@ if __name__=='__main__':
             workdir='/data/lofar/DR3'
             for r in result:
                 id=r['id']
-                if os.path.isdir(workdir+'/mosaics/'+id) and os.path.isfile(workdir+'/mosaics/'+id+'/mosaic-blanked.fits'):
+                fwdir=workdir+'/mosaics/'+id
+                if os.path.isdir(fwdir) and os.path.isfile(fwdir+'/mosaic-blanked.fits'):
                     if page=='dr3':
                         root='downloads'
                     else:
                         root='public'
                     root+='/DR3/mosaics/'+id+'/'
-                    f=root+'mosaic-blanked.fits'
-                    rms=root+'mosaic-blanked--final.rms.fits'
-                    resid=root+'mosaic-blanked--final.resid.fits'
-                    weights=root+'mosaic-weights.fits'
-                    mask=root+'mosaic-blanked--final.mask.fits'
-                    low=root+'low-mosaic-blanked.fits'
-                    lowweight=root+'low-mosaic-weights.fits'
-                    catalogue=root+'mosaic-blanked--final.srl.fits'
+                    f=link('mosaic-blanked.fits',id,root,'Download',workdir+'/mosaics/')
+                    rms=link('mosaic-blanked--final.rms.fits',id,root,'Download',workdir+'/mosaics/')
+                    resid=link('mosaic-blanked--final.resid.fits',id,root,'Download',workdir+'/mosaics/')
+                    weights=link('mosaic-weights.fits',id,root,'Download',workdir+'/mosaics/')
+                    mask=link('mosaic-blanked--final.mask.fits',id,root,'Download',workdir+'/mosaics/')
+                    low=link('low-mosaic-blanked.fits',id,root,'Download',workdir+'/mosaics/')
+                    lowweight=link('low-mosaic-weights.fits',id,root,'Download',workdir+'/mosaics/')
+                    catalogue=link('mosaic-blanked--final.srl.fits',id,root,'Download',workdir+'/mosaics/')
                     #image=root+'mosaic-blanked.png'
                     #headers=root+'fits_headers.tar'
-                    outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td><td><a href=\"%s\">Download</a></td></tr>\n' % (id,r['ra'],r['decl'],f,rms,resid,weights,mask,low,lowweight,catalogue))
+                    outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n' % (id,r['ra'],r['decl'],f,rms,resid,weights,mask,low,lowweight,catalogue))
             outfile.close()
 
         outfile=open('/home/mjh/lofar-surveys/templates/dr3-fields.html','w')
@@ -150,8 +152,8 @@ if __name__=='__main__':
                 lroot='downloads/DR3/fields/'+id+'/'
                 workdir='/data/lofar/DR3'
             if os.path.isdir(workdir+'/fields/'+id):
-                fint=link('image_full_ampphase_di_m.NS.int.facetRestored.fits',id,lroot,'True',workdir+'/fields/')
-                fapp=link('image_full_ampphase_di_m.NS.app.facetRestored.fits',id,lroot,'App',workdir+'/fields/')
+                fint=link('image_full_ampphase_di_m.NS.int.restored.fits',id,lroot,'True',workdir+'/fields/')
+                fapp=link('image_full_ampphase_di_m.NS.app.restored.fits',id,lroot,'App',workdir+'/fields/')
                 lowint=link('image_full_low_m.int.restored.fits',id,lroot,'True',workdir+'/fields/')
                 lowapp=link('image_full_low_m.app.restored.fits',id,lroot,'App',workdir+'/fields/')
                 #band=[]

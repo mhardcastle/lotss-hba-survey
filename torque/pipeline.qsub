@@ -2,11 +2,11 @@
 
 #PBS -m abe
 #PBS -N ddf-pipeline
-#PBS -l nodes=1:ppn=32
+#PBS -l nodes=1:ppn=96
 #PBS -l walltime=168:00:00
 #PBS -o /beegfs/car/mjh/torque
 #PBS -e /beegfs/car/mjh/torque
-#PBS -q core32
+#PBS -q smp
 #PBS -W group_list=lofar
 
 echo ------------------------------------------------------
