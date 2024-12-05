@@ -28,10 +28,7 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
     # open the central image to get BMAJ, BMIN
     for n in range(len(t)):
         cfield=t[n]
-        if cfield['dr2']:
-            images='/data/lofar/DR2/fields'
-        else:
-            images='/data/lofar/DR3/fields'
+        images='/beegfs/lofar/DR3/fields'
         try:
             if do_low:
                 hdu=fits.open(images+'/'+cfield['id']+'/image_full_low_m.app.restored.fits')
@@ -92,10 +89,7 @@ def otf_mosaic(objname,ra,dec,imsize,beamcut=0.1,do_low=False):
             if r['proprietary_date']:
                 continue
             p=r['id']
-            if r['dr2']:
-                images='/data/lofar/DR2/fields'
-            else:
-                images='/data/lofar/DR3/fields'
+            images='/beegfs/lofar/DR3/fields'
             mosaicdirs.append(images+'/'+p)
             try:
                 qualitydict = sdb.get_quality(p)

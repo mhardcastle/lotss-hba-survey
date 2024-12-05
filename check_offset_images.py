@@ -5,6 +5,7 @@ import os
 from surveys_db import SurveysDB
 from auxcodes import warn,report
 from rclone_upload import adler32_checksum
+from astropy.table import Table
 
 # Check whether all the files are present for the offset finding to be run
 # We need:
@@ -65,7 +66,15 @@ for r in results:
                     outfile.write(f+','+checksum+'\n')
                 outfile.close()
         if not error:
-            if not os.path.isfile('pslocal-facet_offsets.fits'):
+            offsets='pslocal-facet_offsets.fits'
+            offsetfile=os.path.isfile(offsets)
+            if offsetfile:
+                t=Table.read(offsets)
+                if 'RA_peak' not in t.colnames:
+                    print('Offsets file is old version')
+                    os.unlink(offsets)
+                    offsetfile=False
+            if not offsetfile:
                 command='qsub -v FIELD=%s -N offset-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/find_offsets.qsub' % (id,id)
                 print(command)
                 if not dryrun: os.system(command)

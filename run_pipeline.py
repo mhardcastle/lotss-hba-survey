@@ -19,7 +19,7 @@ import os
 import glob
 from rclone import RClone
 
-def do_run_pipeline(name,basedir,qsubfile=None,do_field=True):
+def do_run_pipeline(name,basedir,qsubfile=None,do_field=True,run_job=True):
     '''
     set do_field False for the now obsolete behaviour of downloading
     and imaging a particular observation -- this probably doesn't work any more
@@ -148,13 +148,13 @@ def do_run_pipeline(name,basedir,qsubfile=None,do_field=True):
     report('Creating custom config file from template')
     make_custom_config(name,workdir,do_field,averaged,**kwargs)
 
-    if qsubfile is None:
-        report('Choosing qsub file')
-        qsubfile=choose_qsub_file(name,workdir,do_field)
+    if run_job:
+        if qsubfile is None:
+            report('Choosing qsub file')
+            qsubfile=choose_qsub_file(name,workdir,do_field)
     
-    # now run the job
-    do_run_job(name,basedir=basedir,qsubfile=qsubfile,do_field=do_field,dysco=dysco)
-
+        # now run the job
+        do_run_job(name,basedir=basedir,qsubfile=qsubfile,do_field=do_field,dysco=dysco)
 
 if __name__=='__main__':
             

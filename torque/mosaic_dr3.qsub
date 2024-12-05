@@ -1,10 +1,10 @@
 #!/bin/tcsh
 
 #PBS -N mosaic
-#PBS -l nodes=1:ppn=64
-#PBS -l mem=180G
+#PBS -l nodes=1:ppn=32
+#PBS -l mem=80G
 #PBS -l walltime=20:00:00
-#PBS -q core64
+#PBS -q core32
 #PBS -o /beegfs/car/mjh/torque
 #PBS -e /beegfs/car/mjh/torque
 

@@ -24,8 +24,10 @@ except ImportError:
     import pymysql.cursors as mdbcursors
     mdb_type='pymysql'
 
+run_job=False
 queuelimit=2
-runlimit=4
+runlimit=10
+readylimit=2
 cluster=os.environ['DDF_PIPELINE_CLUSTER']
 home=os.environ['HOME']
 download_thread=None
@@ -72,7 +74,7 @@ while True:
     if upload_thread is not None:
         print('Upload thread is running (%s)' % upload_name)
         
-    if download_thread is not None and not download_thread.isAlive():
+    if download_thread is not None and not download_thread.is_alive():
         print('Download thread seems to have terminated')
         if download_name in check_dict:
             _,count=check_dict[download_name]
@@ -82,7 +84,7 @@ while True:
         check_dict[download_name]=(datetime.datetime.now(),count)
         download_thread=None
 
-    if upload_thread is not None and not upload_thread.isAlive():
+    if upload_thread is not None and not upload_thread.is_alive():
         print('Upload thread seems to have terminated')
         upload_thread=None
 
@@ -106,11 +108,11 @@ while True:
                 print('Removing',r['id'],'from check_dict')
                 del check_dict[r['id']]
     
-    if ('Queued' not in d or d['Queued']<queuelimit) and ('Running' not in d or d['Running']<runlimit) and not os.path.isfile(home+'/.nodownload') and download_thread is None:
+    if ('Ready' not in d or d['Ready']<readylimit) and ('Queued' not in d or d['Queued']<queuelimit) and ('Running' not in d or d['Running']<runlimit) and not os.path.isfile(home+'/.nodownload') and download_thread is None:
         download_name=get_next()
         if download_name is not None:
             print('We need to download a new file (%s)!' % download_name)
-            download_thread=threading.Thread(target=do_run_pipeline, args=(download_name,basedir))
+            download_thread=threading.Thread(target=do_run_pipeline, args=(download_name,basedir),kwargs={"run_job":run_job})
             download_thread.start()
     
 
@@ -124,7 +126,7 @@ while True:
                 print('We need to upload a new file (%s)!' % upload_name)
                 upload_thread=threading.Thread(target=upload_field, args=(upload_name,basedir),kwargs=kw)
                 upload_thread.start()
-                break
+
     '''
     if upload_thread is None:
         for r in result:
@@ -138,3 +140,5 @@ while True:
     print('\n\n-----------------------------------------------\n\n')
         
     sleep(300)
+
+print('*** Leaving monitor script ***')

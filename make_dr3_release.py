@@ -59,13 +59,19 @@ if __name__=='__main__':
 
             for r in result:
                 id=r['id']
+                if not os.path.isdir(id):
+                    warn('Directory %s does not exist, making it' % id)
+                    os.mkdir(id)
                 #if r['dr2']:
                 #    continue # skip dr2
                 if r['proprietary_date'] is None:
                     workdir='/data/lofar/DR3/fields'
                 else:
                     workdir='/data/lofar/fields_proprietary'
-                print('Doing',id)
+                print('Doing',id,r['clustername'],r['location'],r['status'])
+                if not os.path.isdir(id):
+                    warn('Directory %s does not exist, making it' % id)
+                    os.mkdir(id)
                 os.chdir(workdir)
                 tdir=workdir+'/'+id
                 if r['clustername']=='Herts' and r['location']!="" and (r['status']=='Verified' or r['status']=='Complete'):
@@ -81,9 +87,6 @@ if __name__=='__main__':
                             resolved_release.append(f)                       
 
                     if location:
-                        if not os.path.isdir(id):
-                            warn('Directory %s does not exist, making it' % id)
-                            os.mkdir(id)
                         for f in resolved_release:
                             source=location+'/'+f
                             if not os.path.isfile(tdir+'/'+f) or (os.path.isfile(source)  and os.path.getmtime(source)>os.path.getmtime(tdir+'/'+f)):
@@ -95,7 +98,7 @@ if __name__=='__main__':
                         os.system('chmod og+r %s/*' % id)
                 else:
                     # get from archive if necessary
-                    if r['status']=='Verified' and not r['dr2']:
+                    if r['status']=='Verified':
                         # it's verified but not local: it should be in the archive
                         failcount=0
                         for f in releasefiles:
