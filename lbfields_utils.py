@@ -116,13 +116,12 @@ def collect_solutions( caldir ):
         else:
             ## linc was run after and ddfpipeline ("light" options) need to be run
             ## go back and get the LINC data 
-            ## internally, get_linc_for_ddfpipeline will create and download to HBA_target/results
-            ## that way run_ddflight can always just go to HBA_target/results regardless if run_target was used or not
+            ## internally, get_linc_for_ddfpipeline will create and download to ${DATA_DIR}/FIELD/OBSID/ddfpipeline
             try:
                 get_linc_for_ddfpipeline(macname,caldir)
             except RuntimeError:
                 success = False
-            templatedir = os.path.join(caldir,'HBA_target/results/template')
+            templatedir = os.path.join(caldir,'ddfpipeline/template')
             ## get the previous ddf-pipeline images
             try:
                 download_ddfpipeline_solutions(name,templatedir,ddflight=True)
@@ -149,7 +148,7 @@ def collect_solutions( caldir ):
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
             ## get previous ddfpipeline results
-            templatedir = os.path.join(caldir,'HBA_target/results/template')
+            templatedir = os.path.join(caldir,'ddfpipeline/template')
             os.makedirs(templatedir)
             try:
                 download_ddfpipeline_solutions(name,templatedir,ddflight=True)
@@ -166,7 +165,7 @@ def collect_solutions( caldir ):
             tasklist.append('selfcal')
             '''
             if os.path.isfile( LINC-cal_solutions.h5 )
-            if os.path.isfile( ddflight data products in HBA_target/results/template )
+            if os.path.isfile( ddflight data products in ddfpipeline/template )
             '''
         else:
             ## need to re-run calibrator .... shouldn't ever be in this situation!
@@ -221,8 +220,15 @@ def stage_field( name, survey=None ):
     ## get obsid and create a directory
     obsid = uris[0].split('/')[-2]
     tmp = os.path.join(str(os.getenv('DATA_DIR')),str(name))
-    caldir = os.path.join(tmp,obsid)   
-    os.makedirs(caldir) 
+    caldir = os.path.join(tmp,obsid)
+    ## if directory already exists, it is possible that some things have already been staged
+    if os.path.exists(caldir):
+        tarfiles = glob.glob(os.path.join(caldir,'*.tar'))
+        trfs = [ val.split('/')[-1] for val in tarfiles ]
+        new_uris = [ uri for uri in uris if uri.split('/')[-1] not in trfs ]
+        uris = new_uris
+    else:
+        os.makedirs(caldir) 
     stage_id = stager_access.stage(uris)
     update_status(name, 'Staging', stage_id=stage_id )
     return(caldir)
@@ -330,6 +336,20 @@ def check_tarfiles( caldir ):
     os.system('rm tmp.txt')    
     trfs = glob.glob(os.path.join(caldir,'*tar'))
     return(trfs)
+
+def get_juelich_macaroon( field ):
+    ## get project name
+    with SurveysDB(readonly=True) as sdb:
+        idd=sdb.db_get('lb_fields',name)
+        stage_id = idd['staging_id']
+    surls = stager_access.get_surls_online(stage_id)
+    tmp = surls[0].split('projects/')
+    proj_name = tmp[-1].split('/')[0]
+    ## generate voms-proxy-init
+    os.system( 'cat ~/macaroons/secret-file | voms-proxy-init --pwstdin --voms lofar:/lofar/user/sksp --valid 1680:0' )
+    os.system( 'get-macaroon --url https://dcache-lofar.fz-juelich.de:2880/pnfs/fz-juelich.de/data/lofar/ops/projects/{:s} --duration P7D --proxy --permissions READ_METADATA,DOWNLOAD --ip 0.0.0.0/0 --output rclone {:s}_juelich'.format( proj_name, proj_name ) )
+    mac_name = '{:s}_juelich.conf'.format(proj_name) 
+    return( mac_name )
 
 ##############################
 ## unpacking
@@ -530,10 +550,11 @@ def cleanup_step(field):
         os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'logs')))
         ## same for tmp directory
         os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'tmp*')))
-        ## move everything else to the data directory and rename MSs
+        ## and workdir
         os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'workdir')))
+        ## move everything else to the data directory and rename MSs
         remaining_files = glob.glob(os.path.join(field_procdir,'*'))
-        for ff in remaining_files:
+        for ff in remaining_files:           
             dest = os.path.join(workflowdir,os.path.basename(ff).replace('out_',''))
             os.system('mv {:s} {:s}'.format(ff,dest))
         ## remove data from previous step if required
@@ -541,6 +562,7 @@ def cleanup_step(field):
             os.system('rm -r {:s}'.format(os.path.join(field_datadir, 'setup/*.MS')))
         if workflow in ['HBA_target']:
             os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,'LINC-target_solutions.h5')))
+            ## a results sub-directory in the results directory in 
         if workflow in ['concatenate-flag']:
             os.system('rm -r {:s}'.format(os.path.join(field_datadir,'setup/L*MS')))
         os.system('rmdir {:s}'.format(field_procdir) )
