@@ -60,6 +60,7 @@ cd ${OUTDIR}
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
 apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI phaseup-concat --delay_calibrator ${DATA_DIR}/${OBSID}/../delay_calibrators.csv --configfile ${VLBIDIR}/facetselfcal_config.txt --selfcal ${FACETSELFCAL} --h5merger ${LOFARHELPERS} --flags ${DATADIR}/flagged_fraction_antenna.json ${DATADIR}/../setup/flagged_fraction_antenna.json ${DATADIR}/../setup/flagged_fraction_antenna.json_2 --linc ${LINCDIR} --check_Ateam_separation.json ${DATADIR}/../setup/Ateam_separation.json --ms_suffix .ms ${DATADIR} >> create_ms_list.log 2>&1
 
+## this is ok
 
 #  --numbands NUMBANDS   The number of bands to group. -1 means all bands. (default: -1)
 #  --firstSB FIRSTSB     If set, reference the grouping of files to this station subband. (default: None)
