@@ -28,7 +28,6 @@ export TOIL_CHECK_ENV=True
 
 ## define the data directories
 DATADIR=${DATA_DIR}/${OBSID}/setup
-DDFSOLSDIR=${DATA_DIR}/${OBSID}/ddfsolutions
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
 WORKDIR=${OUTDIR}/workdir
@@ -54,17 +53,11 @@ export APPTAINERENV_LINC_DATA_ROOT=${LINC_DATA_ROOT}
 export SINGULARITYENV_PREPEND_PATH=${VLBIDIR}/scripts:${LINCDIR}/scripts
 export APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPATH
 
-export FLOCSDIR=/cosma8/data/do011/dc-mora2/processing/flocs
-
 ## go to working directory
 cd ${OUTDIR}
 
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
-apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag --solset ${DATADIR}/../LINC-target_solutions.h5 --ddf_solsdir ${DDFSOLSDIR}/SOLSDIR --linc ${LINCDIR} --h5merger ${LOFARHELPERS} --aoflagger_memory_fraction 20 ${DATADIR}/ >> create_ms_list.log 2>&1
-
-## data, numbands, ref subband, numthreads, linc path, memory fraction [ddf is moved to the "new" lotss-subtract workflow]
-
-
+apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag --solset ${DATADIR}/../LINC-target_solutions.h5 --linc ${LINCDIR} --h5merger ${LOFARHELPERS} --aoflagger_memory_fraction 20 ${DATADIR}/ >> create_ms_list.log 2>&1
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`

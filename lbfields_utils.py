@@ -87,7 +87,7 @@ def collect_solutions_lhr( caldir ):
         tasklist.append('concatenate-flag')
         tasklist.append('phaseup-concat')
         tasklist.append('delay')
-        tasklist.append('split')
+        tasklist.append('split-directions')
         tasklist.append('selfcal')
     else:
         print('valid LINC solutions not found. Checking lb_calibrators.')
@@ -105,7 +105,7 @@ def collect_solutions_lhr( caldir ):
             tasklist.append('concatenate-flag')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
-            tasklist.append('split')
+            tasklist.append('split-directions')
             tasklist.append('selfcal')
         else:
             ## need to re-run calibrator .... shouldn't ever be in this situation but here fore completeness
@@ -115,7 +115,7 @@ def collect_solutions_lhr( caldir ):
             tasklist.append('concatenate-flag')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
-            tasklist.append('split')
+            tasklist.append('split-directions')
             tasklist.append('selfcal')
     if success:
         ## set the task list in the lb_operations table
