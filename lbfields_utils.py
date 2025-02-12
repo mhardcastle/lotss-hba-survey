@@ -289,10 +289,10 @@ def do_download( name ):
                 auth=None
                 # Poznan requires username and password, which are in your .stagingrc
                 # Rudimentary parsing of this needed...
-                if os.path.isfile(home+'/.stagingrc'):
+                if os.path.isfile(os.getenv('HOME')+'/.stagingrc'):
                     user=None
                     password=None
-                    with open(home+'/.stagingrc','r') as f:
+                    with open(os.getenv('HOME')+'/.stagingrc','r') as f:
                         lines = f.readlines()
                     for l in lines:
                         if '=' in l:
