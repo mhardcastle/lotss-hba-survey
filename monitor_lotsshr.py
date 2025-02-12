@@ -280,7 +280,7 @@ while True:
                     if next_task == 'delay':
                         update_status(field,'DelayCheck')
                     else:
-                        if 'ddf' in next_task or next_task =='setup':
+                        if next_task =='setup':
                             ## need to change to cosma8-dine2
                             cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
                         else:

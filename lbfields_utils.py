@@ -355,7 +355,7 @@ def check_tarfiles( caldir ):
 def get_juelich_macaroon( field ):
     ## get project name
     with SurveysDB(readonly=True) as sdb:
-        idd=sdb.db_get('lb_fields',name)
+        idd=sdb.db_get('lb_fields',field)
         stage_id = idd['staging_id']
     surls = stager_access.get_surls_online(stage_id)
     tmp = surls[0].split('projects/')
