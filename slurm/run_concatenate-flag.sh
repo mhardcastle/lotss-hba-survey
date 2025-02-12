@@ -57,7 +57,7 @@ export APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPAT
 cd ${OUTDIR}
 
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
-apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag --solset ${DATADIR}/../LINC-target_solutions.h5 --linc ${LINCDIR} --h5merger ${LOFARHELPERS} --aoflagger_memory_fraction 20 ${DATADIR}/ >> create_ms_list.log 2>&1
+apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag --linc ${LINCDIR} --h5merger ${LOFARHELPERS} --aoflagger_memory_fraction 20 ${DATADIR}/ >> create_ms_list.log 2>&1
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
