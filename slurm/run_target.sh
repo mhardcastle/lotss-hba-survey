@@ -13,7 +13,7 @@ OBSID=${1}
 
 export LINCDIR=${SOFTWAREDIR}/LINC
 export FLOCSDIR=${SOFTWAREDIR}/flocs
-BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
+BINDPATHS=${SOFTWAREDIR},${DATA_DIR},${SCRATCH_DIR}
 
 ## FOR TOIL
 export TOIL_SLURM_ARGS="${CLUSTER_OPTS} --export=ALL -t 24:00:00"
@@ -27,15 +27,15 @@ export TOIL_CHECK_ENV=True
 DATADIR=${DATA_DIR}/${OBSID}
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
-WORKDIR=${OUTDIR}/workdir
+WORKDIR=${SCRATCH_DIR}/${OBSID}/workdir
 OUTPUT=${OUTDIR}
 JOBSTORE=${OUTDIR}/jobstore
-TMPD=${OUTDIR}/tmp
+TMPD=${WORKDIR}/tmp
 LOGSDIR=${OUTDIR}/logs
+mkdir -p ${WORKDIR}
 mkdir -p ${TMPD}
 mkdir -p ${TMPD}_interim
 mkdir -p ${LOGSDIR}
-mkdir -p ${WORKDIR}
 
 ## location of LINC
 LINC_DATA_ROOT=${LINCDIR}
@@ -63,7 +63,7 @@ fi
 cd ${OUTDIR}
 
 ## pipeline input
-apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py LINC target --target_skymodel ${DATADIR}/target.skymodel --cal_solutions ${DATADIR}/LINC-cal_solutions.h5 ${DATADIR} > create_mslist.log
+apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py LINC target --target_skymodel ${DATADIR}/target.skymodel --cal_solutions ${DATADIR}/LINC-cal_solutions.h5 --make_structure_plot False --min_unflagged_fraction 0.01 ${DATADIR} > create_mslist.log
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
