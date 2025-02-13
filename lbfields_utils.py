@@ -108,7 +108,6 @@ def collect_solutions( caldir ):
             '''
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
-            # tasklist.append('lotss_subtract')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
@@ -128,10 +127,8 @@ def collect_solutions( caldir ):
                 download_ddfpipeline_solutions(name,templatedir,ddflight=True)
             except RuntimeError:
                 success = False
-            tasklist.append('ddflight')            
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
-            # tasklist.append('lotss_subtract')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
@@ -156,10 +153,8 @@ def collect_solutions( caldir ):
             except RuntimeError:
                 success = False
             tasklist.append('target')
-            tasklist.append('ddflight')
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
-            # tasklist.append('lotss_subtract')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
@@ -173,10 +168,8 @@ def collect_solutions( caldir ):
             success = False
             tasklist.append('calibrator')
             tasklist.append('target')
-            tasklist.append('ddfpipeline')
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
-            # tasklist.append('lotss_subtract')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
