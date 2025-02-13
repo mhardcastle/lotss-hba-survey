@@ -522,7 +522,7 @@ def check_field(field):
     outdirs = glob.glob(os.path.join(procdir,'{:s}*'.format(fieldobsid)))
     finished = glob.glob(os.path.join(procdir,'{:s}*'.format(fieldobsid),'finished.txt') )
     success = []
-    if len(outdirs) == len(finished) and len(outdirs) > 0:
+    if len(outdirs) == len(finished) and len(finished) > 0:
         for outdir in outdirs:
             with open(os.path.join(outdir,'finished.txt'),'r') as f:
                 lines = f.readlines()
@@ -540,12 +540,8 @@ def check_field(field):
             print( np.asarray(outdirs)[idx] )    
             success = 'Failed'
             workflow, obsid = get_workflow_obsid(outdirs[0])
-    elif len(outdirs) > 0:
-        ## the number of finished != number of directories - the process is still running
-        success = 'Running'
-        workflow, obsid = get_workflow_obsid(outdirs[0])
     else:
-        ## No outdirs yet, process is still pending
+        ## the number of finished != number of directories - the process is still running
         success = 'Running'
         workflow, obsid = None, None
     return success, workflow, obsid

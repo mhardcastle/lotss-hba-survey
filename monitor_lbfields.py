@@ -42,7 +42,6 @@ if basedir is None:
     raise RuntimeError('DATA_DIR must point to your data directory')
 if not os.getenv('LOFAR_SINGULARITY'):
     raise RuntimeError('LOFAR_SINGULARITY must point to a singularity image')
-procdir = os.path.join(basedir,'processing')
 
 solutions_thread=None
 solutions_name=None

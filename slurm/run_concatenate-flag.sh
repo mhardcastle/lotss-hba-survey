@@ -16,7 +16,7 @@ export LINCDIR=${SOFTWAREDIR}/LINC
 export FLOCSDIR=${SOFTWAREDIR}/flocs
 export LOFARHELPERS=${SOFTWAREDIR}/lofar_helpers
 export FACETSELFCAL=${SOFTWAREDIR}/lofar_facet_selfcal
-BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
+BINDPATHS=${SOFTWAREDIR},${DATA_DIR},${WORK_DIR}
 
 ## FOR TOIL
 export TOIL_SLURM_ARGS="${CLUSTER_OPTS} --export=ALL -t 24:00:00 -N 1 --ntasks=1"
@@ -26,19 +26,18 @@ export TOIL_CHECK_ENV=True
 #################################################################################
 ## IN GENERAL DO NOT TOUCH ANYTHING BELOW HERE
 
-## define the data directories
 DATADIR=${DATA_DIR}/${OBSID}/setup
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
-WORKDIR=${OUTDIR}/workdir
+WORKDIR=${SCRATCH_DIR}/${OBSID}/workdir
 OUTPUT=${OUTDIR}
 JOBSTORE=${OUTDIR}/jobstore
-TMPD=${OUTDIR}/tmp
+TMPD=${WORKDIR}/tmp
 LOGSDIR=${OUTDIR}/logs
+mkdir -p ${WORKDIR}
 mkdir -p ${TMPD}
 mkdir -p ${TMPD}_interim
 mkdir -p ${LOGSDIR}
-mkdir -p ${WORKDIR}
 
 ## location of LINC
 LINC_DATA_ROOT=${LINCDIR}
