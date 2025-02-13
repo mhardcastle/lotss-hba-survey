@@ -191,7 +191,7 @@ while True:
         if solutions_name is None:  # multiple field ignored for now
             continue
         ## while staging, collect the solutions
-        solutions_thread=threading.Thread(target=collect_solutions, args=(solutions_name,))
+        solutions_thread=threading.Thread(target=collect_solutions_lhr, args=(solutions_name,))
         solutions_thread.start()
         ## and download the catalogue
         with SurveysDB(survey=None) as sdb:
@@ -280,7 +280,7 @@ while True:
                     if next_task == 'delay':
                         update_status(field,'DelayCheck')
                     else:
-                        if 'ddf' in next_task or next_task =='setup':
+                        if next_task =='setup':
                             ## need to change to cosma8-dine2
                             cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
                         else:
