@@ -34,8 +34,12 @@ export TOIL_CHECK_ENV=True
 ## IN GENERAL DO NOT TOUCH ANYTHING BELOW HERE
 
 ## define the data directories
-DATADIR=${DATA_DIR}/${OBSID}/concatenate-flag
-DDFSOLSDIR=${DATA_DIR}/${OBSID}/ddfsolutions
+if test -d ${DATA_DIR}/${OBSID}/process-ddf
+then
+        DATADIR=${DATA_DIR}/${OBSID}/process-ddf
+else
+        DATADIR=${DATA_DIR}/${OBSID}/concatenate-flag
+fi
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${CATOUTDIR}
 WORKDIR=${OUTDIR}/workdir
@@ -65,14 +69,14 @@ export APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPAT
 cd ${OUTDIR}
 
 ## list of measurement sets 
-apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI split-directions --linc ${LINCDIR} --max_dp3_threads 8 --h5merger=${LOFARHELPERS} --selfcal=${FACETSELFCAL} --do_selfcal=false --delay_solset ${DELAYSOLS} --image_cat ${IMCAT} --ms_suffix .ms ${DATADIR} >> create_ms_list.log 2>&1
+apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI split-directions --max_dp3_threads 8 --h5merger=${LOFARHELPERS} --selfcal=${FACETSELFCAL} --do_selfcal=false --delay_solset ${DELAYSOLS} --image_cat ${IMCAT} --ms_suffix .ms ${DATADIR} >> create_ms_list.log 2>&1
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
 
 ulimit -n 8192
 
-toil-cwl-runner --no-read-only --singularity --bypass-file-store --jobStore=${JOBSTORE} --logFile=${OUTDIR}/job_output.txt --workDir=${WORKDIR} --outdir=${OUTPUT} --retryCount 0 --writeLogsFromAllJobs TRUE --writeLogs=${LOGSDIR} --tmp-outdir-prefix=${TMPD}/ --coordinationDir=${OUTPUT} --tmpdir-prefix=${TMPD}_interim/ --disableAutoDeployment True --preserve-environment ${APPTAINERENV_PYTHONPATH} ${SINGULARITYENV_PREPEND_PATH} ${APPTAINERENV_LINC_DATA_ROOT} ${APPTAINER_BIND} ${APPTAINER_PULLDIR} ${APPTAINER_TMPDIR} ${APPTAINER_CACHEDIR} --batchSystem slurm ${VLBIDIR}/workflows/alternative_workflows/split-directions-toil.cwl mslist_VLBI_split_directions.json
+toil-cwl-runner --no-read-only --singularity --bypass-file-store --jobStore=${JOBSTORE} --logFile=${OUTDIR}/job_output.txt --workDir=${WORKDIR} --outdir=${OUTPUT} --retryCount 0 --writeLogsFromAllJobs TRUE --writeLogs=${LOGSDIR} --tmp-outdir-prefix=${TMPD}/ --coordinationDir=${OUTPUT} --tmpdir-prefix=${TMPD}_interim/ --disableAutoDeployment True --preserve-environment ${APPTAINERENV_PYTHONPATH} ${SINGULARITYENV_PREPEND_PATH} ${APPTAINERENV_LINC_DATA_ROOT} ${APPTAINER_BIND} ${APPTAINER_PULLDIR} ${APPTAINER_TMPDIR} ${APPTAINER_CACHEDIR} --batchSystem slurm ${VLBIDIR}/workflows/split-directions.cwl mslist_VLBI_split_directions.json
 
 if grep 'CWL run complete' ${OUTDIR}/job_output.txt
 then 

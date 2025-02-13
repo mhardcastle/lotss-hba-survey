@@ -58,7 +58,6 @@ cd ${OUTDIR}
 ## list of measurement sets - THIS WILL NEED TO BE CHECKED
 apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI concatenate-flag --linc ${LINCDIR} --aoflagger_memory_fraction 20 ${DATADIR}/ >> create_ms_list.log 2>&1
 
-
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
 

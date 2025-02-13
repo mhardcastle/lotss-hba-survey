@@ -65,7 +65,7 @@ def get_local_obsid( name ):
 ##############################
 ## finding and checking solutions 
 
-def collect_solutions( caldir ):
+def collect_solutions_lhr( caldir ):
     survey=None
     obsid = os.path.basename(caldir)
     namedir = os.path.dirname(caldir)
@@ -81,58 +81,14 @@ def collect_solutions( caldir ):
     calibrator_id = fld[0]['calibrator_id']
 
     ## check if linc/prefactor 3 has been run
-    linc_check, macname = get_linc( obsid, caldir )
-
+    linc_check, macname = get_linc( obsid, caldir )    
     if linc_check: 
-        ## get time last modified to compare with ddfpipeline (pref1 vs pref3 tests means some pref3 were run after ddfpipeline)
-        linc_time = os.path.getmtime(os.path.join(caldir,'LINC-target_solutions.h5'))
-        try:
-            ddfpipeline_time = ddfpipeline_timecheck(name,caldir)
-        except RuntimeError:
-            success = False
-        if ddfpipeline_time - linc_time > 0:
-            ## linc was run before ddfpipeline -- in this case can start with vlbi pipeline directly
-            ## create the solutions directory and download things to it
-            soldir = os.path.join(caldir,'ddfsolutions')
-            if not os.path.exists(soldir):
-                os.mkdir(soldir)
-            try:
-                download_ddfpipeline_solutions(name,soldir)
-            except RuntimeError:
-                success = False
-            '''            
-            ## re-generate missing frequencies -- this will now happen in the subtract step
-            if not result:
-
-                print('Frequency list is missing, need to regenerate it.')
-            '''
-            tasklist.append('setup')
-            tasklist.append('concatenate-flag')
-            tasklist.append('phaseup-concat')
-            tasklist.append('delay')
-            tasklist.append('split')
-            tasklist.append('selfcal')
-        else:
-            ## linc was run after and ddfpipeline ("light" options) need to be run
-            ## go back and get the LINC data 
-            ## internally, get_linc_for_ddfpipeline will create and download to HBA_target/results
-            ## that way run_ddflight can always just go to HBA_target/results regardless if run_target was used or not
-            try:
-                get_linc_for_ddfpipeline(macname,caldir)
-            except RuntimeError:
-                success = False
-            templatedir = os.path.join(caldir,'HBA_target/results/template')
-            ## get the previous ddf-pipeline images
-            try:
-                download_ddfpipeline_solutions(name,templatedir,ddflight=True)
-            except RuntimeError:
-                success = False
-            tasklist.append('setup')
-            tasklist.append('concatenate-flag')
-            tasklist.append('phaseup-concat')
-            tasklist.append('delay')
-            tasklist.append('split')
-            tasklist.append('selfcal')
+        tasklist.append('setup')
+        tasklist.append('concatenate-flag')
+        tasklist.append('phaseup-concat')
+        tasklist.append('delay')
+        tasklist.append('split-directions')
+        tasklist.append('selfcal')
     else:
         print('valid LINC solutions not found. Checking lb_calibrators.')
         ## linc is not good
@@ -145,31 +101,96 @@ def collect_solutions( caldir ):
             os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
-            ## get previous ddfpipeline results
-            templatedir = os.path.join(caldir,'HBA_target/results/template')
-            os.makedirs(templatedir)
-            try:
-                download_ddfpipeline_solutions(name,templatedir,ddflight=True)
-            except RuntimeError:
-                success = False
-            tasklist.append('target')
-            tasklist.append('setup')
+            tasklist.append('linc-vlbi')
             tasklist.append('concatenate-flag')
+            tasklist.append('phaseup-concat')
+            tasklist.append('delay')
+            tasklist.append('split-directions')
+            tasklist.append('selfcal')
+        else:
+            ## need to re-run calibrator .... shouldn't ever be in this situation but here fore completeness
+            success = False
+            tasklist.append('calibrator')
+            tasklist.append('linc-vlbi')
+            tasklist.append('concatenate-flag')
+            tasklist.append('phaseup-concat')
+            tasklist.append('delay')
+            tasklist.append('split-directions')
+            tasklist.append('selfcal')
+    if success:
+        ## set the task list in the lb_operations table
+        set_task_list(obsid,tasklist)
+        ## set the status back to staging if no runtime errors
+        update_status( name, 'Staging' )
+
+
+def collect_solutions( caldir ):
+    survey=None
+    obsid = os.path.basename(caldir)
+    namedir = os.path.dirname(caldir)
+    name = os.path.basename(namedir)
+    tasklist = []
+
+    update_status( name,'Solutions' )
+    success = True
+
+    with SurveysDB(survey=survey) as sdb:
+        sdb.execute('select * from observations where id="'+obsid+'"')
+        fld = sdb.cur.fetchall()
+    calibrator_id = fld[0]['calibrator_id']
+
+    ## check if linc/prefactor 3 has been run - for calibrator solutions - which are contained in LINC-target_solutions.h5
+    linc_check, macname = get_linc( obsid, caldir )
+
+    ## download previous ddfpipeline for re-running
+    templatedir = os.path.join(caldir,'ddfpipeline/template')
+    os.makedirs(templatedir)
+    try:
+        download_ddfpipeline_solutions(name,templatedir,ddflight=True)
+    except RuntimeError:
+        success = False
+
+    if linc_check: 
+        ## rename linc solutions so linc-vlbi will pick them up -- but what will happen because the target solutions already exist?
+        os.system('cp {:s}/LINC-target_solutions.h5 {:s}/LINC-cal_solutions.h5'.format(caldir,caldir))
+        tasklist.append('linc-vlbi')
+        tasklist.append('ddflight')
+        tasklist.append('concatenate-flag')
+        tasklist.append('process-ddf')
+        tasklist.append('phaseup-concat')
+        tasklist.append('delay')
+        tasklist.append('split')
+        tasklist.append('selfcal') 
+        ## some more widefield things .... 
+    else:
+        print('valid LINC solutions not found. Checking lb_calibrators.')
+        ## linc is not good
+        result = download_field_calibrators(obsid,caldir)
+        solutions = unpack_calibrator_sols(caldir,result)
+        if len(solutions) >= 1:
+            print('One or more calibrator found, comparing solutions ...')
+            best_sols = compare_solutions(solutions)
+            print('Best solutions are {:s}, cleaning up others.'.format(best_sols[0]))
+            os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
+            for sol in solutions:
+                os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
+            tasklist.append('linc-vlbi')
+            tasklist.append('ddflight')
+            tasklist.append('concatenate-flag')
+            tasklist.append('process-ddf')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
             tasklist.append('selfcal')
-            '''
-            if os.path.isfile( LINC-cal_solutions.h5 )
-            if os.path.isfile( ddflight data products in HBA_target/results/template )
-            '''
+            ## some more widefield things ....
         else:
             ## need to re-run calibrator .... shouldn't ever be in this situation!
             success = False
             tasklist.append('calibrator')
-            tasklist.append('target')
-            tasklist.append('setup')
+            tasklist.append('linc-vlbi')
+            tasklist.append('ddflight')
             tasklist.append('concatenate-flag')
+            tasklist.append('process-ddf')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
@@ -214,8 +235,15 @@ def stage_field( name, survey=None ):
     ## get obsid and create a directory
     obsid = uris[0].split('/')[-2]
     tmp = os.path.join(str(os.getenv('DATA_DIR')),str(name))
-    caldir = os.path.join(tmp,obsid)   
-    os.makedirs(caldir) 
+    caldir = os.path.join(tmp,obsid)
+    ## if directory already exists, it is possible that some things have already been staged
+    if os.path.exists(caldir):
+        tarfiles = glob.glob(os.path.join(caldir,'*.tar'))
+        trfs = [ val.split('/')[-1] for val in tarfiles ]
+        new_uris = [ uri for uri in uris if uri.split('/')[-1] not in trfs ]
+        uris = new_uris
+    else:
+        os.makedirs(caldir) 
     stage_id = stager_access.stage(uris)
     update_status(name, 'Staging', stage_id=stage_id )
     return(caldir)
@@ -261,10 +289,10 @@ def do_download( name ):
                 auth=None
                 # Poznan requires username and password, which are in your .stagingrc
                 # Rudimentary parsing of this needed...
-                if os.path.isfile(home+'/.stagingrc'):
+                if os.path.isfile(os.getenv('HOME')+'/.stagingrc'):
                     user=None
                     password=None
-                    with open(home+'/.stagingrc','r') as f:
+                    with open(os.getenv('HOME')+'/.stagingrc','r') as f:
                         lines = f.readlines()
                     for l in lines:
                         if '=' in l:
@@ -323,6 +351,20 @@ def check_tarfiles( caldir ):
     os.system('rm tmp.txt')    
     trfs = glob.glob(os.path.join(caldir,'*tar'))
     return(trfs)
+
+def get_juelich_macaroon( field ):
+    ## get project name
+    with SurveysDB(readonly=True) as sdb:
+        idd=sdb.db_get('lb_fields',field)
+        stage_id = idd['staging_id']
+    surls = stager_access.get_surls_online(stage_id)
+    tmp = surls[0].split('projects/')
+    proj_name = tmp[-1].split('/')[0]
+    ## generate voms-proxy-init
+    os.system( 'cat ~/macaroons/secret-file | voms-proxy-init --pwstdin --voms lofar:/lofar/user/sksp --valid 1680:0' )
+    os.system( 'get-macaroon --url https://dcache-lofar.fz-juelich.de:2880/pnfs/fz-juelich.de/data/lofar/ops/projects/{:s} --duration P7D --proxy --permissions READ_METADATA,DOWNLOAD --ip 0.0.0.0/0 --output rclone {:s}_juelich'.format( proj_name, proj_name ) )
+    mac_name = '{:s}_juelich.conf'.format(proj_name) 
+    return( mac_name )
 
 ##############################
 ## unpacking

@@ -22,7 +22,7 @@ export BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
 ## IN GENERAL DO NOT TOUCH ANYTHING BELOW HERE
 
 ## define the data directories
-DATADIR=${DATA_DIR}/${OBSID}/split-directions-toil
+DATADIR=${DATA_DIR}/${OBSID}/split
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}_${SLURM_ARRAY_TASK_ID}
 LOGSDIR=${OUTDIR}/logs
