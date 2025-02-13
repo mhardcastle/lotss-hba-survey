@@ -108,7 +108,7 @@ def collect_solutions( caldir ):
             '''
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
-            tasklist.append('lotss_subtract')
+            # tasklist.append('lotss_subtract')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
@@ -131,7 +131,7 @@ def collect_solutions( caldir ):
             tasklist.append('ddflight')            
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
-            tasklist.append('lotss_subtract')
+            # tasklist.append('lotss_subtract')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
@@ -159,7 +159,7 @@ def collect_solutions( caldir ):
             tasklist.append('ddflight')
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
-            tasklist.append('lotss_subtract')
+            # tasklist.append('lotss_subtract')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
@@ -176,7 +176,7 @@ def collect_solutions( caldir ):
             tasklist.append('ddfpipeline')
             tasklist.append('setup')
             tasklist.append('concatenate-flag')
-            tasklist.append('lotss_subtract')
+            # tasklist.append('lotss_subtract')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
             tasklist.append('split')
@@ -487,7 +487,7 @@ def check_field(field):
     outdirs = glob.glob(os.path.join(procdir,'{:s}*'.format(fieldobsid)))
     finished = glob.glob(os.path.join(procdir,'{:s}*'.format(fieldobsid),'finished.txt') )
     success = []
-    if len(outdirs) == len(finished) and len(outdirs) > 0:
+    if len(outdirs) == len(finished) and len(finished) > 0:
         for outdir in outdirs:
             with open(os.path.join(outdir,'finished.txt'),'r') as f:
                 lines = f.readlines()
@@ -505,12 +505,8 @@ def check_field(field):
             print( np.asarray(outdirs)[idx] )    
             success = 'Failed'
             workflow, obsid = get_workflow_obsid(outdirs[0])
-    elif len(outdirs) > 0:
-        ## the number of finished != number of directories - the process is still running
-        success = 'Running'
-        workflow, obsid = get_workflow_obsid(outdirs[0])
     else:
-        ## No outdirs yet, process is still pending
+        ## the number of finished != number of directories - the process is still running
         success = 'Running'
         workflow, obsid = None, None
     return success, workflow, obsid
@@ -530,17 +526,19 @@ def cleanup_step(field):
         os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'logs')))
         ## same for tmp directory
         os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'tmp*')))
-        ## move everything else to the data directory and rename MSs
+        ## and workdir
         os.system('rm -rf {:s}'.format(os.path.join(field_procdir,'workdir')))
+        ## move everything else to the data directory and rename MSs
         remaining_files = glob.glob(os.path.join(field_procdir,'*'))
-        for ff in remaining_files:
+        for ff in remaining_files:           
             dest = os.path.join(workflowdir,os.path.basename(ff).replace('out_',''))
             os.system('mv {:s} {:s}'.format(ff,dest))
         ## remove data from previous step if required
         if workflow in ['setup']:
-            os.system('rm -r {:s}'.format(os.path.join(field_datadir, 'setup/*.MS')))
+            os.system('rm -r {:s}'.format(os.path.join(field_datadir, '*.MS')))
         if workflow in ['HBA_target']:
             os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,'LINC-target_solutions.h5')))
+            ## a results sub-directory in the results directory in 
         if workflow in ['concatenate-flag']:
             os.system('rm -r {:s}'.format(os.path.join(field_datadir,'setup/L*MS')))
         os.system('rmdir {:s}'.format(field_procdir) )

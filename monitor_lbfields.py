@@ -43,7 +43,6 @@ if basedir is None:
     raise RuntimeError('DATA_DIR must point to your data directory')
 if not os.getenv('LOFAR_SINGULARITY'):
     raise RuntimeError('LOFAR_SINGULARITY must point to a singularity image')
-procdir = os.path.join(basedir,'processing')
 
 solutions_thread=None
 solutions_name=None
@@ -185,10 +184,11 @@ while True:
     else:
         do_stage = True
 
-    if do_stage and nextfield is not None:
+    if do_stage and nextfield is not None and (nextfield=="P115+37" or nextfield=="P129+34"):
         stage_name=nextfield
         print('We need to stage a new field (%s)' % stage_name)
         solutions_name = stage_field(stage_name)
+        # solutions_name = "/project/lofarvlbi/Share/rtimmerman/surveys/P115+37/626956"
         if solutions_name is None:  # multiple field ignored for now
             continue
         ## while staging, collect the solutions
