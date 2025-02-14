@@ -169,17 +169,21 @@ while True:
         print('Verify thread seems to have terminated')
         verify_thread=None
 
-    ## Start any staging
+    ## Check if staging should be started
     if 'Staging' in d.keys():
         nstage = d['Staging']
     else:
         nstage = 0
+    if 'Solutions' in d.keys():
+        nsolutions = d['Solutions']
+    else:
+        nsolutions = 0
     if 'Staged' in d.keys():
         nstaged = d['Staged']
     else:
         nstaged = 0
-    check_stage = (nstage <=2) + (nstaged <= maxstaged)
-    if check_stage  <  2:
+    check_stage = nstage + nsolutions + nstaged
+    if check_stage  <=  staginglimit:
         do_stage = False
     else:
         do_stage = True
