@@ -46,6 +46,7 @@ def main( pointing, obsid, outdir='catalogue', catfile='pointing_catalogue.fits'
         idx = np.where(imcat['Source_id'] == source)[0]
         lotss_info = imcat[idx]
         majax = lotss_info['Majax']*u.arcsec
+        radius = lotss_info['Radius']
         src_coords = SkyCoord( lotss_info['RA'], lotss_info['DEC'], unit='deg' )
 
         ## source detection
@@ -79,7 +80,11 @@ def main( pointing, obsid, outdir='catalogue', catfile='pointing_catalogue.fits'
         srl = Table.read('Default-'+source+'.srl.fits', format='fits')
         srl_coords = SkyCoord(srl['RA'], srl['DEC'], unit='deg' )
         seps = srl_coords.separation(src_coords)
-        pointing_cat = vstack([pointing_cat,srl[np.where(seps <= majax)]])
+        tmp_srl[np.where(seps <= majax)]
+        ## add radius from phase centre
+        tmp_srl['Radius'] = radius
+
+        pointing_cat = vstack([pointing_cat,tmp_srl])
 
     pointing_cat.write(outcat,format='fits')
 
