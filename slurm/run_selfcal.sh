@@ -43,11 +43,12 @@ if compgen -G "merged_selfcalcyle009*h5" > /dev/null; then
 	mkdir tmp
 	mv * tmp/
 	mv tmp/${TARGETMS} .
-	mv tmp/${TARGETMS}.copy .
+	#mv tmp/${TARGETMS}.copy .
 	mv tmp/merged*selfcalcyle009*.h5 .
 	mv tmp/plotlosoto* .
 	mv tmp/*png .
 	mv tmp/*MFS-image.fits .
+	mv tmp/*MFS-image-pb.fits .
 	mv tmp/facet_selfcal.log .
 	mv tmp/selfcal.log .
 	rm -r tmp
