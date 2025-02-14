@@ -3,6 +3,7 @@
 import argparse
 from surveys_db import SurveysDB, tag_field, get_cluster
 from lbfields_utils import update_status, get_local_obsid
+from tasklist import mark_done
 import os
 import glob
 
@@ -32,40 +33,46 @@ def main( obsid='', solutions='' ):
         if obsid == '' or solutions == '':
             print('You have provided either the observation id OR the solutions file, please provide both!')
         else:
+            if solutions[0] != '/':
+                solutions = f"{os.getcwd()}/{solutions}"
             print('You are trying to validate {:s} with the following solutions:'.format(obsid))
             print('  {:s}'.format(solutions))
             response = input("Are you sure?: (yes/no)")
             if response.capitalize() == 'Yes':
+                #Assume there may be multiple fields ready for DelayCheck
                 for r in result:
-                    loc = r['location']
-                    if obsid == os.path.basename(loc):
-                        field = r['id']
-                        phaseupconcatpath = '{:s}/{:s}/phaseup-concat'.format(os.path.join(basedir,r['id']),os.path.basename(loc))
-                        solutionspath = os.path.dirname(solutions)
-                        if phaseupconcatpath == solutionspath:
-                            ## the first solutions are suitable! nothing to be done
-                            print('Accepting the pipeline version of the solutions, cleaning up.')
-                            os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath,os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
-                        else:
-                            oldfiles = glob.glob(os.path.join(phaseupconcatpath,'*'))
-                            defaultdir = os.path.join(phaseupconcatpath,'pipelinesols') 
-                            os.makedirs(defaultdir)
-                            for oldf in oldfiles:
-                                os.system('mv {:s} {:s}'.format(oldf, os.path.join(defaultdir,os.path.basename(oldf)) ) )
-                            ## copy solutions
-                            os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
+                    field = r['id']
+                    local_obsids = get_local_obsid(field)
+                    for local_obsid in local_obsids:
+                        if obsid == local_obsid:
+                            #Found the field matching obsid
+                            phaseupconcatpath = f"{basedir}/{field}/{obsid}/phaseup-concat"
+                            solutionspath = os.path.dirname(solutions)
+                            if phaseupconcatpath == solutionspath:
+                                ## the first solutions are suitable! nothing to be done
+                                print('Accepting the pipeline version of the solutions, cleaning up.')
+                                os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath,os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
+                            else:
+                                oldfiles = glob.glob(os.path.join(phaseupconcatpath,'*'))
+                                defaultdir = os.path.join(phaseupconcatpath,'pipelinesols') 
+                                os.makedirs(defaultdir, exist_ok=True)
+                                for oldf in oldfiles:
+                                    os.system('mv {:s} {:s}'.format(oldf, os.path.join(defaultdir,os.path.basename(oldf)) ) )
+                                ## copy solutions
+                                os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
 
-                            ## also want to move plots etc, assume in os.path.dirname(solutions)
-                            newfiles = glob.glob(os.path.join(solutionspath,'*'))
-                            verifieddir = os.path.join(phaseupconcatpath,'verified_solution_plots')
-                            os.makedirs(verifieddir)
-                            for newf in newfiles:
-                                os.system('mv {:s} {:s}'.format(newf, os.path.join(verifieddir, os.path.basename(newf)) ) )
-                        ## update statuses
-                        print('Delay solutions verified and have been copied to: {:s}'.format( os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
-                        print('Updating status for {:s}'.format(fieldobsid) )
-                        mark_done(obsid,'delay')
-                        update_status(field,'Queued')
+                                ## also want to move plots etc, assume in os.path.dirname(solutions)
+                                ## EDIT BY ROLAND: Commenting out because blindly moving files is dangerous, need to evaluate if necessary and if so, explicitly target required files
+                                # newfiles = glob.glob(os.path.join(solutionspath,'*'))
+                                # verifieddir = os.path.join(phaseupconcatpath,'verified_solution_plots')
+                                # os.makedirs(verifieddir, exist_ok=True)
+                                # for newf in newfiles:
+                                #     os.system('mv {:s} {:s}'.format(newf, os.path.join(verifieddir, os.path.basename(newf)) ) )
+                            # update statuses
+                            print('Delay solutions verified and have been copied to: {:s}'.format( os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
+                            print(f'Updating status for {field}')
+                            mark_done(obsid,'delay')
+                            update_status(field,'Unpacked')
 
             else:
                 print('Solutions not validated.')
