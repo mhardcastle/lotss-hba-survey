@@ -170,23 +170,17 @@ while True:
         verify_thread=None
 
     ## Check if staging should be started
+    check_stage = 0
     if 'Staging' in d.keys():
-        nstage = d['Staging']
-    else:
-        nstage = 0
+        check_stage += d['Staging']
     if 'Solutions' in d.keys():
-        nsolutions = d['Solutions']
-    else:
-        nsolutions = 0
+        check_stage += d['Solutions']
     if 'Staged' in d.keys():
-        nstaged = d['Staged']
-    else:
-        nstaged = 0
-    check_stage = nstage + nsolutions + nstaged
+        check_stage += d['Staged']
     if check_stage  <=  staginglimit:
-        do_stage = False
-    else:
         do_stage = True
+    else:
+        do_stage = False
 
     if do_stage and nextfield is not None:
         stage_name=nextfield
