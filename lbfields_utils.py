@@ -322,7 +322,7 @@ def do_download( name ):
                 d = rc.execute(['-P','--no-check-certificate=true','copy',rc.remote + f]+[caldir]) 
             if d['err'] or d['code']!=0:
                 update_status(field,'rclone failed')
-                print('Rclone failed for field {:s}'.format(field))
+                print('Rclone failed for field {:s}'.format(name))
         ## check that everything was downloaded
         tarfiles = check_tarfiles( caldir )
         if len(tarfiles) == len(surls):
