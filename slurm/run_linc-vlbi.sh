@@ -13,7 +13,7 @@ OBSID=${1}
 
 export LINCDIR=${SOFTWAREDIR}/LINC
 export FLOCSDIR=${SOFTWAREDIR}/flocs
-BINDPATHS=${SOFTWAREDIR},${DATA_DIR}
+BINDPATHS=${SOFTWAREDIR},${DATA_DIR},${SCRATCH_DIR}
 
 ## FOR TOIL
 export TOIL_SLURM_ARGS="${CLUSTER_OPTS} --export=ALL -t 24:00:00"
@@ -27,15 +27,15 @@ export TOIL_CHECK_ENV=True
 DATADIR=${DATA_DIR}/${OBSID}
 PROCDIR=${DATA_DIR}/processing
 OUTDIR=${PROCDIR}/${OBSID}
-WORKDIR=${OUTDIR}/workdir
+WORKDIR=${SCRATCH_DIR}/${OBSID}/workdir
 OUTPUT=${OUTDIR}
 JOBSTORE=${OUTDIR}/jobstore
-TMPD=${OUTDIR}/tmp
+TMPD=${WORKDIR}/tmp
 LOGSDIR=${OUTDIR}/logs
+mkdir -p ${WORKDIR}
 mkdir -p ${TMPD}
 mkdir -p ${TMPD}_interim
 mkdir -p ${LOGSDIR}
-mkdir -p ${WORKDIR}
 
 ## location of LINC
 LINC_DATA_ROOT=${LINCDIR}
