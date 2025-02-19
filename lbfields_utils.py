@@ -101,7 +101,7 @@ def collect_solutions_lhr( caldir ):
             os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
-            tasklist.append('linc-vlbi')
+            tasklist.append('target_VLBI')
             tasklist.append('concatenate-flag')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
@@ -111,7 +111,7 @@ def collect_solutions_lhr( caldir ):
             ## need to re-run calibrator .... shouldn't ever be in this situation but here fore completeness
             success = False
             tasklist.append('calibrator')
-            tasklist.append('linc-vlbi')
+            tasklist.append('target_VLBI')
             tasklist.append('concatenate-flag')
             tasklist.append('phaseup-concat')
             tasklist.append('delay')
@@ -153,7 +153,7 @@ def collect_solutions( caldir ):
     if linc_check: 
         ## rename linc solutions so linc-vlbi will pick them up -- but what will happen because the target solutions already exist?
         os.system('cp {:s}/LINC-target_solutions.h5 {:s}/LINC-cal_solutions.h5'.format(caldir,caldir))
-        tasklist.append('linc-vlbi')
+        tasklist.append('target_VLBI')
         tasklist.append('ddflight')
         tasklist.append('concatenate-flag')
         tasklist.append('process-ddf')
@@ -174,7 +174,7 @@ def collect_solutions( caldir ):
             os.system('cp {:s} {:s}/LINC-cal_solutions.h5'.format(best_sols[0],os.path.dirname(best_sols[0])))
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
-            tasklist.append('linc-vlbi')
+            tasklist.append('target_VLBI')
             tasklist.append('ddflight')
             tasklist.append('concatenate-flag')
             tasklist.append('process-ddf')
