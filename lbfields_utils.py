@@ -151,7 +151,7 @@ def collect_solutions( caldir ):
         success = False
 
     if linc_check: 
-        ## rename linc solutions so linc-vlbi will pick them up -- but what will happen because the target solutions already exist?
+        ## rename linc solutions so target_VLBI will pick them up -- but what will happen because the target solutions already exist?
         os.system('cp {:s}/LINC-target_solutions.h5 {:s}/LINC-cal_solutions.h5'.format(caldir,caldir))
         tasklist.append('target_VLBI')
         tasklist.append('ddflight')
@@ -187,7 +187,7 @@ def collect_solutions( caldir ):
             ## need to re-run calibrator .... shouldn't ever be in this situation!
             success = False
             tasklist.append('calibrator')
-            tasklist.append('linc-vlbi')
+            tasklist.append('target_VLBI')
             tasklist.append('ddflight')
             tasklist.append('concatenate-flag')
             tasklist.append('process-ddf')
