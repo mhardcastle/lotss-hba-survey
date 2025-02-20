@@ -83,9 +83,11 @@ def collect_solutions_lhr( caldir ):
     ## check if linc/prefactor 3 has been run
     linc_check, macname = get_linc( obsid, caldir )    
     if linc_check: 
+        ###### REPLACE WITH DELAY-CAL
         tasklist.append('setup')
         tasklist.append('concatenate-flag')
         tasklist.append('phaseup-concat')
+        #######
         tasklist.append('delay')
         tasklist.append('split-directions')
         tasklist.append('selfcal')
@@ -102,8 +104,10 @@ def collect_solutions_lhr( caldir ):
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
             tasklist.append('linc-vlbi')
+            ###### REPLACE WITH DELAY-CAL
             tasklist.append('concatenate-flag')
             tasklist.append('phaseup-concat')
+            ##########
             tasklist.append('delay')
             tasklist.append('split-directions')
             tasklist.append('selfcal')
@@ -112,8 +116,10 @@ def collect_solutions_lhr( caldir ):
             success = False
             tasklist.append('calibrator')
             tasklist.append('linc-vlbi')
+            ###### REPLACE WITH DELAY-CAL
             tasklist.append('concatenate-flag')
             tasklist.append('phaseup-concat')
+            #################
             tasklist.append('delay')
             tasklist.append('split-directions')
             tasklist.append('selfcal')
