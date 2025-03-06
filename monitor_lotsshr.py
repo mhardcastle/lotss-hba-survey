@@ -243,7 +243,7 @@ while True:
                 for obsid in field_obsids:
                     next_task = get_task_list(obsid)[0]
                     print('next task is',next_task)
-                    if next_task == 'target':
+                    if next_task == 'target' or next_task == "linc-vlbi":
                         get_linc_inputs( field, obsid )                        
                     update_status(field,'Queued')
                     fieldobsid = '{:s}/{:s}'.format(field,obsid)
@@ -278,11 +278,7 @@ while True:
                     if next_task == 'delay':
                         update_status(field,'DelayCheck')
                     else:
-                        if next_task =='setup':
-                            ## need to change to cosma8-dine2
-                            cluster_opts = os.getenv('DDF_CLUSTER_OPTS')
-                        else:
-                            cluster_opts = os.getenv('CLUSTER_OPTS')
+                        cluster_opts = os.getenv('CLUSTER_OPTS')
                         command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, cluster_opts, str(softwaredir).rstrip('/'), next_task, fieldobsid)
                         if next_task == 'selfcal':
                             ## get length of array

@@ -83,9 +83,7 @@ def collect_solutions_lhr( caldir ):
     ## check if linc/prefactor 3 has been run
     linc_check, macname = get_linc( obsid, caldir )    
     if linc_check: 
-        tasklist.append('setup')
-        tasklist.append('concatenate-flag')
-        tasklist.append('phaseup-concat')
+        tasklist.append('delay-calibration')
         tasklist.append('delay')
         tasklist.append('split-directions')
         tasklist.append('selfcal')
@@ -102,8 +100,7 @@ def collect_solutions_lhr( caldir ):
             for sol in solutions:
                 os.system('rm -r {:s}/{:s}*'.format(os.path.dirname(best_sols[0]),os.path.basename(sol).split('_')[0]))
             tasklist.append('target_VLBI')
-            tasklist.append('concatenate-flag')
-            tasklist.append('phaseup-concat')
+            tasklist.append('delay-calibration')
             tasklist.append('delay')
             tasklist.append('split-directions')
             tasklist.append('selfcal')
@@ -112,8 +109,7 @@ def collect_solutions_lhr( caldir ):
             success = False
             tasklist.append('calibrator')
             tasklist.append('target_VLBI')
-            tasklist.append('concatenate-flag')
-            tasklist.append('phaseup-concat')
+            tasklist.append('delay-calibration')
             tasklist.append('delay')
             tasklist.append('split-directions')
             tasklist.append('selfcal')
@@ -506,7 +502,7 @@ def get_workflow_obsid(outdir):
                 break
     tmp = line.split('.cwl')
     workflow = os.path.basename(tmp[0])
-    obsid = os.path.basename(outdir)
+    obsid = os.path.basename(outdir).split("_")[0]
     return(workflow,obsid)
 
 def check_field(field):

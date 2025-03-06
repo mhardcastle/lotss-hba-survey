@@ -77,19 +77,22 @@ def main( pointing, obsid, outdir='catalogue', catfile='pointing_catalogue.fits'
         img.export_image(outfile='Default-'+source+'.model.fits',img_format='fits', img_type='gaus_model', clobber=True)
         img.export_image(outfile='Default-'+source+'.mask.fits',img_format='fits', img_type='island_mask', clobber=True)
 
-        srl = Table.read('Default-'+source+'.srl.fits', format='fits')
-        srl_coords = SkyCoord(srl['RA'], srl['DEC'], unit='deg' )
-        seps = srl_coords.separation(src_coords)
-        tmp_srl[np.where(seps <= majax)]
-        ## add radius from phase centre
-        tmp_srl['Radius'] = radius
-
-        pointing_cat = vstack([pointing_cat,tmp_srl])
+        if os.path.exists('Default-'+source+'.srl.fits'):
+            #If no sources are found, no output file is written
+            srl = Table.read('Default-'+source+'.srl.fits', format='fits')
+            srl_coords = SkyCoord(srl['RA'], srl['DEC'], unit='deg' )
+            seps = srl_coords.separation(src_coords)
+            tmp_srl = srl[np.where(seps <= majax)]
+            ## add radius from phase centre
+            if len(tmp_srl) > 0:
+                #Catch situation where no sources lie within the selection
+                tmp_srl['Radius'] = radius
+                pointing_cat = vstack([pointing_cat,tmp_srl])
 
     pointing_cat.write(outcat,format='fits')
 
 
-if __name__ == "__main__':
+if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument( dest='ptgobsid', type=str )
