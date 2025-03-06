@@ -502,7 +502,7 @@ def get_workflow_obsid(outdir):
                 break
     tmp = line.split('.cwl')
     workflow = os.path.basename(tmp[0])
-    obsid = os.path.basename(outdir)
+    obsid = os.path.basename(outdir).split("_")[0]
     return(workflow,obsid)
 
 def check_field(field):
