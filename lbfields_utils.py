@@ -352,7 +352,7 @@ def get_juelich_macaroon( field ):
     proj_name = tmp[-1].split('/')[0]
     ## generate voms-proxy-init
     os.system( 'cat ~/macaroons/secret-file | voms-proxy-init --pwstdin --voms lofar:/lofar/user/sksp --valid 1680:0' )
-    os.system( 'get-macaroon --url https://dcache-lofar.fz-juelich.de:2880/pnfs/fz-juelich.de/data/lofar/ops/projects/{:s} --duration P7D --proxy --permissions READ_METADATA,DOWNLOAD --ip 0.0.0.0/0 --output rclone {:s}_juelich'.format( proj_name, proj_name ) )
+    os.system( 'get-macaroon --url https://dcache-lofar.fz-juelich.de:2882/pnfs/fz-juelich.de/data/lofar/ops/projects/{:s} --duration P7D --proxy --permissions READ_METADATA,DOWNLOAD --ip 0.0.0.0/0 --output rclone {:s}_juelich'.format( proj_name, proj_name ) )
     mac_name = '{:s}_juelich.conf'.format(proj_name) 
     return( mac_name )
 
