@@ -28,7 +28,8 @@ def main( obsid='', solutions='' ):
             print('Please check the following delay calibrator solutions and then run this script again when you are ready to verify the solutions:')
             for r in result:
                 loc = r['location']
-                print('Field: {:s} .... with solutions at {:s}/{:s}/phaseup-concat/'.format(r['id'],os.path.join( basedir,r['id'] ),os.path.basename(loc)))
+                obsid = get_local_obsid( r['id'] )[0]
+                print('Field: {:s} .... with solutions at {:s}/{:s}/phaseup-concat/'.format(r['id'],os.path.join( basedir,r['id'] ),obsid))
     else:
         if obsid == '' or solutions == '':
             print('You have provided either the observation id OR the solutions file, please provide both!')
@@ -46,7 +47,7 @@ def main( obsid='', solutions='' ):
                     for local_obsid in local_obsids:
                         if obsid == local_obsid:
                             #Found the field matching obsid
-                            phaseupconcatpath = f"{basedir}/{field}/{obsid}/phaseup-concat"
+                            phaseupconcatpath = os.path.join( basedir, field, obsid, 'phaseup-concat' )
                             solutionspath = os.path.dirname(solutions)
                             if phaseupconcatpath == solutionspath:
                                 ## the first solutions are suitable! nothing to be done
@@ -61,18 +62,19 @@ def main( obsid='', solutions='' ):
                                 ## copy solutions
                                 os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
 
-                                ## also want to move plots etc, assume in os.path.dirname(solutions)
-                                ## EDIT BY ROLAND: Commenting out because blindly moving files is dangerous, need to evaluate if necessary and if so, explicitly target required files
-                                # newfiles = glob.glob(os.path.join(solutionspath,'*'))
-                                # verifieddir = os.path.join(phaseupconcatpath,'verified_solution_plots')
-                                # os.makedirs(verifieddir, exist_ok=True)
-                                # for newf in newfiles:
-                                #     os.system('mv {:s} {:s}'.format(newf, os.path.join(verifieddir, os.path.basename(newf)) ) )
+                            ## also want to move plots etc, assume in os.path.dirname(solutions)
+                            newfiles = glob.glob(os.path.join(solutionspath,'plotlosoto*/*'))
+                            if len(newfiles) == 0:
+                                newfiles = glob.glob(os.path.join(solutionspath,'*009*png'))
+                            verifieddir = os.path.join(phaseupconcatpath,'verified_solution_plots')
+                            os.makedirs(verifieddir, exist_ok=True)
+                            for newf in newfiles:
+                                 os.system('mv {:s} {:s}'.format(newf, os.path.join(verifieddir, os.path.basename(newf)) ) )
                             # update statuses
                             print('Delay solutions verified and have been copied to: {:s}'.format( os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
                             print(f'Updating status for {field}')
                             mark_done(obsid,'delay')
-                            update_status(field,'Unpacked')
+                            update_status(field,'Unpacked')  ## so it goes back to getting checked for next task
 
             else:
                 print('Solutions not validated.')
