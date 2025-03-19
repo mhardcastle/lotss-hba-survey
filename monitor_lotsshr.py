@@ -282,7 +282,7 @@ while True:
                         command = "sbatch -J {:s} {:s} {:s}/lotss-hba-survey/slurm/run_{:s}.sh {:s}".format(field, cluster_opts, str(softwaredir).rstrip('/'), next_task, fieldobsid)
                         if next_task == 'selfcal':
                             ## get length of array
-                            msfiles = glob.glob( os.path.join( os.getenv('DATA_DIR'), fieldobsid, 'split-directions-toil', 'ILTJ*' ) )
+                            msfiles = glob.glob( os.path.join( os.getenv('DATA_DIR'), fieldobsid, 'split-directions', 'ILTJ*' ) )
                             with open( os.path.join( os.path.dirname(msfiles[0]), 'targetlist.txt' ), 'w' ) as f:
                                 for msfile in msfiles:
                                     f.write('{:s}\n'.format(msfile) )
