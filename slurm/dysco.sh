@@ -4,12 +4,8 @@
 
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=4
-#SBATCH --job-name=dysco_${2}
+#SBATCH --job-name=dysco
 #SBATCH -t 12:00:00
-#SBATCH -p cosma
-#SBATCH --output=/dev/null 
-#SBATCH --error=/dev/null
-#SBATCH -A durham
 
 module load singularity
 

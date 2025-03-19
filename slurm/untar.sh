@@ -4,8 +4,8 @@
 
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=1
-#SBATCH --job-name=untar_${2}
-#SBATCH -t 2:00:00
+#SBATCH --job-name=untar
+#SBATCH -t 4:00:00
 
 OUTDIR=$(dirname "${1}")
 
