@@ -243,7 +243,7 @@ while True:
                 for obsid in field_obsids:
                     next_task = get_task_list(obsid)[0]
                     print('next task is',next_task)
-                    if next_task == 'target' or next_task == "linc-vlbi":
+                    if next_task == "target_VLBI":
                         get_linc_inputs( field, obsid )                        
                     update_status(field,'Queued')
                     fieldobsid = '{:s}/{:s}'.format(field,obsid)
