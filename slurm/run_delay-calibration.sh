@@ -56,11 +56,11 @@ export APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPAT
 ## go to working directory
 cd ${OUTDIR}
 
-if test -d ${DATADIR}/linc-vlbi
+if test -d ${DATADIR}/HBA_target_VLBI
 then
         ## only give measurement sets, need ms prefix
-	apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI delay-calibration --linc ${LINCDIR} --delay_calibrator ${DATA_DIR}/${OBSID}/../delay_calibrators.csv --configfile ${VLBIDIR}/facetselfcal_config.txt --selfcal ${FACETSELFCAL} --h5merger ${LOFARHELPERS} --ms_suffix .ms ${DATADIR}/ >> create_mslist.log 2>&1
-else
+	apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI delay-calibration --linc ${LINCDIR} --delay_calibrator ${DATA_DIR}/${OBSID}/../delay_calibrators.csv --configfile ${VLBIDIR}/facetselfcal_config.txt --selfcal ${FACETSELFCAL} --h5merger ${LOFARHELPERS} --skip-setup --ms_suffix .dp3concat ${DATADIR}/HBA_target_VLBI/results/ >> create_mslist.log 2>&1
+ else
 	## give both LINC-target solutions and measurement sets
 	## check name of phase solutions
 	apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} losoto -i ${DATADIR}/LINC-target_solutions.h5 > tmp.txt
