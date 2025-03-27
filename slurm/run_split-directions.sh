@@ -69,7 +69,7 @@ export APPTAINERENV_PYTHONPATH=${VLBIDIR}/scripts:${LINCDIR}/scripts:\$PYTHONPAT
 cd ${OUTDIR}
 
 ## list of measurement sets 
-apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI split-directions --max_dp3_threads 8 --h5merger=${LOFARHELPERS} --selfcal=${FACETSELFCAL} --do_selfcal=false --delay_solset ${DELAYSOLS} --image_cat ${IMCAT} --ms_suffix .dp3concat ${DATADIR} >> create_ms_list.log 2>&1
+apptainer exec -B ${PWD},${BINDPATHS} --no-home ${LOFAR_SINGULARITY} python3 ${FLOCSDIR}/runners/create_ms_list.py VLBI split-directions --max_dp3_threads 1 --h5merger=${LOFARHELPERS} --selfcal=${FACETSELFCAL} --do_selfcal=false --delay_solset ${DELAYSOLS} --image_cat ${IMCAT} --ms_suffix .dp3concat ${DATADIR} >> create_ms_list.log 2>&1
 
 echo LINC starting
 TMPID=`echo ${OBSID} | cut -d'/' -f 1`
