@@ -248,6 +248,7 @@ def stage_field( name, survey=None ):
 ## downloading
 
 def do_download( name ):
+    basedir = os.getenv('DATA_DIR')
     update_status(name,'Downloading')
     ## get the staging id from the surveys database
     with SurveysDB(readonly=True) as sdb:
@@ -299,7 +300,7 @@ def do_download( name ):
             ## rclone / macaroon - NOTE: project-specific macaroon generated; requires grid certificate
             files = [ val.split('8443')[-1] for val in surls ]
             mac_name = get_juelich_macaroon( name )
-            rc = RClone( mac_name, debug=True )
+            rc = RClone( '%s/%s'%(basedir,mac_name), debug=True)
             rc.get_remote()
             for f in files:
                 d = rc.execute(['-P','--no-check-certificate=true','copy',rc.remote + f]+[caldir]) 
