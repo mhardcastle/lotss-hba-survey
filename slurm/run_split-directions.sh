@@ -37,6 +37,9 @@ export TOIL_CHECK_ENV=True
 if test -d ${DATA_DIR}/${OBSID}/process-ddf
 then
         DATADIR=${DATA_DIR}/${OBSID}/process-ddf
+elif test -d ${DATA_DIR}/${OBSID}/delay-calibtation
+then
+	DATADIR=${DATA_DIR}/${OBSID}/delay-calibtation
 else
         DATADIR=${DATA_DIR}/${OBSID}/concatenate-flag
 fi

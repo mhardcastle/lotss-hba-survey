@@ -558,7 +558,7 @@ def cleanup_step(field):
             dest = os.path.join(workflowdir,os.path.basename(ff).replace('out_',''))
             os.system('mv {:s} {:s}'.format(ff,dest))
         ## remove data from previous step if required
-        if workflow in ['setup']:
+        if workflow in ['setup','delay-calibration']:
             os.system('rm -r {:s}'.format(os.path.join(field_datadir, '*.MS')))
         if workflow in ['HBA_target']:
             os.system('cp {:s} {:s}'.format(os.path.join(workflowdir,'LINC-cal_solutions.h5'),os.path.join(field_datadir,'LINC-target_solutions.h5')))
