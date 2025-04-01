@@ -384,7 +384,7 @@ def dysco_compress_job(caldir):
     success=True
     os.system('ls -d {:s}/*.MS > {:s}/myfiles.txt'.format(caldir,caldir))
     file_number = len(open("{:s}/myfiles.txt".format(caldir), "r").readlines())
-    command = 'sbatch -W --array=1-{:n}%30 {:s} {:s}/lotss-hba-survey/slurm/dysco.sh {:s}'.format(file_number,os.getenv('CLUSTER_OPTS'),os.getenv('SOFTWAREDIR'),caldir)
+    command = 'sbatch -W --array=1-{:n}%5 {:s} {:s}/lotss-hba-survey/slurm/dysco.sh {:s}'.format(file_number,os.getenv('CLUSTER_OPTS'),os.getenv('SOFTWAREDIR'),caldir)
     if os.system(command):
         print("Something went wrong with the dysco compression job!")
         success = False
