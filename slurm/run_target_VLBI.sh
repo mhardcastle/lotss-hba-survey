@@ -2,7 +2,7 @@
 #SBATCH -N 1                  # number of nodes
 #SBATCH -c 1
 #SBATCH --ntasks=1            # number of tasks
-#SBATCH -t 24:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
+#SBATCH -t 36:00:00           # maximum run time in [HH:MM:SS] or [MM:SS] or [minutes]
 
 ## submit the job with OBSID as an argument
 OBSID=${1}
