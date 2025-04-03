@@ -455,8 +455,11 @@ def get_linc_inputs( field, obsid ):
     ionexpath = datadir
     cal_solutions = os.path.join( datadir, 'LINC-cal_solutions.h5' )
     cmd = "apptainer exec -B {:s},{:s} --no-home {:s} python3 {:s}/LINC/scripts/createRMh5parm.py --ionexpath={:s} --solsetName=target --server='http://ftp.aiub.unibe.ch/CODE/' {:s} {:s}".format( os.getcwd(), softwaredir, singularity_img, softwaredir, datadir, mslist[0], cal_solutions )
-    if os.system(cmd):
-        update_status(field,"IONEX failed")
+    cc = os.system(cmd)
+    if cc == 256:
+        os.system(cmd.replace('http://ftp.aiub.unibe.ch/CODE/','http://chapman.upc.es/'))
+    #if os.system(cmd):
+    #    update_status(field,"IONEX failed")
 
 ##############################
 ## split directions
