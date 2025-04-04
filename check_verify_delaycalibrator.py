@@ -29,7 +29,7 @@ def main( obsid='', solutions='' ):
             for r in result:
                 loc = r['location']
                 obsid = get_local_obsid( r['id'] )[0]
-                print('Field: {:s} .... with solutions at {:s}/{:s}/phaseup-concat/'.format(r['id'],os.path.join( basedir,r['id'] ),obsid))
+                print('Field: {:s} .... with solutions at {:s}/{:s}/delay-calibration/'.format(r['id'],os.path.join( basedir,r['id'] ),obsid))
     else:
         if obsid == '' or solutions == '':
             print('You have provided either the observation id OR the solutions file, please provide both!')
@@ -47,31 +47,31 @@ def main( obsid='', solutions='' ):
                     for local_obsid in local_obsids:
                         if obsid == local_obsid:
                             #Found the field matching obsid
-                            phaseupconcatpath = os.path.join( basedir, field, obsid, 'phaseup-concat' )
+                            delaypath = os.path.join( basedir, field, obsid, 'delay-calibration' )
                             solutionspath = os.path.dirname(solutions)
-                            if phaseupconcatpath == solutionspath:
+                            if dc_path == solutionspath:
                                 ## the first solutions are suitable! nothing to be done
                                 print('Accepting the pipeline version of the solutions, cleaning up.')
-                                os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath,os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
+                                os.system('cp {:s} {:s}'.format(solutions, os.path.join(delaypath,os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
                             else:
-                                oldfiles = glob.glob(os.path.join(phaseupconcatpath,'*'))
-                                defaultdir = os.path.join(phaseupconcatpath,'pipelinesols') 
+                                oldfiles = glob.glob(os.path.join(delaypath,'*'))
+                                defaultdir = os.path.join(delaypath,'pipelinesols') 
                                 os.makedirs(defaultdir, exist_ok=True)
                                 for oldf in oldfiles:
                                     os.system('mv {:s} {:s}'.format(oldf, os.path.join(defaultdir,os.path.basename(oldf)) ) )
                                 ## copy solutions
-                                os.system('cp {:s} {:s}'.format(solutions, os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
+                                os.system('cp {:s} {:s}'.format(solutions, os.path.join(delaypath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
 
                             ## also want to move plots etc, assume in os.path.dirname(solutions)
                             newfiles = glob.glob(os.path.join(solutionspath,'plotlosoto*/*'))
                             if len(newfiles) == 0:
                                 newfiles = glob.glob(os.path.join(solutionspath,'*009*png'))
-                            verifieddir = os.path.join(phaseupconcatpath,'verified_solution_plots')
+                            verifieddir = os.path.join(delaypath,'verified_solution_plots')
                             os.makedirs(verifieddir, exist_ok=True)
                             for newf in newfiles:
                                  os.system('mv {:s} {:s}'.format(newf, os.path.join(verifieddir, os.path.basename(newf)) ) )
                             # update statuses
-                            print('Delay solutions verified and have been copied to: {:s}'.format( os.path.join(phaseupconcatpath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
+                            print('Delay solutions verified and have been copied to: {:s}'.format( os.path.join(delaypath, os.path.basename(solutions).replace('.h5','_verified.h5') ) ) )
                             print(f'Updating status for {field}')
                             mark_done(obsid,'delay')
                             update_status(field,'Unpacked')  ## so it goes back to getting checked for next task
