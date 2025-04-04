@@ -12,7 +12,7 @@ IMCAT=${DATA_DIR}/${OBSID}/../image_catalogue_${SLURM_ARRAY_TASK_ID}.csv
 CATOUTDIR=${OBSID}_${SLURM_ARRAY_TASK_ID}
 
 # delay cal solutions
-export DELAYSOLS=`ls ${DATA_DIR}/${OBSID}/phaseup-concat/*verified.h5`
+export DELAYSOLS=`ls ${DATA_DIR}/${OBSID}/delay-calibration/*verified.h5`
 
 #################################################################################
 ## Cluster specific directories to change
