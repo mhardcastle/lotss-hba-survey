@@ -7,11 +7,11 @@ import numpy as np
 obs=EarthLocation(lon=(6+(52/60.0))*u.deg, lat=53*u.deg, height=0*u.m)
 
 with SurveysDB(readonly=True) as sdb:
-    sdb.cur.execute('select id,ra,decl from fields where status="Verified"')
+    sdb.cur.execute('select id,ra,decl from fields where status="Verified" or dr3')
     fields=sdb.cur.fetchall()
 
 for r in fields:
-    print 'Doing',r['id']
+    print('Doing',r['id'])
     target=SkyCoord(r['ra'],r['decl'],unit='deg')
     with SurveysDB(readonly=True) as sdb:
         sdb.cur.execute('select * from observations where field="%s"' % r['id'])
@@ -30,10 +30,10 @@ for r in fields:
         frame=AltAz(obstime=times,location=obs)
         taltaz = target.transform_to(frame)
         elevation=taltaz.alt.value
-        o['elevation_mean']=np.mean(elevation)
-        o['elevation_max']=np.max(elevation)
-        o['elevation_min']=np.min(elevation)
-        print o
+        o['elevation_mean']=float(np.mean(elevation))
+        o['elevation_max']=float(np.max(elevation))
+        o['elevation_min']=float(np.min(elevation))
+        print(o)
         with SurveysDB() as sdb:
             sdb.set_observation(o)
 

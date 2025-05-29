@@ -49,7 +49,7 @@ def plot_select(r,sf,label,**kwargs):
     
 with SurveysDB(readonly=True) as sdb:
     #sdb.cur.execute('select fields.id as id,ra,decl,lotss_field,fields.status as status,observations.status as ostatus,observations.location as location,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority,required_integration from fields left join observations on (observations.field=fields.id) group by fields.id having lotss_field=1 and ostatus is not null and ((ostatus="Archived" or ostatus="DI_Processed") or status!="Not started")')
-    sdb.cur.execute('select fields.id as id,ra,decl,lotss_field,fields.status as status,observations.status as ostatus,observations.location as location,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority,required_integration from fields left join observations on (observations.field=fields.id) and (observations.status="Archived" or observations.status="DI_Processed") group by fields.id having lotss_field=1')
+    sdb.cur.execute('select fields.id as id,ra,decl,lotss_field,dr3,fields.status as status,observations.status as ostatus,observations.location as location,sum(nsb*integration/232) as s,count(observations.id) as c,fields.priority,required_integration from fields left join observations on (observations.field=fields.id) and (observations.status="Archived" or observations.status="DI_Processed") group by fields.id having lotss_field=1')
 
     #sdb.cur.execute('select * from fields where status!="Not started"')
     results=sdb.cur.fetchall()
@@ -92,6 +92,8 @@ _,r=plot_select(results,lambda r:r['status'] in ['Archived','Complete','Verified
 _,r=plot_select(r,lambda r:r['status'] in ['Running'],label='Running',color='cyan')
 _,r=plot_select(r,lambda r:r['status'] in ['Downloaded','Downloading','Unpacking','Averaging','Ready','Queued','Unpacked'],label='In progress',color='yellow')
 _,r=plot_select(r,lambda r:r['status'] in ['Failed','Failed (verified)','Failed (running)','List failed','D/L failed'],label='Failed',color='red')
+
+_,r=plot_select(r,lambda r:r['status']=='Not started' and r['s'] is not None and r['required_integration'] is not None and r['s']>0.95*r['required_integration'] and r['dr3'],label='DR3 ready',color='blue')
 
 _,r=plot_select(r,lambda r:r['status']=='Not started' and r['s'] is not None and r['required_integration'] is not None and r['s']>0.95*r['required_integration'],label='Ready',color='black')
 

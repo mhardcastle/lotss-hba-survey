@@ -297,7 +297,7 @@ def filter_catalogs(pointingras,pointingdecs,mosaiccat,outname,dessourcenums,cat
     numsources = len(cat[1].data['RA'])                                 ## Determine the number of sources in this catalogue    
     for i in range(0,numsources-1):                                       ## For each source in this mosaic
         
-        if dessourcenums == []:                                         ## If there is nothing in the list already (i.e. .srl)
+        if len(dessourcenums)==0:                                         ## If there is nothing in the list already (i.e. .srl)
         #if not any(dessourcenums):                                      ## This should remove the DepreciationWarning/Error when it occurs by looking for an empty list/array
             ## Work out all seperations between each source and the RA and DEC of each reference pixel for each mosaic within 5 degs
             allsep = sepn(pointingras[closepointingindex],pointingdecs[closepointingindex],cat[1].data['RA'][i]*deg2rad,cat[1].data['DEC'][i]*deg2rad)

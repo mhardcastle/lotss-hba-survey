@@ -32,11 +32,11 @@ def extract_list(t,resolve=False,check_exists=True,use_fields=True,imagesize=0.5
             continue
         field=bf['id']
         success=False
-        if bf['sep']<1.95 and os.path.isdir('/data/lofar/DR2/mosaics/'+field):
+        if bf['sep']<1.95 and os.path.isdir('/beegfs/lofar/DR3/mosaics/'+field):
             # extract from mosaics dir
             print('Extracting %s from mosaic %s' % (n, field))
-            extract_and_save('/data/lofar/DR2/mosaics/'+field+'/mosaic-blanked.fits',ra,dec,imagesize,outname=filename)
-            fieldhdu=fits.open('/data/lofar/DR2/fields/'+field+'/image_full_ampphase_di_m.NS_shift.int.facetRestored.fits')
+            extract_and_save('/beegfs/lofar/DR3/mosaics/'+field+'/mosaic-blanked.fits',ra,dec,imagesize,outname=filename)
+            fieldhdu=fits.open('/beegfs/lofar/DR3/fields/'+field+'/image_full_ampphase_di_m.NS.int.restored.fits')
             date=fieldhdu[0].header['DATE-OBS']
             fieldhdu.close()
             hdu=fits.open(filename)
@@ -56,14 +56,15 @@ def extract_list(t,resolve=False,check_exists=True,use_fields=True,imagesize=0.5
                 print('No scale for field!')
                 scale=1.0
             print('Extracting %s from field %s with scale factor %.3f' % (n,field,scale))
-            wd='/data/lofar/DR2/fields/'+field
+            wd='/data/lofar/DR3/fields/'+field
             if not os.path.isdir(wd):
-                wd='/data/lofar/DR3/fields/'+field
-                if not os.path.isdir(wd):
-                    print('Field does not exist!')
-                    continue
+                print('Field does not exist!')
+                continue
+            if not os.path.isdir(wd+'/image_full_ampphase_di_m.NS.int.restored.fits'):
+                print('File does not exist!')
+                continue
 
-            extract_and_save(wd+'/image_full_ampphase_di_m.NS_shift.int.facetRestored.fits',ra,dec,imagesize,outname=n+'.fits',scale=scale)
+            extract_and_save(wd+'/image_full_ampphase_di_m.NS.int.restored.fits',ra,dec,imagesize,outname=n+'.fits',scale=scale)
             
 
 if __name__=='__main__':

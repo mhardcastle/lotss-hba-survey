@@ -26,8 +26,8 @@ except ImportError:
 
 run_job=False
 queuelimit=2
-runlimit=10
-readylimit=2
+runlimit=20
+readylimit=8
 cluster=os.environ['DDF_PIPELINE_CLUSTER']
 home=os.environ['HOME']
 download_thread=None

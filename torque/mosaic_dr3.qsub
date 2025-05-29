@@ -1,8 +1,8 @@
-#!/bin/tcsh
+#!/bin/bash
 
 #PBS -N mosaic
 #PBS -l nodes=1:ppn=32
-#PBS -l mem=80G
+#PBS -l mem=120G
 #PBS -l walltime=20:00:00
 #PBS -q core32
 #PBS -o /beegfs/car/mjh/torque
@@ -19,5 +19,5 @@ echo PBS: job name is $PBS_JOBNAME
 echo ------------------------------------------------------
 
 echo Field is $FIELD
-
+ulimit -a
 bash -c /home/mjh/pipeline-master/lotss-hba-survey/torque/mosaic_dr3.sh

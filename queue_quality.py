@@ -7,9 +7,11 @@ from surveys_db import SurveysDB
 import os
 from subprocess import call,check_output
 import sys
+from astropy.io import fits
+import datetime
 
 queued=[]
-qlimit=32
+qlimit=100
 queue=check_output('qstat -a',shell=True,universal_newlines=True).split('\n')
 for l in queue:
     if 'qual-' in l:
@@ -36,6 +38,19 @@ for r in results:
         continue
     if os.path.isfile(dir+'/image_full_ampphase_di_m.NS.cat.reg'):
         print(id,'has the quality catalogue')
+        # Check -- is the quality catalogue newer than the map file?
+        t1=os.path.getmtime(dir+'/image_full_ampphase_di_m.NS.app.restored.fits')
+        t2=os.path.getmtime(dir+'/image_full_ampphase_di_m.NS.cat.fits')
+        if t2<t1:
+            # check whether the map was made after the quality catalogue using DATE_MAP
+            hdu=fits.open(dir+'/image_full_ampphase_di_m.NS.app.restored.fits')
+            map_date=hdu[0].header['DATE-MAP']
+            hdu.close()
+            dt=datetime.datetime.fromtimestamp(t2)
+            quality_date=dt.strftime('%Y-%m-%d')
+            if quality_date<map_date:
+                print(dir,'has old quality cat -- removing!',quality_date,map_date)
+                os.system('rm '+dir+'/image_full_ampphase_di_m.NS.cat*')
     else:
         print(id,'does not have the quality catalogue')
     if id in queued:

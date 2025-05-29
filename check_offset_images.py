@@ -57,14 +57,16 @@ for r in results:
                 bits=l.rstrip().split(',')
                 cs[bits[0]]=bits[1]
             if not os.path.isfile('checksums.txt'):
-                outfile=open('checksums.txt','w')
+                output=[]
                 for f in ['image_full_ampphase_di_m.NS.app.restored.fits','image_full_ampphase_di_m.NS.int.restored.fits']:
                     checksum=adler32_checksum(f)
                     if checksum!=cs[f]:
                         warn('Checksum does not match for '+f)
                         error=True
-                    outfile.write(f+','+checksum+'\n')
-                outfile.close()
+                    output.append(f+','+checksum+'\n')
+                if not error:
+                    with open('checksums.txt','w') as outfile:
+                        outfile.writelines(output)
         if not error:
             offsets='pslocal-facet_offsets.fits'
             offsetfile=os.path.isfile(offsets)

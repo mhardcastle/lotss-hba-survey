@@ -89,6 +89,7 @@ for b in [-23,0,23]:
     
 _,r=plot_select(results,lambda r:r['dr3'],label='DR3',color='grey')
 _,_=plot_select(results,lambda r:r['dr3'] and r['status']=='Verified',label='DR3 verified',color='cyan')
+_,_=plot_select(results,lambda r:not(r['dr3']) and r['status']=='Verified',label='Non-DR3 verified',color='magenta',alpha=0.5)
 
 _,_=plot_select(results,lambda r:r['dr3']==2,label='DR3 status 2',color='yellow')
 _,_=plot_select(results,lambda r:os.path.isfile('/beegfs/lofar/DR3/mosaics/'+r['id']+'/mosaic-blanked.fits'),label='Mosaiced',color='green')

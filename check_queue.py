@@ -29,7 +29,7 @@ with SurveysDB(readonly=not flag_failed) as sdb:
         else:
             key=id
         if not found:
-            print(id,'has status',f['status'],'but is not in queue')
+            print(id,'has status',f['status'],'on node',f['nodename'],'but is not in queue')
             if flag_failed:
                 f['status']='Failed (running)'
                 sdb.set_field(f)

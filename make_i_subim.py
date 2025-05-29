@@ -49,15 +49,13 @@ if __name__=='__main__':
     if field is None:
         print('Archived image does not exist')
     else:
-        wd='/data/lofar/DR2/fields/'+field
+        wd='/data/lofar/DR3/fields/'+field
         if not os.path.isdir(wd):
-            wd='/data/lofar/DR3/fields/'+field
+            wd='/data/lofar/fields_proprietary/'+field
             if not os.path.isdir(wd):
-                wd='/data/lofar/fields_proprietary/'+field
-                if not os.path.isdir(wd):
-                    raise RuntimeError('Directory does not exist')
+                raise RuntimeError('Directory does not exist')
         print('Extracting FULL total intensity cutout')
-        extract_and_save(wd+'/image_full_ampphase_di_m.NS_shift.int.facetRestored.fits',ra,dec,imsize,outname=objname+'_I.fits')
+        extract_and_save(wd+'/image_full_ampphase_di_m.NS.int.restored.fits',ra,dec,imsize,outname=objname+'_I.fits')
         print('Extracting LOW total intensity cutout')
         extract_and_save(wd+'/image_full_low_m.int.restored.fits',ra,dec,imsize,outname=objname+'_I_low.fits')
         

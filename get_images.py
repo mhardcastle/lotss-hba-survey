@@ -6,7 +6,7 @@ from __future__ import print_function
 from rclone import RClone
 import os
 import sys
-
+from surveys_db import SurveysDB
 
 def download_image(field,filename='images.tar',remote='archive'):
     archive='/data/lofar/DR3/fields/'
@@ -24,6 +24,10 @@ def download_image(field,filename='images.tar',remote='archive'):
     os.system('tar xvf '+filename)
     os.system('rm '+filename)
     os.system('chmod og+r *')
+    with SurveysDB() as sdb:
+        sdb.create_quality(field)
+    os.system('rm image_full_ampphase_di_m.NS.cat*')
+    os.system('rm checksums.txt')
 
 if __name__=='__main__':
     for name in sys.argv[1:]:

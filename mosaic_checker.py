@@ -5,15 +5,23 @@ import os
 from surveys_db import SurveysDB
 from find_mosaic_pointings import read_pointingfile, find_pointings_to_mosaic
 import numpy as np
+from subprocess import call,check_output
 
 wd='/beegfs/lofar/DR3/fields/'
 md='/beegfs/lofar/DR3/mosaics/'
 
+queued=[]
+queue=check_output('qstat -a',shell=True,universal_newlines=True).split('\n')
+for l in queue:
+    if 'mosaic-' in l:
+        bits=l.split()
+        field=bits[3][7:]
+        print('Found',field,'already in queue')
+        queued.append(field)
+
 with SurveysDB() as sdb:
     sdb.cur.execute('select * from fields where dr3>0 order by ra')
     results=sdb.cur.fetchall()
-
-# 
 
 rd={}
 for r in results:
@@ -74,7 +82,10 @@ for r in results:
             wanted_pointings.append(p)
     if not pointing_failed:
         print('Ready to mosaic with pointings ',wanted_pointings)
-        print('qsub -v FIELD=%s -N mosaic-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/mosaic_dr3.qsub' % (field,field))
+        if field in queued:
+            print('Field is in the queue already')
+        else:
+            print('qsub -v FIELD=%s -N mosaic-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/mosaic_dr3.qsub' % (field,field))
         count+=1
 
 print('%i pointings are ready out of %i from DR3' % (count,len(results)))
