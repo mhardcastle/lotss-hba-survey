@@ -28,6 +28,10 @@ if __name__=='__main__':
         separator('Making plots')
         os.system('plot_db_projection.py /home/mjh/lofar-surveys/static/Tier1-dbstatus.png')
         os.system('plot_mosaics.py /home/mjh/lofar-surveys/static/mosaic.png')
+        os.system('plot_ffr.py VLow_image /home/mjh/lofar-surveys/static/ffr_vlow.png')
+        os.system('plot_ffr.py DynSpecMS /home/mjh/lofar-surveys/static/ffr_dyn.png')
+        os.system('plot_ffr.py TransientImage /home/mjh/lofar-surveys/static/ffr_ti.png')
+        os.system('plot_ffr.py StokesV /home/mjh/lofar-surveys/static/ffr_stokesv.png')
 
         # make JSON file for HIPS
         separator('Make JSON file')
