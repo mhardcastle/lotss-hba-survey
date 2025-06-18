@@ -17,7 +17,7 @@ for dir in sys.argv[1:]:
     if len(g):
         for f in g:
             print('Copying',f)
-            os.system(f'cp {dir}/{f} /beegfs/lofar/DR3/fields/{dir}')
+            os.system(f'cp {f} /beegfs/lofar/DR3/fields/{dir}')
     os.system(f'rm -rf {dir}')
 
     
