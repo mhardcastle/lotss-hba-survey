@@ -13,7 +13,7 @@ for dir in sys.argv[1:]:
         if os.path.isfile(dir+'/'+f):
             print('Copying',f)
             os.system(f'cp {dir}/{f} /beegfs/lofar/DR3/fields/{dir}')
-    g=glob.glob(dir+'/Dyn*tgz')
+    g=glob.glob(dir+'/*Dyn*tgz')
     if len(g):
         for f in g:
             print('Copying',f)

@@ -29,28 +29,32 @@ os.chdir(wd)
 g=sorted(glob.glob('*'))
 
 q=qstat()
-with SurveysDB(readonly=True) as sdb:
-    for f in g:
+for f in g:
+    with SurveysDB(readonly=True) as sdb:
         sdb.cur.execute('select * from full_field_reprocessing where status!="Verified" and id=%s',(f,))
         results=sdb.cur.fetchall()
         sdb.cur.execute('select * from full_field_reprocessing where status="Not started" and id=%s',(f,))
         nsresults=sdb.cur.fetchall()
         sdb.cur.execute('select * from full_field_reprocessing where status="Staging" and id=%s',(f,))
         stresults=sdb.cur.fetchall()
-        if len(results)==0:
-            print(f,'all verified, can delete')
-            if len(sys.argv)>1 and sys.argv[1]=='delete':
-                os.system('cleanup_ffr.py '+f)
+        sdb.cur.execute('select * from full_field_reprocessing where status="Downloading" and id=%s',(f,))
+        doresults=sdb.cur.fetchall()
+    if len(results)==0:
+        print(f,'all verified, can delete')
+        if len(sys.argv)>1 and sys.argv[1]=='delete':
+            os.system('cleanup_ffr.py '+f)
+    else:
+        print(f,'not complete (%i), ' % len(results),end='')
+        if f in q:
+            print('in queue, status is',q[f])
         else:
-            print(f,'not complete (%i), ' % len(results),end='')
-            if f in q:
-                print('in queue, status is',q[f])
+            if len(nsresults)==len(results):
+                print('all not started (download fail)')
             else:
-                if len(nsresults)==len(results):
-                    print('all not started (download fail)')
+                if len(results)==len(stresults):
+                    print('all staging')
+                elif len(results)==len(doresults):
+                    print('all downloading')
                 else:
-                    if len(results)==len(stresults):
-                        print('all staging')
-                    else:
-                        print('not in queue')
+                    print('not in queue',' '.join([r['operation']+'='+r['status'] for r in results]))
             

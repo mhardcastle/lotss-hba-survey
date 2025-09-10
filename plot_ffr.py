@@ -79,8 +79,8 @@ for b in [-23,0,23]:
     
 _,r=plot_select(results,lambda r:r['status'] in ['Archived','Complete','Verified'],label='Complete',color='green')
 _,r=plot_select(r,lambda r:r['status'] in ['Started'],label='Running',color='cyan')
-_,r=plot_select(r,lambda r:r['status'] in ['Downloaded','Downloading','Unpacking','Averaging','Ready','Queued','Unpacked'],label='In progress',color='yellow')
-_,r=plot_select(r,lambda r:r['status'] in ['Failed','Failed (verified)','Failed (running)','List failed','Download failed'],label='Failed',color='red')
+_,r=plot_select(r,lambda r:r['status'] in ['Downloaded','Downloading','Unpacking','Averaging','Ready','Queued','Unpacked','Staging'],label='In progress',color='yellow')
+_,r=plot_select(r,lambda r:r['status'] in ['Failed','Failed (verified)','Failed (running)','List failed','Download failed','Stage failed','Upload failed'],label='Failed',color='red')
 _,r=plot_select(r,lambda r:r['status']=='Not started',label='Not started',color='black',alpha=0.5)
 ax=plt.gca()
 

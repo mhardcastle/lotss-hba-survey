@@ -321,7 +321,7 @@ def filter_catalogs(pointingras,pointingdecs,mosaiccat,outname,dessourcenums,cat
         if cattype == 'gaus':
             sourceindex=cat[1].data['Source_id'][i]
             sc=SkyCoord(sourcecat[1].data['RA'][sourceindex]*deg2rad*u.rad,sourcecat[1].data['DEC'][sourceindex]*deg2rad*u.rad,frame='icrs')
-        s=sc.to_string(style='hmsdms',sep='',precision=3)
+        #s=sc.to_string(style='hmsdms',sep='',precision=3)
         s=sc.to_string(style='hmsdms',sep='',precision=2)
         identity = str('ILTJ'+s).replace(' ','')[:-1]
         sourceids = np.append(sourceids,identity)
@@ -331,7 +331,7 @@ def filter_catalogs(pointingras,pointingdecs,mosaiccat,outname,dessourcenums,cat
             mosaic_identifier = np.append(mosaic_identifier,mosaiccat.split('/')[-2])
         
         if cattype == 'gaus':
-            mosaic_identifier = np.append(mosaic_identifier,mosaiccat.split('/')[-5])
+            mosaic_identifier = np.append(mosaic_identifier,mosaiccat.split('/')[-2])
         fluxratio = old_div(cat[1].data['Total_flux'][i],cat[1].data['Peak_flux'][i])
         snr  = old_div(cat[1].data['Peak_flux'][i],cat[1].data['Isl_rms'][i])
 
@@ -550,7 +550,7 @@ if __name__=='__main__':
         for r in res:
             id=r['id']
             md=args.mosdirectories[0]+'/'+id
-            print(md,md+outfull)
+            print(md,md+'/'+outfull)
             if os.path.isfile(md+'/'+outfull):
                 #pd=args.pointdirectories[0]+'/'+id
                 mosdirectories.append(md)
@@ -564,9 +564,9 @@ if __name__=='__main__':
 ## Example Call ##
 ###############
 
-# call as e.g. /home/mjh/pipeline-master/ddf-pipeline/scripts/concat-mosaic-cats.py --mosdirectories=/data/lofar/DR2/mosaics/*  --pointdirectories=/data/lofar/DR2/fields/*
+# call as e.g. concat-mosaic-cats.py --mosdirectories=/data/lofar/DR3/mosaics/*
 
-# or concat-mosaic-cats.py --mosdirectories=/data/lofar/DR2/mosaics  --pointdirectories=/data/lofar/DR2/fields --use-database
+# or concat-mosaic-cats.py --mosdirectories=/data/lofar/DR3/mosaics  --use-database
 
 
 ###############

@@ -26,15 +26,15 @@ unpack_name=None
 #upload_thread=None
 basedir='/beegfs/car/mjh/ffr'
 operation=None # all operations
-totallimit=30
-stagelimit=4
+totallimit=50
+stagelimit=6
 
-def update_all_status(field,status):
-    with SurveysDB() as sdb:
+def update_all_status(field,status,**kwargs):
+    with SurveysDB(readonly=True) as sdb:
         sdb.cur.execute('select * from full_field_reprocessing where id=%s and status!="Verified"',(field,))
         results=sdb.cur.fetchall()
     for r in results:
-        update_status(field,r['operation'],status)
+        update_status(field,r['operation'],status,**kwargs)
 
 def do_download(field):
     update_all_status(field,'Downloading')
@@ -61,14 +61,14 @@ def do_unpack(field):
         update_all_status(field,'Unpack failed')
 
 def do_stage(field):
-    update_all_status(field,'Staging')
+    update_all_status(field,'Staging',time='stage_start')
     success=True
     try:
-        stage_field(field,basedir+'/'+field,verbose=True)
+        stage_field(field,basedir+'/'+field,verbose=True,timeout=43200)
     except RuntimeError:
         success=False
     if success:
-        update_all_status(field,'Staged')
+        update_all_status(field,'Staged',time='stage_end')
     else:
         update_all_status(field,'Stage failed')
         
@@ -128,7 +128,7 @@ while True:
             failed+=d[k]
 
     print()
-    ksum=len(glob.glob(basedir+'/*'))-failed
+    ksum=len(glob.glob(basedir+'/*'))
     if ksum<0: ksum=0
     print(ksum,'live directories out of',totallimit)
     print('Next field to work on is',nextfield)
@@ -141,7 +141,7 @@ while True:
             if not stage_threads[k].is_alive():
                 print('Stage thread seems to have terminated')
                 del(stage_threads[k])
-
+                
     if download_thread is not None and not download_thread.is_alive():
         print('Download thread seems to have terminated')
         download_thread=None

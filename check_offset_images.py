@@ -23,7 +23,7 @@ with SurveysDB() as sdb:
 
 dir='/beegfs/lofar/DR3/fields'
 tim_dir='/beegfs/car/shimwell/LoTSS-DR3-pointings/pointing-details'
-dryrun=False
+dryrun=True
 
 for r in results:
     error=False

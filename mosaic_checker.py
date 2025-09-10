@@ -8,7 +8,7 @@ import numpy as np
 from subprocess import call,check_output
 
 wd='/beegfs/lofar/DR3/fields/'
-md='/beegfs/lofar/DR3/mosaics/'
+md='/beegfs/lofar/DR3/mosaics-new/'
 
 queued=[]
 queue=check_output('qstat -a',shell=True,universal_newlines=True).split('\n')
@@ -85,7 +85,7 @@ for r in results:
         if field in queued:
             print('Field is in the queue already')
         else:
-            print('qsub -v FIELD=%s -N mosaic-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/mosaic_dr3.qsub' % (field,field))
+            print('qsub -v FIELD=%s -N mosaic-%s /home/mjh/pipeline-master/lotss-hba-survey/torque/mosaic_dr3_new.qsub' % (field,field))
         count+=1
 
 print('%i pointings are ready out of %i from DR3' % (count,len(results)))
