@@ -22,8 +22,6 @@ if __name__=='__main__':
         print(datetime.now())
         print()
 
-        os.system('chmod +r /beegfs/car/mjh/torque/*')
-        
         # make status plot
         separator('Making plots')
         os.system('plot_db_projection.py /home/mjh/lofar-surveys/static/Tier1-dbstatus.png')
@@ -34,9 +32,9 @@ if __name__=='__main__':
         os.system('plot_ffr.py StokesV /home/mjh/lofar-surveys/static/ffr_stokesv.png')
 
         # make JSON file for HIPS
-        separator('Make JSON file')
-        os.chdir('/home/mjh/lofar-surveys/static/lotss_aladin')
-        os.system('python survey_status_mysql.py')
+        #separator('Make JSON file')
+        #os.chdir('/home/mjh/lofar-surveys/static/lotss_aladin')
+        #os.system('python survey_status_mysql.py')
 
         '''
         if not skip_construct:
@@ -117,31 +115,34 @@ if __name__=='__main__':
                                     print('Need to download',field+'/'+f,'from archive')
                                     failcount+=1
                         if failcount>0 and r['dr3']:
-                            os.system('get_images.py '+field)
+                            pass
+                            #os.system('get_images.py '+field)
 
 
         separator('Write web pages')
+        with SurveysDB() as sdb:
+            sdb.cur.execute('select * from healpix_mosaic_quality order by ra')
+            mosaics=sdb.cur.fetchall()
 
         for page in ['dr3']:
-            outfile=open('/home/mjh/lofar-surveys/templates/'+page+'-mosaics.html','w')
-            workdir='/data/lofar/DR3'
-            for r in lotss:
+            outfile=open(f'/home/mjh/lofar-surveys/templates/{page}-mosaics.html','w')
+
+            for r in mosaics:
                 field=r['id']
-                fwdir=workdir+'/mosaics/'+field
-                if os.path.isdir(fwdir) and os.path.isfile(fwdir+'/mosaic-blanked.fits'):
-                    if page=='dr3':
-                        root='downloads'
-                    else:
-                        root='public'
-                    root+='/DR3/mosaics/'+field+'/'
-                    f=link('mosaic-blanked.fits',field,root,'Download',workdir+'/mosaics/')
-                    rms=link('mosaic-blanked--final.rms.fits',field,root,'Download',workdir+'/mosaics/')
-                    resid=link('mosaic-blanked--final.resid.fits',field,root,'Download',workdir+'/mosaics/')
-                    weights=link('mosaic-weights.fits',field,root,'Download',workdir+'/mosaics/')
-                    mask=link('mosaic-blanked--final.mask.fits',field,root,'Download',workdir+'/mosaics/')
-                    low=link('low-mosaic-blanked.fits',field,root,'Download',workdir+'/mosaics/')
-                    lowweight=link('low-mosaic-weights.fits',field,root,'Download',workdir+'/mosaics/')
-                    catalogue=link('mosaic-blanked--final.srl.fits',field,root,'Download',workdir+'/mosaics/')
+                workdir='/data/lofar/DR3'
+                fwdir=workdir+'/healpix_mosaics/'+field
+                if os.path.isfile(fwdir+'/mosaic-blanked.fits'):
+                    root='public'
+                    root+='/DR3/healpix_mosaics/'+field+'/'
+                    wdir=workdir+'/healpix_mosaics/'
+                    f=link('mosaic.fits',field,root,'Download',wdir)
+                    rms=link('mosaic--final.rms.fits',field,root,'Download',wdir)
+                    resid=link('mosaic--final.resid.fits',field,root,'Download',wdir)
+                    weights=link('mosaic-weights.fits',field,root,'Download',wdir)
+                    mask=link('mosaic--final.mask.fits',field,root,'Download',wdir)
+                    low=link('low-mosaic.fits',field,root,'Download',wdir)
+                    lowweight=link('low-mosaic-weights.fits',field,root,'Download',wdir)
+                    catalogue=link('mosaic--final.srl.fits',field,root,'Download',wdir)
                     #image=root+'mosaic-blanked.png'
                     #headers=root+'fits_headers.tar'
                     outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%i</td><td>%i</td><td>%.1f</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td><td>%s</td></tr>\n' % (field,r['ra'],r['decl'],r['resolution'],r['rms']*1e6,r['pixels']*(1.5**2/3600**2),f,rms,resid,weights,mask,low,lowweight))
@@ -151,12 +152,12 @@ if __name__=='__main__':
 
         for r in result:
             field=r['id']
-            if r['dr2']:
-                lroot='downloads/DR2/fields/'+field+'/'
-                workdir='/data/lofar/DR2'
-            else:
-                lroot='downloads/DR3/fields/'+field+'/'
-                workdir='/data/lofar/DR3'
+            #if r['dr2']:
+            #    lroot='downloads/DR2/fields/'+field+'/'
+            #    workdir='/data/lofar/DR2'
+            #else:
+            lroot='public/DR3/fields/'+field+'/'
+            workdir='/data/lofar/DR3'
             if os.path.isdir(workdir+'/fields/'+field):
                 fint=link('image_full_ampphase_di_m.NS.int.restored.fits',field,lroot,'True',workdir+'/fields/')
                 fapp=link('image_full_ampphase_di_m.NS.app.restored.fits',field,lroot,'App',workdir+'/fields/')
@@ -165,10 +166,14 @@ if __name__=='__main__':
                 #band=[]
                 #for i in range(3):
                 #    band.append(link('image_full_ampphase_di_m.NS_Band%i_shift.int.facetRestored.fits' % i,field,lroot,'%i' %i, workdir+'/fields/'))
-                stokesv=link('image_full_low_stokesV.dirty.fits',field,lroot,'Download',workdir+'/fields/')
-                if stokesv.startswith('&'):
-                    stokesv=link('image_full_high_stokesV.dirty.corr.fits',field,lroot,'Download',workdir+'/fields/')
-                    
+                stokesvlow=link('image_full_low_stokesV.dirty.fits',field,lroot,'Download',workdir+'/fields/')
+                g=glob.glob(workdir+'/fields/'+field+'/'+'image_full_high_stokesV*corr.fits')
+                stokesvhigh=[]
+                for f in g:
+                    filename=f.split('/')[-1]
+                    observation=filename.replace('image_full_high_stokesV_','').split('.')[0]
+                    stokesvhigh.append(link(filename,field,lroot,observation,workdir+'/fields/'))
+                stokesvhigh=', '.join(stokesvhigh)
                 #stokesqu=link('image_full_low_QU.cube.dirty.corr.fits.fz',field,lroot,'Low true',workdir+'/fields/')
                 #stokesquvlow=link('image_full_vlow_QU.cube.dirty.corr.fits.fz',field,lroot,'Vlow true',workdir+'/fields/')
                 #stokesqu_app=link('image_full_low_QU.cube.dirty.fits.fz',field,lroot,'Low app',workdir+'/fields/')
@@ -177,15 +182,38 @@ if __name__=='__main__':
                     scale='&mdash;'
                 else:
                     scale="%.3f" % (5.9124/r['nvss_scale'])
-                outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%s, %s</td><td>%s</td></tr>\n' % (field,r['ra'],r['decl'],r['end_date'],scale,fint,fapp,lowint,lowapp,stokesv)) #,stokesqu,stokesquvlow,stokesqu_app,stokesquvlow_app))
+                outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%s, %s</td><td>%s</td><td>%s</td></tr>\n' % (field,r['ra'],r['decl'],r['end_date'],scale,fint,fapp,lowint,lowapp,stokesvlow,stokesvhigh)) #,stokesqu,stokesquvlow,stokesqu_app,stokesquvlow_app))
+
+        outfile.close()
+
+        outfile=open('/home/mjh/lofar-surveys/templates/dr3-fields-public.html','w')
+
+        for r in result:
+            if not r['dr3']: continue
+            field=r['id']
+            lroot='public/DR3/fields/'+field+'/'
+            workdir='/data/lofar/DR3'
+            if os.path.isdir(workdir+'/fields/'+field):
+                fint=link('image_full_ampphase_di_m.NS.int.restored.fits',field,lroot,'True',workdir+'/fields/')
+                fapp=link('image_full_ampphase_di_m.NS.app.restored.fits',field,lroot,'App',workdir+'/fields/')
+                lowint=link('image_full_low_m.int.restored.fits',field,lroot,'True',workdir+'/fields/')
+                lowapp=link('image_full_low_m.app.restored.fits',field,lroot,'App',workdir+'/fields/')
+                #band=[]
+                #for i in range(3):
+                #    band.append(link('image_full_ampphase_di_m.NS_Band%i_shift.int.facetRestored.fits' % i,field,lroot,'%i' %i, workdir+'/fields/'))
+                if r['nvss_scale'] is None:
+                    scale='&mdash;'
+                else:
+                    scale="%.3f" % (5.9124/r['nvss_scale'])
+                outfile.write('<tr><td>%s</td><td>%.3f</td><td>%.3f</td><td>%s</td><td>%s</td><td>%s, %s</td><td>%s, %s</td></tr>\n' % (field,r['ra'],r['decl'],r['end_date'],scale,fint,fapp,lowint,lowapp)) #,stokesqu,stokesquvlow,stokesqu_app,stokesquvlow_app))
 
         outfile.close()
 
         separator('Publications list')
         os.system('python /home/mjh/python/ads_library.py')
 
-        separator('Quality pipeline')
-        os.system('queue_quality.py')
+        #separator('Quality pipeline')
+        #os.system('queue_quality.py')
         separator('Sleeping')
 
         sleep(7200)

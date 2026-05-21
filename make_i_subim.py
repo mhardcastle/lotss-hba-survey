@@ -9,6 +9,7 @@ import os
 from astropy.coordinates import SkyCoord,get_icrs_coordinates
 from make_subim import extract_and_save
 import astropy.units as u
+from astropy_healpix import HEALPix
 
 def parse_position(argv):
     # take a calling argument list and return name, position and size
@@ -41,21 +42,16 @@ def parse_position(argv):
     return objname,ra,dec,imsize
 
 if __name__=='__main__':
-
+    print('** This code now looks at the mosaics directory! **')
     objname,ra,dec,imsize=parse_position(sys.argv)
-
-    field=find_pos(ra,dec,offset=3.5)
-
-    if field is None:
-        print('Archived image does not exist')
-    else:
-        wd='/data/lofar/DR3/fields/'+field
-        if not os.path.isdir(wd):
-            wd='/data/lofar/fields_proprietary/'+field
-            if not os.path.isdir(wd):
-                raise RuntimeError('Directory does not exist')
-        print('Extracting FULL total intensity cutout')
-        extract_and_save(wd+'/image_full_ampphase_di_m.NS.int.restored.fits',ra,dec,imsize,outname=objname+'_I.fits')
-        print('Extracting LOW total intensity cutout')
-        extract_and_save(wd+'/image_full_low_m.int.restored.fits',ra,dec,imsize,outname=objname+'_I_low.fits')
+    hp=HEALPix(nside=16)
+    pixel=hp.lonlat_to_healpix(ra*u.deg,dec*u.deg)
+    print('Looking at healpix pixel',pixel)
+    wd='/beegfs/lofar/DR3/healpix_mosaics/'+str(pixel)
+    if not os.path.isdir(wd):
+        raise RuntimeError('Directory does not exist')
+    print('Extracting FULL total intensity cutout')
+    extract_and_save(wd+'/mosaic.fits',ra,dec,imsize,outname=objname+'_I.fits')
+    print('Extracting LOW total intensity cutout')
+    extract_and_save(wd+'/low-mosaic.fits',ra,dec,imsize,outname=objname+'_I_low.fits')
         

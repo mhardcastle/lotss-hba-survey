@@ -12,12 +12,13 @@ for dir in sys.argv[1:]:
     for f in files:
         if os.path.isfile(dir+'/'+f):
             print('Copying',f)
-            os.system(f'cp {dir}/{f} /beegfs/lofar/DR3/fields/{dir}')
-    g=glob.glob(dir+'/*Dyn*tgz')
-    if len(g):
-        for f in g:
-            print('Copying',f)
-            os.system(f'cp {f} /beegfs/lofar/DR3/fields/{dir}')
-    os.system(f'rm -rf {dir}')
+            assert(os.system(f'cp {dir}/{f} /data/lofar/DR3/fields/{dir}')==0)
+    for globstring in ['*Dyn*tgz','image_full_high_stokesV_*.dirty.corr.fits','image_full_high_stokesV_*.dirty.fits']:
+        g=glob.glob(dir+'/'+globstring)
+        if len(g):
+            for f in g:
+                print('Copying',f)
+                assert(os.system(f'cp {f} /data/lofar/DR3/fields/{dir}')==0)
+    assert(os.system(f'rm -rf {dir}')==0)
 
     
